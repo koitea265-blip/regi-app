@@ -12,10 +12,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #f3f4f6; }
-        /* ひっ算用の等幅フォントと右揃え設定 */
-        .math-font { font-family: 'Courier New', Courier, monospace; letter-spacing: 0.5rem; }
-        .receipt-scroll { max-height: 40vh; overflow-y: auto; }
         
+        /* */
+        /* 方眼紙のデザイン */
+        .graph-paper {
+            background-size: 44px 44px;
+            background-image: 
+                linear-gradient(to right, #bae6fd 1px, transparent 1px),
+                linear-gradient(to bottom, #bae6fd 1px, transparent 1px);
+            background-color: #f0f9ff;
+            border: 2px solid #0284c7;
+        }
+
+        /* スキャンライン（レーザー）アニメーション */
+        @keyframes laser {
+            0% { top: 0%; opacity: 0.3; }
+            50% { top: 100%; opacity: 1; }
+            100% { top: 0%; opacity: 0.3; }
+        }
+        .laser-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(180deg, rgba(239, 68, 68, 0) 0%, rgba(239, 68, 68, 1) 50%, rgba(239, 68, 68, 0) 100%);
+            box-shadow: 0 0 15px #ef4444, 0 0 5px #ef4444;
+            animation: laser 3.5s linear infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
         /* 成功時のスタンプアニメーション */
         @keyframes stamp {
             0% { transform: scale(5) rotate(-20deg); opacity: 0; }
@@ -24,164 +50,246 @@
         }
         .stamp-animation { animation: stamp 0.5s ease-out forwards; color: #ef4444; border: 8px solid #ef4444; }
 
-        /* カメラ反転用のCSS (idセレクタで強力に効かせる) */
-        #reader video {
+        /* カメラ反転用のCSS */
+        .flipped-video video {
             transform: scaleX(-1) !important;
         }
     </style>
 </head>
-<body class="h-screen flex flex-col">
+<body class="h-screen flex flex-col select-none">
 
-    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
-        <h1 class="text-2xl font-bold">🛒 算数セルフレジ</h1>
+    <!-- -->
+    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center z-10">
+        <h1 class="text-2xl font-bold flex items-center gap-2">🛒 算数セルフレジ</h1>
+        <span class="bg-blue-800 text-xs px-3 py-1.5 rounded-full font-bold">Ver 2.5 (カメラ強化&計算メモ搭載)</span>
     </header>
 
-    <main class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden">
+    <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden">
         
-        <!-- 左側：スキャンエリア -->
-        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4">
-            <h2 class="text-xl font-bold mb-4 text-center text-gray-700">バーコードをかざしてね</h2>
+        <!-- 左側：スキャンエリア（超大型化） -->
+        <section class="flex-[1.3] bg-white rounded-xl shadow-lg flex flex-col p-4">
+            <h2 class="text-xl font-bold mb-3 text-center text-gray-700">バーコードをあかい線にあわせてね</h2>
             
-            <div id="reader-container" class="flex-1 flex flex-col justify-center items-center bg-gray-100 rounded-lg overflow-hidden relative">
-                <!-- カメラ映像がここに直接描画される -->
-                <div id="reader" class="w-full h-full max-h-[300px]"></div>
+            <div id="reader-container" class="flex-1 flex flex-col justify-center items-center bg-gray-950 rounded-lg overflow-hidden relative border-4 border-gray-800">
+                <!-- スキャンレーザー -->
+                <div class="laser-line"></div>
+                <!-- カメラ映像の描画領域 -->
+                <div id="reader" class="w-full h-full min-h-[350px] lg:min-h-[450px]"></div>
             </div>
             
-            <p id="scan-status" class="text-center mt-4 text-sm text-gray-600 font-bold bg-yellow-100 p-2 rounded">
+            <p id="scan-status" class="text-center mt-3 text-sm text-gray-600 font-bold bg-yellow-100 p-2.5 rounded border border-yellow-200">
                 カメラをじゅんび中...
             </p>
 
-            <div class="flex gap-2 mt-4">
+            <div class="flex gap-2 mt-3">
                 <button onclick="toggleCamera()" id="toggle-camera-btn" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition active:scale-95 text-sm hidden">
-                    📷 カメラ切替
+                    📷 カメラ向き切り替え
                 </button>
-                <button onclick="simulateScan()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition active:scale-95 text-sm">
-                    ピッ！(テスト)
+                <button onclick="simulateScan()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition active:scale-95 text-sm flex items-center justify-center gap-2">
+                    <span>✨ ピッ！(テスト用ボタン)</span>
                 </button>
             </div>
         </section>
 
-        <!-- 右側：レジ（カート）エリア -->
+        <!-- 右側：おかいあげカート -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 relative">
-            <h2 class="text-xl font-bold mb-4 text-gray-700 border-b-2 border-gray-200 pb-2">おかいあげ</h2>
+            <h2 class="text-xl font-bold mb-3 text-gray-700 border-b-2 border-gray-200 pb-2">おかいあげ商品</h2>
             
-            <!-- 購入商品リスト -->
-            <ul id="cart-list" class="receipt-scroll flex-1 space-y-2 mb-4">
-                <li class="text-gray-400 text-center mt-10">商品がありません</li>
+            <ul id="cart-list" class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1">
+                <li class="text-gray-400 text-center mt-16">レジに商品をかざしてね！</li>
             </ul>
 
-            <!-- 合計金額と会計ボタン -->
-            <div class="border-t-4 border-gray-800 pt-4">
+            <div class="border-t-4 border-gray-800 pt-4 bg-white">
                 <div class="flex justify-between items-end mb-4">
                     <span class="text-xl font-bold text-gray-700">ごうけい</span>
-                    <span class="text-3xl font-bold text-red-600">¥<span id="total-price">0</span></span>
+                    <span class="text-4xl font-black text-red-600">¥<span id="total-price">0</span></span>
                 </div>
-                <button onclick="startCheckout()" id="checkout-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xl py-4 rounded-xl shadow-lg transform transition active:scale-95 disabled:bg-gray-400 disabled:transform-none">
+                <button onclick="startCheckout()" id="checkout-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xl py-4.5 rounded-xl shadow-lg transform transition active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
                     おかいけいする
                 </button>
             </div>
         </section>
     </main>
 
-    <div id="math-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex justify-center items-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+    <!-- -->
+    <!-- 算数おつり計算モーダル -->
+    <div id="math-modal" class="fixed inset-0 bg-black bg-opacity-85 hidden flex justify-center items-center z-50 p-3 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col my-auto">
+            
             <div class="bg-blue-600 text-white p-4 text-center">
                 <h3 class="text-xl font-bold">おつりを けいさん しよう！</h3>
-                <p id="payment-text" class="text-sm mt-1"></p>
+                <p id="payment-text" class="text-sm mt-1 bg-blue-700 py-1 px-3 rounded-full inline-block"></p>
             </div>
             
-            <div class="p-6 flex-1 flex flex-col items-center justify-center bg-gray-50">
-                <!-- ひっ算表示エリア -->
-                <div class="text-4xl math-font font-bold text-right flex flex-col items-end border-b-4 border-gray-800 pb-2 w-48">
-                    <div id="math-payment" class="tracking-[0.5em]">1000</div>
-                    <div class="flex items-center w-full justify-between">
-                        <span class="">-</span>
-                        <span id="math-total" class="tracking-[0.5em]">850</span>
+            <div class="p-4 flex-1 flex flex-col items-center bg-sky-50 relative">
+                
+                <!-- 手書きパレット（Canvasコントローラー） -->
+                <div class="w-full flex justify-between items-center mb-2 bg-white p-2 rounded-lg shadow-sm border border-sky-100 z-20">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-gray-500">✏️ メモペン:</span>
+                        <button onclick="changePenColor('#ef4444')" id="btn-pen-red" class="w-6 h-6 rounded-full bg-red-500 border-2 border-white shadow ring-2 ring-red-500"></button>
+                        <button onclick="changePenColor('#3b82f6')" id="btn-pen-blue" class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow"></button>
+                        <button onclick="changePenColor('#1f2937')" id="btn-pen-black" class="w-6 h-6 rounded-full bg-gray-800 border-2 border-white shadow"></button>
                     </div>
+                    <button onclick="clearCanvas()" class="text-xs bg-orange-100 text-orange-700 font-bold py-1 px-3 rounded hover:bg-orange-200 transition">
+                        🧹 メモを全ぶ消去
+                    </button>
                 </div>
-                <!-- 入力エリア -->
-                <div id="math-answer" class="text-5xl math-font font-bold text-blue-600 text-right w-48 mt-2 h-12 tracking-[0.5em]">
-                    <!-- 入力された数字がここに入る -->
+
+                <!-- 方眼紙ひっ算エリア (手書きキャンバス内包) -->
+                <div class="relative w-[320px] h-[320px] rounded-xl overflow-hidden shadow-md border-2 border-sky-400 select-none">
+                    <!-- 背景：方眼紙 -->
+                    <div id="graph-field" class="absolute inset-0 graph-paper grid grid-cols-5 grid-rows-5 p-2 pt-4">
+                        
+                        <!-- 1行目: 支払額 (1000など) -->
+                        <div class="flex justify-center items-center text-3xl font-bold text-gray-400 math-font opacity-20">-</div>
+                        <div id="cell-p3" class="flex justify-center items-center text-3xl font-bold text-gray-800 math-font">1</div>
+                        <div id="cell-p2" class="flex justify-center items-center text-3xl font-bold text-gray-800 math-font">0</div>
+                        <div id="cell-p1" class="flex justify-center items-center text-3xl font-bold text-gray-800 math-font">0</div>
+                        <div id="cell-p0" class="flex justify-center items-center text-3xl font-bold text-gray-800 math-font">0</div>
+
+                        <!-- 2行目: 引く数 (- 850など) -->
+                        <div class="flex justify-center items-center text-4xl font-extrabold text-blue-600 math-font select-none">-</div>
+                        <div id="cell-t3" class="flex justify-center items-center text-3xl font-bold text-gray-800 math-font"></div>
+                        <div id="cell-t2" class="flex justify-center items-center text-3xl font-bold text-gray-800 math-font">8</div>
+                        <div id="cell-t1" class="flex justify-center items-center text-3xl font-bold text-gray-800 math-font">5</div>
+                        <div id="cell-t0" class="flex justify-center items-center text-3xl font-bold text-gray-800 math-font">0</div>
+
+                        <!-- 3行目: 引き算の横線 (グリッドを横断する太い線) -->
+                        <div class="col-span-5 flex items-center px-1">
+                            <div class="w-full h-1.5 bg-gray-800 rounded"></div>
+                        </div>
+
+                        <!-- 4行目: 答えの1桁入力マス -->
+                        <div class="flex justify-center items-center text-3xl font-bold text-gray-400 math-font opacity-20">=</div>
+                        
+                        <!-- 千の位入力マス -->
+                        <div onclick="setFocusDigit(3)" id="input-box-3" class="m-1 rounded border-2 border-sky-300 bg-white flex justify-center items-center text-3xl font-extrabold text-blue-600 cursor-pointer shadow-inner transition hover:border-blue-400">
+                            <span id="ans-val-3"></span>
+                        </div>
+                        <!-- 百の位入力マス -->
+                        <div onclick="setFocusDigit(2)" id="input-box-2" class="m-1 rounded border-2 border-sky-300 bg-white flex justify-center items-center text-3xl font-extrabold text-blue-600 cursor-pointer shadow-inner transition hover:border-blue-400">
+                            <span id="ans-val-2"></span>
+                        </div>
+                        <!-- 十の位入力マス -->
+                        <div onclick="setFocusDigit(1)" id="input-box-1" class="m-1 rounded border-2 border-sky-300 bg-white flex justify-center items-center text-3xl font-extrabold text-blue-600 cursor-pointer shadow-inner transition hover:border-blue-400">
+                            <span id="ans-val-1"></span>
+                        </div>
+                        <!-- 一の位入力マス -->
+                        <div onclick="setFocusDigit(0)" id="input-box-0" class="m-1 rounded border-2 border-sky-300 bg-white flex justify-center items-center text-3xl font-extrabold text-blue-600 cursor-pointer shadow-inner transition hover:border-blue-400">
+                            <span id="ans-val-0"></span>
+                        </div>
+
+                        <!-- 5行目: マスの説明（位のラベル） -->
+                        <div class="flex justify-center items-center text-xs text-blue-400 font-bold"></div>
+                        <div class="flex justify-center items-center text-xs text-blue-500 font-bold bg-sky-100/50 rounded m-0.5">千の位</div>
+                        <div class="flex justify-center items-center text-xs text-blue-500 font-bold bg-sky-100/50 rounded m-0.5">百の位</div>
+                        <div class="flex justify-center items-center text-xs text-blue-500 font-bold bg-sky-100/50 rounded m-0.5">十の位</div>
+                        <div class="flex justify-center items-center text-xs text-blue-500 font-bold bg-sky-100/50 rounded m-0.5">一の位</div>
+                    </div>
+
+                    <!-- 計算手書き用オーバーレイCanvas (1-2行目のみに被せ、入力マスと干渉させない) -->
+                    <canvas id="memo-canvas" class="absolute top-0 left-0 w-full h-[180px] cursor-crosshair z-10 touch-none"></canvas>
                 </div>
-                <p id="math-message" class="h-6 text-red-500 font-bold mt-2"></p>
+
+                <p id="math-message" class="h-6 text-red-600 font-bold mt-2 text-center text-sm"></p>
             </div>
 
-            <!-- テンキー (10キー) -->
-            <div class="grid grid-cols-3 gap-2 p-4 bg-gray-200">
-                <button onclick="inputNumber(7)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">7</button>
-                <button onclick="inputNumber(8)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">8</button>
-                <button onclick="inputNumber(9)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">9</button>
-                <button onclick="inputNumber(4)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">4</button>
-                <button onclick="inputNumber(5)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">5</button>
-                <button onclick="inputNumber(6)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">6</button>
-                <button onclick="inputNumber(1)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">1</button>
-                <button onclick="inputNumber(2)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">2</button>
-                <button onclick="inputNumber(3)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">3</button>
-                <button onclick="clearNumber()" class="bg-red-200 text-red-800 py-3 text-xl font-bold rounded shadow hover:bg-red-300">クリア</button>
-                <button onclick="inputNumber(0)" class="bg-white py-3 text-2xl font-bold rounded shadow hover:bg-gray-100">0</button>
-                <button onclick="checkAnswer()" class="bg-green-500 text-white py-3 text-xl font-bold rounded shadow hover:bg-green-600">こたえあわせ</button>
+            <!-- テンキーエリア -->
+            <div class="grid grid-cols-3 gap-1.5 p-4 bg-gray-100 border-t border-gray-200">
+                <button onclick="pressKey(7)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">7</button>
+                <button onclick="pressKey(8)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">8</button>
+                <button onclick="pressKey(9)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">9</button>
+                <button onclick="pressKey(4)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">4</button>
+                <button onclick="pressKey(5)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">5</button>
+                <button onclick="pressKey(6)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">6</button>
+                <button onclick="pressKey(1)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">1</button>
+                <button onclick="pressKey(2)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">2</button>
+                <button onclick="pressKey(3)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">3</button>
+                <button onclick="deleteDigit()" class="bg-red-100 text-red-700 py-3.5 text-lg font-bold rounded-xl shadow active:bg-red-200 flex items-center justify-center">一字消す</button>
+                <button onclick="pressKey(0)" class="bg-white py-3.5 text-2xl font-bold rounded-xl shadow active:bg-gray-200">0</button>
+                <button onclick="validateMathAnswer()" class="bg-green-500 text-white py-3.5 text-lg font-bold rounded-xl shadow hover:bg-green-600 active:scale-95 transition">こたえあわせ</button>
             </div>
             
-            <button onclick="closeModal()" class="w-full py-3 bg-gray-300 text-gray-700 font-bold">やめる</button>
+            <button onclick="closeModal()" class="w-full py-3.5 bg-gray-300 text-gray-700 font-bold hover:bg-gray-400 transition">やめる</button>
         </div>
     </div>
 
-    <div id="success-overlay" class="fixed inset-0 bg-white bg-opacity-90 hidden flex flex-col justify-center items-center z-[60]">
-        <div class="stamp-animation rounded-full w-64 h-64 flex items-center justify-center bg-white shadow-2xl">
-            <span class="text-5xl font-black">大正解!!</span>
+    <!-- お祝い画面 -->
+    <div id="success-overlay" class="fixed inset-0 bg-white bg-opacity-95 hidden flex flex-col justify-center items-center z-[60]">
+        <div class="stamp-animation rounded-full w-72 h-72 flex items-center justify-center bg-white shadow-2xl">
+            <span class="text-6xl font-black tracking-wider">大正解!!</span>
         </div>
-        <button onclick="resetApp()" class="mt-12 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full shadow-lg text-2xl">
+        <p class="text-xl font-bold text-gray-600 mt-6">おつりのけいさん、ばっちりだね！🎉</p>
+        <button onclick="resetApp()" class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full shadow-lg text-2xl active:scale-95 transform transition">
             つぎのお客さんをよぶ
         </button>
     </div>
 
+    <!-- -->
     <script>
         // ==========================================
-        // 商品データと状態管理
+        // 商品データベース
         // ==========================================
         const productDB = [
-            { name: "おいしい牛乳", price: 250 },
-            { name: "メロンパン", price: 150 },
-            { name: "ポテトチップス", price: 180 },
-            { name: "板チョコレート", price: 120 },
-            { name: "シャケおにぎり", price: 130 },
-            { name: "りんご", price: 100 },
-            { name: "オレンジジュース", price: 160 },
-            { name: "カップラーメン", price: 220 }
+            { name: "おいしい牛乳 🥛", price: 250 },
+            { name: "やきたてメロンパン 🍞", price: 150 },
+            { name: "ポテトチップス 🥔", price: 180 },
+            { name: "板チョコレート 🍫", price: 120 },
+            { name: "シャケおにぎり 🍙", price: 130 },
+            { name: "あかい真っ赤なりんご 🍎", price: 100 },
+            { name: "フレッシュみかんジュース 🍊", price: 160 },
+            { name: "カップうどん 🍜", price: 220 }
         ];
 
         let cart = [];
         let html5QrCode = null;
         let lastScanTime = 0;
-        let currentFacingMode = "user"; // デフォルトを前面(user)に設定
+        let currentFacingMode = "user"; // フロントカメラ初期設定
         let isScanning = false;
         
-        // 算数用の状態
+        // 算数システム状態
         let currentTotal = 0;
         let currentPayment = 0;
         let correctAnswer = 0;
-        let userAnswer = "";
+        
+        // 位ごと(0=一の位, 1=十の位, 2=百の位, 3=千の位)の入力値保持
+        let digitValues = { 0: "", 1: "", 2: "", 3: "" };
+        let activeFocusDigit = 0; // 現在入力対象の位 (デフォルト:一の位)
+
+        // 手書きメモ状態
+        let canvas, ctx;
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+        let penColor = '#ef4444'; // 初期ペン色（赤）
+
+        // 音声シンセ
+        let beepSynth = null;
+        let successSynth = null;
+        let errorSynth = null;
 
         // ==========================================
-        // 音声・カメラの初期化
+        // 初期起動イベント
         // ==========================================
         window.onload = function() {
             initScanner();
             updateCartUI();
+            setupMemoCanvas();
         };
 
+        // ==========================================
+        // カメラ制御
+        // ==========================================
         async function initScanner() {
             const statusEl = document.getElementById('scan-status');
-            statusEl.innerText = "カメラを起動中...";
+            statusEl.innerText = "カメラを読み込んでいます...";
             
             try {
-                // 1. カメラが存在するかチェック
                 const devices = await Html5Qrcode.getCameras();
                 if (!devices || devices.length === 0) {
                     throw new Error("カメラデバイスが見つかりません");
                 }
 
-                // 複数カメラがある場合は切替ボタンを表示
                 if (devices.length > 1) {
                     document.getElementById('toggle-camera-btn').classList.remove('hidden');
                 }
@@ -190,40 +298,39 @@
                 startCamera();
 
             } catch (err) {
-                console.warn("カメラの起動をスキップしました: ", err);
-                statusEl.innerText = "カメラが使えないみたい。下のボタンで遊んでね！";
-                statusEl.className = "text-center mt-4 text-sm text-red-700 font-bold bg-red-100 p-2 rounded";
+                console.warn("カメラ制限:", err);
+                statusEl.innerText = "テストボタンを使ってお買い物体験をしてね！";
+                statusEl.className = "text-center mt-3 text-sm text-red-700 font-bold bg-red-100 p-2.5 rounded border border-red-200";
             }
         }
 
         async function startCamera() {
             const statusEl = document.getElementById('scan-status');
             const config = { 
-                fps: 10, 
-                qrbox: { width: 250, height: 250 },
-                // 反転した状態でもバーコードを読めるようにする設定
+                fps: 15, 
+                qrbox: function(width, height) {
+                    const size = Math.min(width, height) * 0.75;
+                    return { width: size, height: size };
+                },
                 disableFlip: false 
             };
 
             try {
-                // 現在のfacingMode(前面or背面)で起動
                 await html5QrCode.start({ facingMode: currentFacingMode }, config, onScanSuccess, onScanFailure);
                 isScanning = true;
-                statusEl.innerText = currentFacingMode === "user" ? "前面カメラ起動中！" : "背面カメラ起動中！";
-                statusEl.className = "text-center mt-4 text-sm text-green-700 font-bold bg-green-100 p-2 rounded";
+                statusEl.innerText = currentFacingMode === "user" ? "インカメラ起動中！鏡のように映るよ" : "アウトカメラ起動中！";
+                statusEl.className = "text-center mt-3 text-sm text-green-700 font-bold bg-green-100 p-2.5 rounded border border-green-200";
                 
-                // 前面カメラの時だけ映像を反転させるクラスを付け外しする
                 const readerDiv = document.getElementById('reader');
-                if(currentFacingMode === "user"){
-                   readerDiv.classList.add("flipped-video");
+                if (currentFacingMode === "user") {
+                    readerDiv.classList.add("flipped-video");
                 } else {
-                   readerDiv.classList.remove("flipped-video");
+                    readerDiv.classList.remove("flipped-video");
                 }
 
             } catch (err) {
-                console.warn("指定のカメラ起動失敗:", err);
-                statusEl.innerText = "カメラ起動エラー。テストボタンを使ってね。";
-                statusEl.className = "text-center mt-4 text-sm text-red-700 font-bold bg-red-100 p-2 rounded";
+                console.warn("カメラ起動失敗:", err);
+                statusEl.innerText = "テストボタンでバーコードスキャンをシミュレートできます。";
             }
         }
 
@@ -232,33 +339,19 @@
                 await html5QrCode.stop();
                 isScanning = false;
             }
-            // 前面と背面を切り替える
             currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-            
-            // CSSによる反転処理の切り替え（背面カメラは反転させない）
-            const readerStyle = document.getElementById('reader');
-            if (currentFacingMode === "user") {
-                readerStyle.style.transform = "scaleX(-1)";
-            } else {
-                readerStyle.style.transform = "none";
-            }
-            
             startCamera();
         }
 
         // ==========================================
-        // スキャン・レジ処理
-        // ==========================================
+        //        // ==========================================
         function onScanSuccess(decodedText, decodedResult) {
-            // 連続スキャン防止 (2秒間隔)
-            if (Date.now() - lastScanTime < 2000) return;
+            if (Date.now() - lastScanTime < 2500) return;
             lastScanTime = Date.now();
             addToCart();
         }
 
-        function onScanFailure(error) {
-            // スキャン中、バーコードが見つからないフレームごとに呼ばれるため無視する
-        }
+        function onScanFailure(error) {}
 
         async function simulateScan() {
             if (typeof Tone !== 'undefined') {
@@ -268,13 +361,9 @@
         }
 
         function addToCart() {
-            // ランダムに商品を選ぶ
             const product = productDB[Math.floor(Math.random() * productDB.length)];
             cart.push(product);
-            
-            // ピッ！という音を鳴らす
-            playBeep();
-            
+            playRealBeep();
             updateCartUI();
         }
 
@@ -284,7 +373,7 @@
             const checkoutBtn = document.getElementById('checkout-btn');
             
             if (cart.length === 0) {
-                listEl.innerHTML = '<li class="text-gray-400 text-center mt-10">商品がありません</li>';
+                listEl.innerHTML = '<li class="text-gray-400 text-center mt-16">レジに商品をかざしてね！</li>';
                 totalEl.innerText = '0';
                 checkoutBtn.disabled = true;
                 return;
@@ -294,30 +383,121 @@
             listEl.innerHTML = '';
             currentTotal = 0;
 
-            cart.forEach((item, index) => {
+            cart.forEach((item) => {
                 currentTotal += item.price;
                 const li = document.createElement('li');
-                li.className = "flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-100";
+                li.className = "flex justify-between items-center bg-gray-50 p-3.5 rounded-xl border border-gray-150 shadow-sm";
                 li.innerHTML = `
-                    <span class="font-bold text-gray-700">${item.name}</span>
-                    <span class="font-bold text-gray-900">¥${item.price}</span>
+                    <span class="font-bold text-gray-700 text-base">${item.name}</span>
+                    <span class="font-extrabold text-gray-900 text-lg">¥${item.price}</span>
                 `;
                 listEl.appendChild(li);
             });
 
             totalEl.innerText = currentTotal;
-            // スクロールを一番下へ
             listEl.scrollTop = listEl.scrollHeight;
         }
 
         // ==========================================
-        // 算数（おつり計算）処理
+        //        // ==========================================
+        function setupMemoCanvas() {
+            canvas = document.getElementById('memo-canvas');
+            ctx = canvas.getContext('2d');
+
+            // キャンバスサイズを実際の要素サイズに一致させる
+            function resizeCanvas() {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            }
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // マウス操作
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            // タッチ操作 (スマホ・Chromebook用)
+            canvas.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                startDrawing({
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                e.preventDefault();
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                draw({
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                e.preventDefault();
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(currentX, currentY);
+            ctx.strokeStyle = penColor;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            lastX = currentX;
+            lastY = currentY;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function changePenColor(color) {
+            penColor = color;
+            // アクティブ表示の切り替え
+            ['red', 'blue', 'black'].forEach(c => {
+                const btn = document.getElementById(`btn-pen-${c}`);
+                if (color.includes(c === 'red' ? 'ef' : c === 'blue' ? '3b' : '1f')) {
+                    btn.classList.add('ring-2', 'ring-offset-1', 'ring-blue-500');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-offset-1', 'ring-blue-500');
+                }
+            });
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
         // ==========================================
+        //        // ==========================================
         function startCheckout() {
             if (currentTotal === 0) return;
 
-            // 支払い金額を自動決定（合計より大きく、キリの良い数字）
-            if (currentTotal <= 500) {
+            // 支払額設定ロジック (きりのいい金額を提示)
+            if (currentTotal <= 100) {
+                currentPayment = 100;
+            } else if (currentTotal <= 500) {
                 currentPayment = 500;
             } else if (currentTotal <= 1000) {
                 currentPayment = 1000;
@@ -327,22 +507,44 @@
                 currentPayment = 10000;
             }
 
-            // もし合計と支払いが同じなら、1000円追加して必ずお釣りが出るようにする
             if (currentPayment === currentTotal) {
                 currentPayment += 1000;
             }
 
             correctAnswer = currentPayment - currentTotal;
-            userAnswer = "";
+            
+            // 入力データの初期化
+            digitValues = { 0: "", 1: "", 2: "", 3: "" };
+            
+            // UIへの設定
+            document.getElementById('payment-text').innerText = `ごうけい ${currentTotal}円。おさいふから ${currentPayment}円 だしました！`;
+            
+            // 筆算の支払額セル配置
+            const payStr = currentPayment.toString().padStart(4, ' ');
+            document.getElementById('cell-p3').innerText = payStr[0] !== ' ' ? payStr[0] : '';
+            document.getElementById('cell-p2').innerText = payStr[1] !== ' ' ? payStr[1] : '';
+            document.getElementById('cell-p1').innerText = payStr[2] !== ' ' ? payStr[2] : '';
+            document.getElementById('cell-p0').innerText = payStr[3] !== ' ' ? payStr[3] : '';
 
-            // UI更新
-            document.getElementById('payment-text').innerText = `合計 ${currentTotal}円。${currentPayment}円 出しました。`;
-            document.getElementById('math-payment').innerText = currentPayment;
-            document.getElementById('math-total').innerText = currentTotal;
-            document.getElementById('math-answer').innerText = "";
+            // 筆算の購入額セル配置
+            const totStr = currentTotal.toString().padStart(4, ' ');
+            document.getElementById('cell-t3').innerText = totStr[0] !== ' ' ? totStr[0] : '';
+            document.getElementById('cell-t2').innerText = totStr[1] !== ' ' ? totStr[1] : '';
+            document.getElementById('cell-t1').innerText = totStr[2] !== ' ' ? totStr[2] : '';
+            document.getElementById('cell-t0').innerText = totStr[3] !== ' ' ? totStr[3] : '';
+
+            // 入力フィールドの表示クリア
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`ans-val-${i}`).innerText = "";
+            }
+
             document.getElementById('math-message').innerText = "";
+            clearCanvas();
 
-            // モーダル表示
+            // 一の位からスタート
+            setFocusDigit(0);
+
+            // モーダルオープン
             document.getElementById('math-modal').classList.remove('hidden');
         }
 
@@ -350,35 +552,61 @@
             document.getElementById('math-modal').classList.add('hidden');
         }
 
-        // テンキー入力処理
-        function inputNumber(num) {
-            if (userAnswer.length >= 5) return; // 桁数制限
-            if (userAnswer === "" && num === 0) return; // 最初が0はダメ
-            userAnswer += num.toString();
-            document.getElementById('math-answer').innerText = userAnswer;
+        // 位フォーカスの制御
+        function setFocusDigit(digitIndex) {
+            activeFocusDigit = digitIndex;
+            
+            // フォーカス枠のスタイリング変更
+            for (let i = 0; i < 4; i++) {
+                const box = document.getElementById(`input-box-${i}`);
+                if (i === digitIndex) {
+                    box.className = "m-1 rounded-lg border-4 border-yellow-400 bg-yellow-50 flex justify-center items-center text-4xl font-black text-blue-700 cursor-pointer shadow-md";
+                } else {
+                    box.className = "m-1 rounded border-2 border-sky-200 bg-white flex justify-center items-center text-3xl font-extrabold text-blue-600 cursor-pointer shadow-inner hover:border-sky-300";
+                }
+            }
+        }
+
+        // テンキー入力
+        function pressKey(num) {
+            digitValues[activeFocusDigit] = num.toString();
+            document.getElementById(`ans-val-${activeFocusDigit}`).innerText = num;
+            
+            // 自動で左の桁へ移動（一の位 -> 十の位 -> 百の位 -> 千の位）
+            if (activeFocusDigit < 3) {
+                setFocusDigit(activeFocusDigit + 1);
+            }
             document.getElementById('math-message').innerText = "";
         }
 
-        function clearNumber() {
-            userAnswer = "";
-            document.getElementById('math-answer').innerText = "";
+        // 一字消去
+        function deleteDigit() {
+            digitValues[activeFocusDigit] = "";
+            document.getElementById(`ans-val-${activeFocusDigit}`).innerText = "";
+            
+            // 自動で右の桁に戻る
+            if (activeFocusDigit > 0) {
+                setFocusDigit(activeFocusDigit - 1);
+            }
             document.getElementById('math-message').innerText = "";
         }
 
-        function checkAnswer() {
-            if (userAnswer === "") return;
+        // こたえあわせ
+        function validateMathAnswer() {
+            // 位の配列をまとめて一つの数値にする
+            let userStr = "";
+            for (let i = 3; i >= 0; i--) {
+                userStr += digitValues[i] !== "" ? digitValues[i] : "0";
+            }
+            const userNum = parseInt(userStr, 10);
 
-            if (parseInt(userAnswer) === correctAnswer) {
-                // 正解
-                playSuccess();
+            if (userNum === correctAnswer) {
+                playSuccessSound();
                 closeModal();
                 document.getElementById('success-overlay').classList.remove('hidden');
             } else {
-                // 不正解
-                playError();
-                document.getElementById('math-message').innerText = "ちがうみたい。もういちど けいさん してみよう！";
-                userAnswer = "";
-                document.getElementById('math-answer').innerText = "";
+                playErrorSound();
+                document.getElementById('math-message').innerText = "おつりの計算がちがうみたい。もういちど考えてみよう！";
             }
         }
 
@@ -389,48 +617,60 @@
         }
 
         // ==========================================
-        // 音声処理 (Tone.js)
-        // ==========================================
-        let beepSynth = null;
-        let successSynth = null;
-        let errorSynth = null;
-
-        function initSynths() {
-            // 音声合成オブジェクトを遅延初期化（エラー回避）
+        //        // ==========================================
+        function initAudioEngine() {
             if (!beepSynth && typeof Tone !== 'undefined') {
-                beepSynth = new Tone.Synth().toDestination();
-                successSynth = new Tone.PolySynth().toDestination();
-                errorSynth = new Tone.Synth().toDestination();
+                // 本物のレジ音（ピッ！）をシミュレートする高速サイン波
+                beepSynth = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.002, decay: 0.08, sustain: 0, release: 0.08 }
+                }).toDestination();
+                beepSynth.volume.value = 4; // 少し大きく
+
+                successSynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.2 }
+                }).toDestination();
+
+                errorSynth = new Tone.Synth({
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.05, decay: 0.4, sustain: 0, release: 0.2 }
+                }).toDestination();
             }
         }
 
-        async function playBeep() {
+        async function playRealBeep() {
             if (typeof Tone === 'undefined') return;
             try {
                 await Tone.start();
-                initSynths();
-                beepSynth.triggerAttackRelease("C6", "0.1");
-            } catch(e){}
+                initAudioEngine();
+                // 3000Hz (きわめて高周波のピッ！)
+                beepSynth.triggerAttackRelease("F#6", "0.04");
+            } catch(e){
+                console.warn(e);
+            }
         }
 
-        async function playSuccess() {
+        async function playSuccessSound() {
             if (typeof Tone === 'undefined') return;
             try {
                 await Tone.start();
-                initSynths();
-                successSynth.triggerAttackRelease(["C5", "E5", "G5"], "0.4");
+                initAudioEngine();
+                // 「ピンポーン！」を和音で表現
+                successSynth.triggerAttackRelease(["E5", "G5", "C6"], "0.3");
                 setTimeout(() => {
-                    successSynth.triggerAttackRelease(["C6", "E6", "G6"], "0.6");
-                }, 200);
+                    successSynth.triggerAttackRelease(["G5", "C6", "E6"], "0.5");
+                }, 180);
             } catch(e){}
         }
 
-        async function playError() {
+        async function playErrorSound() {
             if (typeof Tone === 'undefined') return;
             try {
                 await Tone.start();
-                initSynths();
-                errorSynth.triggerAttackRelease("C3", "0.3");
+                initAudioEngine();
+                // 「ブブー」という低めの警告音
+                errorSynth.triggerAttackRelease("A3", "0.4");
             } catch(e){}
         }
     </script>
