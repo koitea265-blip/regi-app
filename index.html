@@ -23,6 +23,11 @@
             100% { transform: scale(1) rotate(-5deg); opacity: 1; }
         }
         .stamp-animation { animation: stamp 0.5s ease-out forwards; color: #ef4444; border: 8px solid #ef4444; }
+
+        /* カメラ反転用のCSS (idセレクタで強力に効かせる) */
+        #reader video {
+            transform: scaleX(-1) !important;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col">
@@ -46,9 +51,14 @@
                 カメラをじゅんび中...
             </p>
 
-            <button onclick="simulateScan()" class="mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-full shadow-lg transform transition active:scale-95">
-                ピッ！(テスト用ボタン)
-            </button>
+            <div class="flex gap-2 mt-4">
+                <button onclick="toggleCamera()" id="toggle-camera-btn" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition active:scale-95 text-sm hidden">
+                    📷 カメラ切替
+                </button>
+                <button onclick="simulateScan()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition active:scale-95 text-sm">
+                    ピッ！(テスト)
+                </button>
+            </div>
         </section>
 
         <!-- 右側：レジ（カート）エリア -->
@@ -143,6 +153,8 @@
         let cart = [];
         let html5QrCode = null;
         let lastScanTime = 0;
+        let currentFacingMode = "user"; // デフォルトを前面(user)に設定
+        let isScanning = false;
         
         // 算数用の状態
         let currentTotal = 0;
@@ -163,30 +175,75 @@
             statusEl.innerText = "カメラを起動中...";
             
             try {
-                // 1. まず端末にカメラが存在するかチェックする
+                // 1. カメラが存在するかチェック
                 const devices = await Html5Qrcode.getCameras();
                 if (!devices || devices.length === 0) {
                     throw new Error("カメラデバイスが見つかりません");
                 }
 
-                html5QrCode = new Html5Qrcode("reader");
-                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-                try {
-                    // 2. 背面カメラ（環境カメラ）を優先して起動を試みる
-                    await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
-                } catch (backCameraError) {
-                    // 3. 背面カメラ指定で失敗した場合は、見つかった最初のカメラ(ID指定)で確実に起動する
-                    await html5QrCode.start(devices[0].id, config, onScanSuccess, onScanFailure);
+                // 複数カメラがある場合は切替ボタンを表示
+                if (devices.length > 1) {
+                    document.getElementById('toggle-camera-btn').classList.remove('hidden');
                 }
-                
-                statusEl.innerText = "カメラ起動中！バーコードをかざしてね。";
-                statusEl.className = "text-center mt-4 text-sm text-green-700 font-bold bg-green-100 p-2 rounded";
+
+                html5QrCode = new Html5Qrcode("reader");
+                startCamera();
+
             } catch (err) {
-                console.warn("カメラの起動をスキップしました: ", err.message || err);
+                console.warn("カメラの起動をスキップしました: ", err);
                 statusEl.innerText = "カメラが使えないみたい。下のボタンで遊んでね！";
                 statusEl.className = "text-center mt-4 text-sm text-red-700 font-bold bg-red-100 p-2 rounded";
             }
+        }
+
+        async function startCamera() {
+            const statusEl = document.getElementById('scan-status');
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                // 反転した状態でもバーコードを読めるようにする設定
+                disableFlip: false 
+            };
+
+            try {
+                // 現在のfacingMode(前面or背面)で起動
+                await html5QrCode.start({ facingMode: currentFacingMode }, config, onScanSuccess, onScanFailure);
+                isScanning = true;
+                statusEl.innerText = currentFacingMode === "user" ? "前面カメラ起動中！" : "背面カメラ起動中！";
+                statusEl.className = "text-center mt-4 text-sm text-green-700 font-bold bg-green-100 p-2 rounded";
+                
+                // 前面カメラの時だけ映像を反転させるクラスを付け外しする
+                const readerDiv = document.getElementById('reader');
+                if(currentFacingMode === "user"){
+                   readerDiv.classList.add("flipped-video");
+                } else {
+                   readerDiv.classList.remove("flipped-video");
+                }
+
+            } catch (err) {
+                console.warn("指定のカメラ起動失敗:", err);
+                statusEl.innerText = "カメラ起動エラー。テストボタンを使ってね。";
+                statusEl.className = "text-center mt-4 text-sm text-red-700 font-bold bg-red-100 p-2 rounded";
+            }
+        }
+
+        async function toggleCamera() {
+            if (isScanning && html5QrCode) {
+                await html5QrCode.stop();
+                isScanning = false;
+            }
+            // 前面と背面を切り替える
+            currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+            
+            // CSSによる反転処理の切り替え（背面カメラは反転させない）
+            const readerStyle = document.getElementById('reader');
+            if (currentFacingMode === "user") {
+                readerStyle.style.transform = "scaleX(-1)";
+            } else {
+                readerStyle.style.transform = "none";
+            }
+            
+            startCamera();
         }
 
         // ==========================================
