@@ -262,7 +262,7 @@
 
     <!-- ==================== 正解お祝い演出モーダル ==================== -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="flex flex-col items-center max-w-sm w-full my-auto">
+        <div class="flex flex-col items-center max-w-sm w-full my-auto animate-fade-in">
             
             <!-- リアルなフラット感熱紙レシート -->
             <div class="receipt-paper w-full bg-white text-slate-800 p-6 font-mono text-sm border-t-8 border-emerald-500">
@@ -515,7 +515,10 @@
             const config = {
                 fps: 15,
                 qrbox: (width, height) => {
-                    return { width: Math.min(width * 0.8, 280), height: Math.min(height * 0.4, 150) };
+                    // [ ] スキャン用の枠の高さを大幅に大きく、かざしやすく拡張
+                    const scanWidth = Math.min(width * 0.8, 320);
+                    const scanHeight = Math.min(height * 0.7, 240); // 40%から70%に拡張して枠の高さを大きくする
+                    return { width: scanWidth, height: scanHeight };
                 }
             };
 
@@ -641,7 +644,7 @@
 
         // 正しいお札・硬貨の支払いをスマートに決める賢いアルゴリズム
         function getOptimalPayment(total) {
-            // 基本的な紙輩の候補
+            // 基本的な紙幣の候補
             const bills = [100, 500, 1000, 2000, 3000, 5000, 10000];
             let nextBill = bills.find(b => b >= total);
             if (!nextBill) nextBill = 10000;
@@ -827,15 +830,8 @@
                 
                 document.getElementById("success-modal").classList.remove("hidden");
             } else {
-                // 不正解
+                // 不正解 (画面ゆらしは行わず、ブザー音のみで知らせます)
                 playIncorrectSound();
-                
-                // 答え合わせボタンを一瞬ブルブル揺らす演出
-                const modal = document.querySelector("#payment-modal .bg-sky-50");
-                modal.classList.add("animate-shake");
-                setTimeout(() => {
-                    modal.classList.remove("animate-shake");
-                }, 500);
             }
         }
 
@@ -948,17 +944,9 @@
             isDrawing = false;
         }
 
-        // 画面揺らし演出アニメーション用のCSS
+        // カート追加時のスライドイン演出用CSS
         const style = document.createElement('style');
         style.innerHTML = `
-            @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
-                20%, 40%, 60%, 80% { transform: translateX(6px); }
-            }
-            .animate-shake {
-                animation: shake 0.4s ease-in-out;
-            }
             @keyframes slideIn {
                 from { transform: translateY(10px); opacity: 0; }
                 to { transform: translateY(0); opacity: 1; }
@@ -971,6 +959,3 @@
     </script>
 </body>
 </html>
-* **お祝いバウンド＆ギザギザの削除**: レシートモーダルから `animate-bounce` 演出と、下部のジグザグ装飾を削除し、清潔感のあるスッキリとしたレシートにアップデートしました。
-
-右側のプレビュー機能、または Netlify で再度公開してお楽しみください！
