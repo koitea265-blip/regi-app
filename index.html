@@ -13,6 +13,11 @@
     <style>
         body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #f3f4f6; }
         
+        /* 教科書体フォントの優先指定 */
+        .math-font-kyokasho {
+            font-family: "UD Digi Kyokasho NK-R", "UD Digi Kyokasho", "UD デジタル教科書体", "YuKyo-Medium", "YuKyo", "游教科書体", "Sawarabi Mincho", "Noto Serif JP", serif;
+        }
+
         /* 方眼紙デザイン用の基本スタイル */
         .math-grid-cell {
             border-right: 1px solid #bae6fd;
@@ -20,7 +25,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.875rem; /* text-3xl */
+            font-size: 2.1rem; /* 教科書体に合わせて少し大きめに調整 */
             font-weight: 700;
             color: #1f2937;
             position: relative;
@@ -144,65 +149,66 @@
                     </div>
 
                     <!-- 筆算方眼ボード -->
-                    <div class="relative w-[320px] h-[380px] bg-sky-50/50 rounded-xl border-4 border-sky-400 shadow-lg overflow-hidden select-none bg-white">
+                    <div class="relative w-[320px] h-[450px] bg-sky-50/50 rounded-xl border-4 border-sky-400 shadow-lg overflow-hidden select-none bg-white">
                         
-                        <!-- 5列×6行のリアル方眼紙グリッド -->
-                        <div class="absolute inset-0 grid grid-cols-5 grid-rows-6" id="math-grid-container">
+                        <!-- 5列×6行のリアル方眼紙グリッド（各行の高さを個別に調節: 1行目を縦長に、太い線、メモ行を追加） -->
+                        <div class="absolute inset-0 grid math-font-kyokasho" id="math-grid-container" style="grid-template-columns: repeat(5, 1fr); grid-template-rows: 1.6fr 1fr 1fr 8px 1fr 1.2fr;">
                             
-                            <!-- 1行目: くり下がり用空マス (手書きメモを重ねるため、完全に空) -->
-                            <div class="math-grid-cell bg-slate-50 opacity-40"></div>
-                            <div class="math-grid-cell bg-slate-50"></div>
-                            <div class="math-grid-cell bg-slate-50"></div>
-                            <div class="math-grid-cell bg-slate-50"></div>
-                            <div class="math-grid-cell bg-slate-50"></div>
+                            <!-- 1行目: くり下がり用空マス (手書きメモを重ねるため、完全に空。縦に2回書けるよう縦長) -->
+                            <div class="math-grid-cell bg-slate-50/50"></div>
+                            <div class="math-grid-cell bg-slate-50/50"></div>
+                            <div class="math-grid-cell bg-slate-50/50"></div>
+                            <div class="math-grid-cell bg-slate-50/50"></div>
+                            <div class="math-grid-cell bg-slate-50/50"></div>
 
                             <!-- 2行目: 引かれる数 (1000等) -->
-                            <div class="math-grid-cell bg-white opacity-25 text-gray-300 font-normal">-</div>
-                            <div id="cell-p3" class="math-grid-cell bg-white"></div>
-                            <div id="cell-p2" class="math-grid-cell bg-white"></div>
-                            <div id="cell-p1" class="math-grid-cell bg-white"></div>
-                            <div id="cell-p0" class="math-grid-cell bg-white"></div>
+                            <div class="math-grid-cell text-gray-300 font-normal opacity-10"></div>
+                            <div id="cell-p3" class="math-grid-cell"></div>
+                            <div id="cell-p2" class="math-grid-cell"></div>
+                            <div id="cell-p1" class="math-grid-cell"></div>
+                            <div id="cell-p0" class="math-grid-cell"></div>
 
                             <!-- 3行目: 引く数 (- 850等) -->
-                            <div class="math-grid-cell bg-white text-blue-600 font-extrabold">-</div>
-                            <div id="cell-t3" class="math-grid-cell bg-white"></div>
-                            <div id="cell-t2" class="math-grid-cell bg-white"></div>
-                            <div id="cell-t1" class="math-grid-cell bg-white"></div>
-                            <div id="cell-t0" class="math-grid-cell bg-white"></div>
+                            <!-- マイナス記号を大きく表示 -->
+                            <div class="math-grid-cell text-blue-600 font-black text-5xl">－</div>
+                            <div id="cell-t3" class="math-grid-cell"></div>
+                            <div id="cell-t2" class="math-grid-cell"></div>
+                            <div id="cell-t1" class="math-grid-cell"></div>
+                            <div id="cell-t0" class="math-grid-cell"></div>
 
-                            <!-- 4行目: 太い横線 (セル単位で下ボーダーを太くする) -->
-                            <div class="col-span-5 h-2 bg-gray-800"></div>
+                            <!-- 4行目: 太い横線 -->
+                            <div class="col-span-5 h-[8px] bg-gray-800"></div>
 
-                            <!-- 5行目: 答え入力マス (タップするとフォーカスが当たります) -->
-                            <div class="math-grid-cell bg-white opacity-25 text-gray-300 font-normal">=</div>
+                            <!-- 5行目: 横線下の手書きメモ用の空行 (おつりメモに最適) -->
+                            <div class="math-grid-cell bg-slate-50/30"></div>
+                            <div class="math-grid-cell bg-slate-50/30"></div>
+                            <div class="math-grid-cell bg-slate-50/30"></div>
+                            <div class="math-grid-cell bg-slate-50/30"></div>
+                            <div class="math-grid-cell bg-slate-50/30"></div>
+
+                            <!-- 6行目: 答え入力マス (タップするとフォーカスが当たります) -->
+                            <div class="math-grid-cell text-gray-400 opacity-50 font-normal text-3xl">=</div>
                             
                             <!-- 千の位 -->
                             <div onclick="setFocusDigit(3)" id="input-box-3" class="math-grid-cell cursor-pointer bg-white transition hover:bg-yellow-50">
-                                <span id="ans-val-3" class="text-blue-600 font-black text-3xl"></span>
+                                <span id="ans-val-3" class="text-blue-600 font-black text-3.5xl"></span>
                             </div>
                             <!-- 百の位 -->
                             <div onclick="setFocusDigit(2)" id="input-box-2" class="math-grid-cell cursor-pointer bg-white transition hover:bg-yellow-50">
-                                <span id="ans-val-2" class="text-blue-600 font-black text-3xl"></span>
+                                <span id="ans-val-2" class="text-blue-600 font-black text-3.5xl"></span>
                             </div>
                             <!-- 十の位 -->
                             <div onclick="setFocusDigit(1)" id="input-box-1" class="math-grid-cell cursor-pointer bg-white transition hover:bg-yellow-50">
-                                <span id="ans-val-1" class="text-blue-600 font-black text-3xl"></span>
+                                <span id="ans-val-1" class="text-blue-600 font-black text-3.5xl"></span>
                             </div>
                             <!-- 一の位 -->
                             <div onclick="setFocusDigit(0)" id="input-box-0" class="math-grid-cell cursor-pointer bg-white transition hover:bg-yellow-50">
-                                <span id="ans-val-0" class="text-blue-600 font-black text-3xl"></span>
+                                <span id="ans-val-0" class="text-blue-600 font-black text-3.5xl"></span>
                             </div>
-
-                            <!-- 6行目: 位のラベル -->
-                            <div class="math-grid-cell border-b-0 bg-sky-100/40 text-xs text-sky-500 font-bold"></div>
-                            <div class="math-grid-cell border-b-0 bg-sky-100/40 text-xs text-sky-500 font-bold">千の位</div>
-                            <div class="math-grid-cell border-b-0 bg-sky-100/40 text-xs text-sky-500 font-bold">百の位</div>
-                            <div class="math-grid-cell border-b-0 bg-sky-100/40 text-xs text-sky-500 font-bold">十の位</div>
-                            <div class="math-grid-cell border-b-0 bg-sky-100/40 text-xs text-sky-500 font-bold">一の位</div>
                         </div>
 
-                        <!-- 手書き用の絶対配置Canvas (1行目〜3行目部分にぴったり重ねる：高さ約190px。答えの入力マスとは絶対に重ならない) -->
-                        <canvas id="memo-canvas" class="absolute top-0 left-0 w-full h-[190px] cursor-crosshair z-20 touch-none"></canvas>
+                        <!-- 手書き用のCanvas (1行目〜5行目部分に完璧に重ねる：答え入力マスとは絶対に重ならないように grid-row: 1/6 に設定) -->
+                        <canvas id="memo-canvas" class="absolute inset-0 cursor-crosshair z-20 touch-none" style="grid-column: 1 / -1; grid-row: 1 / 6; width: 100%; height: 100%;"></canvas>
                     </div>
 
                     <p id="math-message" class="h-6 text-red-600 font-bold mt-3 text-center text-sm"></p>
@@ -410,6 +416,7 @@
             ctx = canvas.getContext('2d');
 
             function resizeCanvas() {
+                // CSSで指定されたGridセルの正確なサイズにリサイズ
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
                 ctx.lineCap = 'round';
@@ -417,8 +424,8 @@
             }
             
             resizeCanvas();
-            // 親要素のサイズ変更時にキャンバスも追従
-            new ResizeObserver(resizeCanvas).observe(canvas.parentElement);
+            // 親要素（またはCanvas自体）のサイズ変更時にキャンバスも正確に追従
+            new ResizeObserver(resizeCanvas).observe(canvas);
 
             // マウス操作
             canvas.addEventListener('mousedown', startDrawing);
