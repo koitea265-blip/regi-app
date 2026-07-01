@@ -337,8 +337,15 @@
                 fps: 15,
                 // 全画面にしても枠が縦に伸びないよう、画面の高さ(h)に依存させず横長の比率で固定
                 qrbox: (w, h) => {
-                    const scanWidth = Math.min(w * 0.75, 260); // 広めの横幅
-                    const scanHeight = Math.min(scanWidth * 0.35, 90); // 縦幅は横幅の35%か最大90pxで完全固定
+                    // 横幅を画面の85%、または最大500pxまで広げる
+                    let scanWidth = Math.min(w * 0.85, 500); 
+                    // 縦幅を横幅の半分、または最大250pxまで広げる
+                    let scanHeight = Math.min(scanWidth * 0.5, 250); 
+                    
+                    // 【修正】html5-qrcodeの「最低50px以上」というエラーを防ぐための安全処理
+                    scanWidth = Math.max(50, scanWidth);
+                    scanHeight = Math.max(50, scanHeight);
+                    
                     return { width: scanWidth, height: scanHeight };
                 }
             }, onScanSuccess).then(() => {
