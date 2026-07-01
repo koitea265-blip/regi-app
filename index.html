@@ -36,7 +36,7 @@
 
         /* 背面カメラ切り替え時の向き補正（鏡なし ＆ 1.8倍ズーム） */
         .back-camera video {
-            transform: scale(1.8) !important; 
+            transform: scale(1.8, 1.8) !important; 
         }
 
         /* 方眼罫線 */
@@ -73,7 +73,6 @@
 
     <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden min-h-0">
         
-        <!-- 左：カメラ・スキャンエリア -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 border border-emerald-100 min-h-0">
             <h2 class="text-xl font-bold mb-2 text-gray-700 flex items-center gap-1.5">
                 <span>📸</span> バーコードをスキャンしよう！
@@ -107,10 +106,9 @@
             </div>
         </section>
 
-        <!-- 右：お買い物カート -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 min-h-0 border border-emerald-100">
             <h2 class="text-xl font-bold mb-3 text-gray-700 border-b-2 border-gray-100 pb-2 flex items-center gap-1.5">
-                <span>📋</span> おかいあげ商品（しょうひん）
+                <span>📋</span> おかいあげ商品
             </h2>
             
             <ul id="cart-list" class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1">
@@ -133,7 +131,6 @@
         </section>
     </main>
 
-    <!-- おつり計算ひっ算モーダル -->
     <div id="payment-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
         <div class="bg-sky-50 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border-4 border-sky-400">
             <div class="bg-sky-500 text-white p-4 text-center">
@@ -166,34 +163,33 @@
                 <!-- 右：10キー -->
                 <div class="flex-1 flex flex-col justify-center items-center max-w-sm mx-auto w-full">
                     <div class="grid grid-cols-3 gap-2 w-full font-kyokasho">
-                        <button onclick="pressKey(7)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">7</button>
-                        <button onclick="pressKey(8)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">8</button>
-                        <button onclick="pressKey(9)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">9</button>
-                        <button onclick="pressKey(4)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">4</button>
-                        <button onclick="pressKey(5)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">5</button>
-                        <button onclick="pressKey(6)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">6</button>
-                        <button onclick="pressKey(1)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">1</button>
-                        <button onclick="pressKey(2)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">2</button>
-                        <button onclick="pressKey(3)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">3</button>
-                        <button onclick="pressKey('C')" class="bg-rose-100 p-5 rounded-2xl text-xl font-bold">ぜんぶ消す</button>
-                        <button onclick="pressKey(0)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black">0</button>
-                        <button onclick="pressKey('BS')" class="bg-amber-100 p-5 rounded-2xl text-xl font-bold">⬅消す</button>
+                        <button onclick="pressKey(7)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">7</button>
+                        <button onclick="pressKey(8)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">8</button>
+                        <button onclick="pressKey(9)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">9</button>
+                        <button onclick="pressKey(4)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">4</button>
+                        <button onclick="pressKey(5)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">5</button>
+                        <button onclick="pressKey(6)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">6</button>
+                        <button onclick="pressKey(1)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">1</button>
+                        <button onclick="pressKey(2)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">2</button>
+                        <button onclick="pressKey(3)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">3</button>
+                        <button onclick="pressKey('C')" class="bg-rose-100 p-5 rounded-2xl text-xl font-bold hover:bg-rose-200">ぜんぶ消す</button>
+                        <button onclick="pressKey(0)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">0</button>
+                        <button onclick="pressKey('BS')" class="bg-amber-100 p-5 rounded-2xl text-xl font-bold hover:bg-amber-200">⬅とりけす</button>
                     </div>
                     <div class="mt-5 w-full flex gap-3">
-                        <button onclick="closePaymentModal()" class="flex-1 bg-slate-400 text-white font-bold py-3 rounded-xl">やめる</button>
-                        <button onclick="checkAnswer()" class="flex-2 w-[60%] bg-amber-500 text-white font-black py-3 rounded-xl text-xl">答え合わせ</button>
+                        <button onclick="closePaymentModal()" class="flex-1 bg-slate-400 text-white font-bold py-3 rounded-xl hover:bg-slate-500">やめる</button>
+                        <button onclick="checkAnswer()" class="flex-2 w-[60%] bg-amber-500 text-white font-black py-3 rounded-xl text-xl hover:bg-amber-600">答え合わせ</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- リアルお買い物レシートモーダル -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
         <div class="flex flex-col items-center max-w-sm w-full my-auto">
             <div class="receipt-paper w-full bg-white text-slate-800 p-6 font-mono text-sm">
                 <!-- よくできましたスタンプ（レシート紙面の内側・右上に完全固定） -->
-                <div class="absolute top-4 right-4 border-4 border-rose-500 text-rose-500 text-xs font-black px-2 py-1 rounded-lg rotate-12 bg-white/90">💮 よくできました</div>
+                <div class="absolute top-4 right-4 border-4 border-rose-500 text-rose-500 text-xs font-black px-2 py-1 rounded-lg rotate-12 bg-white/90 shadow-sm">💮 よくできました</div>
                 
                 <div class="text-center mb-4 mt-2">
                     <div class="text-lg font-black font-kyokasho">🌻 こどもマーケット さくら店</div>
@@ -218,17 +214,25 @@
                         <span>お預かり</span>
                         <span><span id="receipt-paid-amount">0</span> 円</span>
                     </div>
-                    <div class="flex justify-between text-lg text-emerald-600 border-t-2 border-double pt-1">
+                    <div class="flex justify-between text-lg text-emerald-600 border-t-2 border-double pt-1 mt-1">
                         <span>おつり</span>
                         <span><span id="receipt-change-amount">0</span> 円</span>
                     </div>
                 </div>
+
+                <!-- ダミーバーコード -->
+                <div class="flex justify-center items-center gap-0.5 mt-6 mb-2 h-8 opacity-70">
+                    <div class="w-1 h-full bg-slate-800"></div><div class="w-2 h-full bg-slate-800"></div><div class="w-1 h-full bg-slate-800"></div>
+                    <div class="w-3 h-full bg-slate-800"></div><div class="w-1 h-full bg-slate-800"></div><div class="w-2 h-full bg-slate-800"></div>
+                    <div class="w-1 h-full bg-slate-800"></div><div class="w-3 h-full bg-slate-800"></div><div class="w-2 h-full bg-slate-800"></div>
+                    <div class="w-1 h-full bg-slate-800"></div><div class="w-2 h-full bg-slate-800"></div><div class="w-1 h-full bg-slate-800"></div>
+                </div>
                 
-                <div class="text-center text-[10px] text-slate-400 mt-6">
+                <div class="text-center text-[10px] text-slate-400">
                     <p>お買い上げありがとうございました！</p>
                 </div>
             </div>
-            <button onclick="resetAppAndCloseSuccess()" class="w-full mt-6 bg-amber-500 text-white font-black py-4 rounded-xl text-xl">つぎのお買い物へ！</button>
+            <button onclick="resetAppAndCloseSuccess()" class="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-xl text-xl shadow-lg transition">つぎのお買い物へ！</button>
         </div>
     </div>
 
@@ -255,7 +259,7 @@
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
         let html5QrScanner = null, isFrontCamera = true;
 
-        // FNV-1a ハッシュでバーコード別に完全固有の商品を指定
+        // FNV-1a 高精度ハッシュアルゴリズムでバーコード別に完全固有の商品を指定
         function getProductFromBarcode(barcode) {
             let hash = 2166136261;
             for (let i = 0; i < barcode.length; i++) {
@@ -270,7 +274,6 @@
             renderCart(); 
         };
 
-        // スキャナーの初期起動設定
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             try {
@@ -286,8 +289,11 @@
         }
 
         function startScanning(cameraId) {
-            if (html5QrScanner) html5QrScanner.stop().then(() => launch(cameraId)).catch(() => launch(cameraId));
-            else launch(cameraId);
+            if (html5QrScanner) {
+                html5QrScanner.stop().then(() => launch(cameraId)).catch(() => launch(cameraId));
+            } else {
+                launch(cameraId);
+            }
         }
 
         function launch(cameraId) {
@@ -301,10 +307,15 @@
 
             html5QrScanner.start(cameraId, {
                 fps: 15,
-                qrbox: (w, h) => ({ width: Math.min(w*0.75, 260), height: 90 }) // スキャン枠（誤読防止用の適度なスリット）
+                // スキャン枠を少し大きくして合わせやすく調整
+                qrbox: (w, h) => {
+                    const scanWidth = Math.min(w * 0.8, 280);
+                    const scanHeight = Math.min(h * 0.4, 140);
+                    return { width: scanWidth, height: scanHeight };
+                }
             }, onScanSuccess).then(() => {
                 document.getElementById("camera-fallback-msg").classList.add("hidden");
-            });
+            }).catch(e => console.log(e));
         }
 
         // 誤認防止フィルター（連続2回一致で検知成功）
@@ -312,9 +323,10 @@
         function onScanSuccess(code) {
             const now = Date.now();
             if (now - lastScanTime < 1800) return;
+            
             if (pendingBarcode === code) {
                 pendingBarcodeCount++;
-                if (pendingBarcodeCount >= 2) {
+                if (pendingBarcodeCount >= 2) { // 2回連続で素早く反応
                     lastScanTime = now; 
                     pendingBarcodeCount = 0;
                     addToCart(getProductFromBarcode(code));
@@ -428,7 +440,8 @@
             const ansContainer = document.getElementById("answer-grid-container");
             ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-2"><div class="flex items-center justify-center text-2xl font-black text-slate-400">=</div></div>`;
             const ansGrid = ansContainer.firstChild;
-            if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-16"></div>`;
+            if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-16"></div>`; // 1万の位の空き
+            // 千の位〜一の位の入力枠
             for(let i=3; i>=0; i--) ansGrid.innerHTML += `<div onclick="focusDigit(${i})" id="ans-box-${i}" class="m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 transition"></div>`;
             
             userAnswers = ["","","",""]; 
@@ -462,7 +475,6 @@
             }
         }
 
-        // 答え合わせ判定 ＆ レシート明細構築
         function checkAnswer() {
             let s = ""; 
             for(let i=3; i>=0; i--) s += userAnswers[i] || (s===""?"":"0");
@@ -520,7 +532,6 @@
             document.getElementById("payment-modal").classList.add("hidden"); 
         }
 
-        // 自由手書きメモボードシステム
         function setupMemoCanvas() {
             canvas = document.getElementById("memo-canvas"); 
             ctx = canvas.getContext("2d");
