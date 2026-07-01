@@ -74,6 +74,7 @@
 
     <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden min-h-0">
         
+        <!-- 左：カメラ読み取り・スキャンセクション -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 border border-emerald-100 min-h-0">
             <h2 class="text-xl font-bold mb-2 text-gray-700 flex items-center gap-1.5">
                 <span>📸</span> バーコードをスキャンしよう！
@@ -107,6 +108,7 @@
             </div>
         </section>
 
+        <!-- 右：お買い上げ商品一覧＆決済ボタン -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 min-h-0 border border-emerald-100">
             <h2 class="text-xl font-bold mb-3 text-gray-700 border-b-2 border-gray-100 pb-2 flex items-center gap-1.5">
                 <span>📋</span> おかいあげ商品
@@ -132,6 +134,7 @@
         </section>
     </main>
 
+    <!-- お会計モーダル（ポップアップ） -->
     <div id="payment-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
         <div class="bg-sky-50 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border-4 border-sky-400">
             <div class="bg-sky-500 text-white p-4 text-center">
@@ -140,7 +143,8 @@
             </div>
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
-                <!-- 左：ひっ算エリア -->
+                <!-- 左：ひっ算・お絵かきメモエリア -->
+                <div class="flex flex-col items-center justify-center bg-sky-100/50 p-3 rounded-xl border border-sky-200 flex-1">
                     <div class="relative w-full max-w-[340px] flex items-center justify-between mb-2 bg-white px-3 py-1.5 rounded-lg shadow-sm">
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-500 font-bold">✍️ メモペン:</span>
@@ -161,7 +165,7 @@
                     </div>
                 </div>
 
-                <!-- 右：10キー -->
+                <!-- 右：10キー & 操作アクションボタン -->
                 <div class="flex-1 flex flex-col justify-center items-center max-w-sm mx-auto w-full">
                     <div class="grid grid-cols-3 gap-2 w-full font-kyokasho">
                         <button onclick="pressKey(7)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">7</button>
@@ -193,6 +197,7 @@
         </div>
     </div>
 
+    <!-- 決済成功・レシート印刷モーダル -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
         <div class="flex flex-col items-center max-w-sm w-full my-auto">
             <div class="receipt-paper w-full bg-white text-slate-800 p-6 font-mono text-sm">
@@ -213,7 +218,7 @@
                 </div>
                 <div class="flex justify-between text-[10.5px] text-slate-600 px-1 mt-0.5">
                     <span>担 当: 店長</span>
-                    <span>取 引: No.<span id="receipt-tx-no"></span></span>
+                    <span>取 取: No.<span id="receipt-tx-no"></span></span>
                 </div>
 
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
@@ -267,7 +272,7 @@
             { name: "えほん (📖)", price: 836 }, { name: "グミ (🍬)", price: 122 }, { name: "カレー (🍛)", price: 624 }, { name: "コーラ (🥤)", price: 138 }
         ];
         
-        // 商品リスト拡張
+        // 76種類になるようにバラエティパックを拡張追加
         for(let i=0; i<45; i++) {
             dummyProducts.push({ name: `おたのしみパック${i+1} (🎁)`, price: 100 + (i*7) + (i % 3) });
         }
@@ -275,7 +280,6 @@
         let cart = [], solvedCount = 0;
         let totalAmount = 0, paidAmount = 0, changeAmount = 0, currentFocusIndex = 0, userAnswers = ["","","",""];
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
-        // カメラ管理用の変数を html5QrScanner に統一しました
         let html5QrScanner = null, isFrontCamera = true;
         let isSolved = false; // 正解済みかどうかのフラグ
 
@@ -320,7 +324,6 @@
             html5QrScanner = new Html5Qrcode("reader");
             const readerDiv = document.getElementById("reader");
             
-            // 鏡映し判定と背面(アウトカメラ)時のクラス切り替え
             if (isFrontCamera) {
                 readerDiv.classList.remove("back-camera");
             } else {
@@ -329,11 +332,17 @@
 
             html5QrScanner.start(cameraId, {
                 fps: 15,
-                // 全画面にしても枠が縦に伸びないよう、画面の高さ(h)に依存させず横長の比率で固定
+                // 全画面表示から戻した際のサイズ崩れを徹底防止する安全なqrbox定義
                 qrbox: (w, h) => {
-                    const scanWidth = Math.min(w * 0.75, 260); // 広めの横幅
-                    const scanHeight = Math.min(scanWidth * 0.35, 90); // 縦幅は横幅の35%か最大90pxで完全固定
-                    return { width: scanWidth, height: scanHeight };
+                    const safeW = w > 100 ? w : 300;
+                    const safeH = h > 100 ? h : 300;
+                    const scanWidth = Math.min(safeW * 0.75, 260); // 広めの横幅
+                    const scanHeight = Math.min(scanWidth * 0.35, 90); // 縦幅は横幅の35%か最大90pxで固定
+                    
+                    // 最低サイズを保証し、リサイズ時につぶれて消えるのを完全ガード
+                    const finalW = Math.max(scanWidth, 160);
+                    const finalH = Math.max(scanHeight, 60);
+                    return { width: finalW, height: finalH };
                 }
             }, onScanSuccess).then(() => {
                 document.getElementById("camera-fallback-msg").classList.add("hidden");
@@ -464,7 +473,7 @@
             const paidStr = paidAmount.toString().padStart(cols, " ");
             const totalStr = totalAmount.toString().padStart(cols - 1, " ");
 
-            // 1行目：くり下がり行 (高さh-24でたっぷり2つ数字を書ける)
+            // 1行目：くり下がり行 (たっぷり2つ数字を書けるように高さh-24で1.6倍に拡張)
             for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-24 bg-sky-50/30"></div>`; 
             
             // 2行目：ひかれる数
@@ -532,8 +541,6 @@
                 isSolved = true;
                 playCorrectChime();
                 solvedCount++; 
-                
-                // すぐにレシートを出さず、ボタンを切り替えて答えを確認できるようにする
                 showReceiptButton();
             } else {
                 new Tone.Synth().toDestination().triggerAttackRelease("A3", "4n");
@@ -700,6 +707,17 @@
         function clearCanvas() { 
             ctx.clearRect(0, 0, canvas.width, canvas.height); 
         }
+
+        // リサイズ時のキャンバス幅・高さの追従補正
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (document.getElementById("payment-modal") && !document.getElementById("payment-modal").classList.contains("hidden")) {
+                    resizeCanvas();
+                }
+            }, 300);
+        });
     </script>
 </body>
 </html>
