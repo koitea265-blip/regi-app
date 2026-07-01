@@ -392,9 +392,10 @@
                     {
                         fps: 15,
                         qrbox: (w, h) => {
-                            // 画面幅 w が小さくても、最低横幅 150px、縦幅 55px (最小の50px制限を回避) を確保
-                            const scanWidth = Math.max(Math.min(w * 0.75, 260), 150); 
-                            const scanHeight = Math.max(Math.min(scanWidth * 0.35, 90), 55); 
+                            // 縦横比 1.44 : 1（横:縦）を厳格に適用
+                            // カメラプレビューの幅 w に対し、75%に当たるサイズ（最大400px、最小200px）を算出
+                            const scanWidth = Math.max(Math.min(w * 0.75, 400), 200); 
+                            const scanHeight = Math.round(scanWidth / 1.44); 
                             return { width: scanWidth, height: scanHeight };
                         }
                     },
@@ -527,7 +528,7 @@
             setTimeout(resizeCanvas, 100);
         }
 
-        // 5列または6列のグリッドを動的に切り替えて構築
+        // 5列または6列 of グリッドを動的に切り替えて構築
         function renderGrid() {
             const cols = paidAmount >= 10000 ? 6 : 5;
             const container = document.getElementById("calculation-grid-container");
