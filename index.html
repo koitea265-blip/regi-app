@@ -141,8 +141,7 @@
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
                 <!-- 左：ひっ算エリア -->
-                <div class="flex-1 flex flex-col items-center">
-                    <div class="w-full max-w-[340px] flex items-center justify-between mb-2 bg-white px-3 py-1.5 rounded-lg shadow-sm">
+                    <div class="relative w-full max-w-[340px] flex items-center justify-between mb-2 bg-white px-3 py-1.5 rounded-lg shadow-sm">
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-500 font-bold">✍️ メモペン:</span>
                             <button onclick="setPenColor('#ef4444')" id="btn-pen-red" class="w-6 h-6 rounded-full bg-red-500 border-2 border-white ring-2 ring-red-500"></button>
@@ -155,7 +154,8 @@
                     <div class="relative w-full max-w-[340px] bg-white rounded-xl shadow-lg border-2 border-sky-300 p-2 overflow-hidden">
                         <div class="relative w-full" id="canvas-container">
                             <div id="calculation-grid-container"></div>
-                            <canvas id="memo-canvas" class="absolute top-0 left-0 w-full h-full cursor-crosshair z-20"></canvas>
+                            <!-- スマホの誤作動を防ぐ touch-none を追加 -->
+                            <canvas id="memo-canvas" class="absolute top-0 left-0 w-full h-full cursor-crosshair z-20 touch-none"></canvas>
                         </div>
                         <div id="answer-grid-container"></div>
                     </div>
@@ -653,6 +653,7 @@
                 ctx.stroke();
             };
             
+            // PCのマウス操作用
             canvas.onmousedown = (e) => { 
                 isDrawing = true; 
                 ctx.beginPath(); 
@@ -662,23 +663,34 @@
             canvas.onmousemove = draw;
             window.onmouseup = () => isDrawing = false;
             
-            canvas.ontouchstart = (e) => { 
+            // スマホ・タブレットのタッチ操作用（スクロール防止を明示的に指定）
+            canvas.addEventListener("touchstart", (e) => { 
                 isDrawing = true; 
                 ctx.beginPath(); 
                 const r = canvas.getBoundingClientRect(); 
                 ctx.moveTo(e.touches[0].clientX-r.left, e.touches[0].clientY-r.top); 
                 e.preventDefault(); 
-            };
-            canvas.ontouchmove = (e) => { 
+            }, { passive: false });
+            
+            canvas.addEventListener("touchmove", (e) => { 
                 draw(e); 
                 e.preventDefault(); 
-            };
+            }, { passive: false });
+
+            canvas.addEventListener("touchend", () => {
+                isDrawing = false;
+            });
         }
         
         function resizeCanvas() { 
             const c = document.getElementById("canvas-container"); 
-            canvas.width = c.offsetWidth; 
-            canvas.height = c.offsetHeight; 
+            // 画面表示直後で高さが 0 の場合は、少し待ってから再計算する
+            if (c.offsetWidth > 0 && c.offsetHeight > 0) {
+                canvas.width = c.offsetWidth; 
+                canvas.height = c.offsetHeight; 
+            } else {
+                setTimeout(resizeCanvas, 50);
+            }
         }
         
         function setPenColor(c) { 
