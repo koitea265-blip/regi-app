@@ -16,14 +16,13 @@
 
     <style>
         /* 基本フォントをかわいい丸ゴシック系に設定 */
-        body, button, input, div, span, p, h1, h2, h3, h4 {
+        body, button, input, p, h1, h2, h3, h4 {
             font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
         }
 
-        /* 筆算の数字は教科書体フォントを適用 (算数の学習効果維持) */
-        #calculation-grid .graph-cell,
-        [id^="ans-box-"] {
-            font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体", "游教科書体", YuMincho, "Yu Mincho", "Hiragino Mincho ProN", serif;
+        /* 筆算の数字は教科書体フォントを適用 (最優先で適用されるように!importantと詳細度を強化) */
+        .font-kyokasho {
+            font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
         /* 鏡映し表示用 (インカメラ) */
@@ -173,54 +172,15 @@
                         <!-- 手書きCanvasを重ねるコンテナ (行1〜行5までを覆う) -->
                         <div class="relative w-full" id="canvas-container">
                             
-                            <!-- ひっ算 5列×5行 グリッド (行1〜行5) -->
-                            <div class="grid grid-cols-5 border-t border-l border-sky-200" id="calculation-grid">
-                                <!-- 1行目: くり下がり行 (縦に2つかけるように1.6倍の縦長高さ h-24) -->
-                                <div class="graph-cell h-24 bg-sky-50/30"></div>
-                                <div class="graph-cell h-24 bg-sky-50/30"></div>
-                                <div class="graph-cell h-24 bg-sky-50/30"></div>
-                                <div class="graph-cell h-24 bg-sky-50/30"></div>
-                                <div class="graph-cell h-24 bg-sky-50/30"></div>
-
-                                <!-- 2行目: ひかれる数 (お財布から出したお金) -->
-                                <div class="graph-cell h-16 text-3xl font-bold text-slate-800"></div>
-                                <div class="graph-cell h-16 text-3xl font-bold text-slate-800" id="cell-paid-3"></div>
-                                <div class="graph-cell h-16 text-3xl font-bold text-slate-800" id="cell-paid-2"></div>
-                                <div class="graph-cell h-16 text-3xl font-bold text-slate-800" id="cell-paid-1"></div>
-                                <div class="graph-cell h-16 text-3xl font-bold text-slate-800" id="cell-paid-0"></div>
-
-                                <!-- 3行目: ひく数 (合計金額) -->
-                                <div class="graph-cell h-16 text-5xl font-black text-blue-600" id="cell-operator">－</div>
-                                <div class="graph-cell h-16 text-3xl font-bold text-slate-800" id="cell-total-3"></div>
-                                <div class="graph-cell h-16 text-3xl font-bold text-slate-800" id="cell-total-2"></div>
-                                <div class="graph-cell h-16 text-3xl font-bold text-slate-800" id="cell-total-1"></div>
-                                <div class="graph-cell h-16 text-3xl font-bold text-slate-800" id="cell-total-0"></div>
-
-                                <!-- 4行目: 太い横線 (高さ0のコルスパン要素だが、ボーダーで表現) -->
-                                <div class="col-span-5 h-1.5 bg-slate-800 my-1"></div>
-
-                                <!-- 5行目: 横線下の手書きメモ行 (1x高さ h-16) -->
-                                <div class="graph-cell h-16 bg-sky-50/10"></div>
-                                <div class="graph-cell h-16 bg-sky-50/10"></div>
-                                <div class="graph-cell h-16 bg-sky-50/10"></div>
-                                <div class="graph-cell h-16 bg-sky-50/10"></div>
-                                <div class="graph-cell h-16 bg-sky-50/10"></div>
-                            </div>
+                            <!-- ひっ算グリッドが動的に挿入される場所 -->
+                            <div id="calculation-grid-container"></div>
 
                             <!-- お絵描き用Canvas -->
                             <canvas id="memo-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-auto cursor-crosshair z-20"></canvas>
                         </div>
 
-                        <!-- 6行目: 答え入力枠 (Canvasの範囲外にすることでタップを邪魔しない) -->
-                        <div class="grid grid-cols-5 mt-2">
-                            <div class="flex items-center justify-center text-2xl font-black text-slate-400">=</div>
-                            
-                            <!-- 答えの入力枠 (右から一の位、十の位、百の位、千の位) -->
-                            <div onclick="focusDigit(3)" id="ans-box-3" class="m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 cursor-pointer shadow-inner transition"></div>
-                            <div onclick="focusDigit(2)" id="ans-box-2" class="m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 cursor-pointer shadow-inner transition"></div>
-                            <div onclick="focusDigit(1)" id="ans-box-1" class="m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 cursor-pointer shadow-inner transition"></div>
-                            <div onclick="focusDigit(0)" id="ans-box-0" class="m-1 h-16 bg-amber-50 border-4 border-amber-400 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 cursor-pointer shadow-inner transition"></div>
-                        </div>
+                        <!-- 答え入力枠が動的に挿入される場所 (Canvasの範囲外) -->
+                        <div id="answer-grid-container"></div>
 
                     </div>
                 </div>
@@ -260,9 +220,9 @@
         </div>
     </div>
 
-    <!-- ==================== 正解お祝い演出モーダル ==================== -->
+    <!-- ==================== 正解お祝い演出レシートモーダル ==================== -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="flex flex-col items-center max-w-sm w-full my-auto animate-fade-in">
+        <div class="flex flex-col items-center max-w-sm w-full my-auto">
             
             <!-- リアルなフラット感熱紙レシート -->
             <div class="receipt-paper w-full bg-white text-slate-800 p-6 font-mono text-sm border-t-8 border-emerald-500">
@@ -273,7 +233,7 @@
                 </div>
 
                 <div class="text-center mb-4 mt-2">
-                    <div class="text-lg font-black text-slate-800">🌻 こどもマーケット さくら店</div>
+                    <div class="text-lg font-black text-slate-800 font-kyokasho">🌻 こどもマーケット さくら店</div>
                     <div class="text-[10px] text-slate-400">おつり計算セルフレジ 特訓コーナー</div>
                     <div class="text-[10px] text-slate-400">TEL: 028-654-3210</div>
                 </div>
@@ -328,7 +288,7 @@
 
             </div>
 
-            <!-- 次へ進むボタン（レシートの下にマージンを持って配置） -->
+            <!-- 次へ進むボタン（レシートの下に配置） -->
             <button onclick="resetAppAndCloseSuccess()" class="w-full mt-8 bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-xl text-xl shadow-2xl active:scale-95 transition border-2 border-white">
                 つぎのお買い物へ進む！
             </button>
@@ -515,9 +475,9 @@
             const config = {
                 fps: 15,
                 qrbox: (width, height) => {
-                    // [ ] スキャン用の枠の高さを大幅に大きく、かざしやすく拡張
+                    // スキャン用の枠の高さを大幅に大きく、かざしやすく拡張
                     const scanWidth = Math.min(width * 0.8, 320);
-                    const scanHeight = Math.min(height * 0.7, 240); // 40%から70%に拡張して枠の高さを大きくする
+                    const scanHeight = Math.min(height * 0.7, 240);
                     return { width: scanWidth, height: scanHeight };
                 }
             };
@@ -600,7 +560,7 @@
             const placeholder = document.getElementById("cart-placeholder");
             
             if (cart.length === 0) {
-                list.innerHTML = `<li id="cart-placeholder" class="text-gray-400 text-center mt-16">おかいもの を はじめよう！<br>バーコードにかざすか、テストボタンを押してね。</li>`;
+                list.innerHTML = `<li id="cart-placeholder" class="text-gray-400 text-center mt-16 font-kyokasho">おかいもの を はじめよう！<br>バーコードにかざすか、テストボタンを押してね。</li>`;
                 document.getElementById("total-count").innerText = "0 点";
                 document.getElementById("total-price").innerText = "0";
                 document.getElementById("checkout-btn").disabled = true;
@@ -614,10 +574,10 @@
                 const li = document.createElement("li");
                 li.className = "flex justify-between items-center bg-emerald-50 p-3 rounded-lg border border-emerald-100 animate-slide-in";
                 li.innerHTML = `
-                    <span class="font-bold text-gray-800">${item.name}</span>
+                    <span class="font-bold text-gray-800 font-kyokasho">${item.name}</span>
                     <div class="flex items-center gap-3">
-                        <span class="font-bold text-emerald-700">${item.price} 円</span>
-                        <button onclick="removeFromCart(${item.uniqueId})" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold py-1 px-2.5 rounded-lg transition">とりけす</button>
+                        <span class="font-bold text-emerald-700 font-kyokasho">${item.price} 円</span>
+                        <button onclick="removeFromCart(${item.uniqueId})" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold py-1 px-2.5 rounded-lg transition font-kyokasho">とりけす</button>
                     </div>
                 `;
                 list.appendChild(li);
@@ -644,7 +604,7 @@
 
         // 正しいお札・硬貨の支払いをスマートに決める賢いアルゴリズム
         function getOptimalPayment(total) {
-            // 基本的な紙幣の候補
+            // 基本的な紙輩の候補
             const bills = [100, 500, 1000, 2000, 3000, 5000, 10000];
             let nextBill = bills.find(b => b >= total);
             if (!nextBill) nextBill = 10000;
@@ -709,29 +669,100 @@
             document.getElementById("payment-modal").classList.remove("hidden");
         }
 
-        // 方眼紙の中に位を揃えて数字を充填
+        // 方眼紙の中に位を揃えて数字を充填 (5列グリッドと6列グリッドの動的切替システム)
         function setupCalculationGrid() {
-            // 最大4桁の引き算に対応 (お支払い最高10000円なので5桁以下)
-            const paidStr = paidAmount.toString().padStart(4, " ");
-            const totalStr = totalAmount.toString().padStart(4, " ");
-
-            // セルに一字ずつ割り振る
-            for (let i = 0; i < 4; i++) {
-                const charPaid = paidStr[3 - i] !== " " ? paidStr[3 - i] : "";
-                const charTotal = totalStr[3 - i] !== " " ? totalStr[3 - i] : "";
-
-                document.getElementById(`cell-paid-${i}`).innerText = charPaid;
-                document.getElementById(`cell-total-${i}`).innerText = charTotal;
+            // お支払い金額が10000円（5桁）のときは6列、それ以下は5列に動的切り替え！
+            const cols = paidAmount >= 10000 ? 6 : 5;
+            
+            // 1. ひっ算ボード（グリッド）の動的生成
+            const gridContainer = document.getElementById("calculation-grid-container");
+            gridContainer.innerHTML = "";
+            
+            const grid = document.createElement("div");
+            grid.id = "calculation-grid";
+            grid.className = `grid grid-cols-${cols} border-t border-l border-sky-200`;
+            
+            // 行1: くり下がり行 (h-24)
+            for (let i = 0; i < cols; i++) {
+                const cell = document.createElement("div");
+                cell.className = "graph-cell h-24 bg-sky-50/30";
+                grid.appendChild(cell);
             }
+            
+            // 行2: ひかれる数 (お財布から出したお金、右詰めで割り振り)
+            const paidStr = paidAmount.toString().padStart(cols, " ");
+            for (let i = 0; i < cols; i++) {
+                const charPaid = paidStr[i] !== " " ? paidStr[i] : "";
+                const cell = document.createElement("div");
+                cell.className = "graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho";
+                cell.innerText = charPaid;
+                grid.appendChild(cell);
+            }
+            
+            // 行3: ひく数 ＆ 引き算記号
+            // 最左（インデックス0）の列にのみマイナス「－」を大きく配置。残りは合計金額。
+            const totalStr = totalAmount.toString().padStart(cols - 1, " ");
+            
+            const opCell = document.createElement("div");
+            opCell.className = "graph-cell h-16 text-5xl font-black text-blue-600 font-kyokasho";
+            opCell.innerText = "－";
+            grid.appendChild(opCell);
+            
+            for (let i = 0; i < cols - 1; i++) {
+                const charTotal = totalStr[i] !== " " ? totalStr[i] : "";
+                const cell = document.createElement("div");
+                cell.className = "graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho";
+                cell.innerText = charTotal;
+                grid.appendChild(cell);
+            }
+            
+            // 行4: 太い横線
+            const hr = document.createElement("div");
+            hr.className = `col-span-${cols} h-1.5 bg-slate-800 my-1`;
+            grid.appendChild(hr);
+            
+            // 行5: 横線下の手書きメモ行 (h-16)
+            for (let i = 0; i < cols; i++) {
+                const cell = document.createElement("div");
+                cell.className = "graph-cell h-16 bg-sky-50/10";
+                grid.appendChild(cell);
+            }
+            
+            gridContainer.appendChild(grid);
 
-            // 引き算記号の配置 (太線の左側)
-            document.getElementById("cell-operator").innerText = "－";
+            // 2. 答え入力マスの動的生成
+            const answerContainer = document.getElementById("answer-grid-container");
+            answerContainer.innerHTML = "";
+            
+            const ansGrid = document.createElement("div");
+            ansGrid.className = `grid grid-cols-${cols} mt-2`;
+            
+            // 1列目: イコール
+            const eqCell = document.createElement("div");
+            eqCell.className = "flex items-center justify-center text-2xl font-black text-slate-400 font-kyokasho";
+            eqCell.innerText = "=";
+            ansGrid.appendChild(eqCell);
+            
+            // 6列の場合は2列目に空白を入れて位置を調整
+            if (cols === 6) {
+                const emptyCell = document.createElement("div");
+                emptyCell.className = "m-1 h-16";
+                ansGrid.appendChild(emptyCell);
+            }
+            
+            // 答えの入力マス 4つ (千、百、十、一、右寄せ)
+            for (let i = 3; i >= 0; i--) {
+                const box = document.createElement("div");
+                box.id = `ans-box-${i}`;
+                box.setAttribute("onclick", `focusDigit(${i})`);
+                box.className = "m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 cursor-pointer shadow-inner transition font-kyokasho";
+                ansGrid.appendChild(box);
+            }
+            
+            answerContainer.appendChild(ansGrid);
 
-            // 答えの入力枠をクリア＆一の位に初期フォーカス
+            // 答えの入力初期化
             userAnswers = ["", "", "", ""];
-            for (let i = 0; i < 4; i++) {
-                updateAnswerBoxUI(i);
-            }
             focusDigit(0);
         }
 
@@ -740,10 +771,11 @@
             currentFocusIndex = index;
             for (let i = 0; i < 4; i++) {
                 const box = document.getElementById(`ans-box-${i}`);
+                if (!box) continue;
                 if (i === index) {
-                    box.className = "m-1 h-16 bg-yellow-100 border-4 border-amber-500 rounded-lg flex items-center justify-center text-3xl font-black text-amber-800 cursor-pointer shadow-inner scale-105 transition-all";
+                    box.className = "m-1 h-16 bg-yellow-100 border-4 border-amber-500 rounded-lg flex items-center justify-center text-3xl font-black text-amber-800 cursor-pointer shadow-inner scale-105 transition-all font-kyokasho";
                 } else {
-                    box.className = "m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 cursor-pointer shadow-inner transition";
+                    box.className = "m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 cursor-pointer shadow-inner transition font-kyokasho";
                 }
             }
         }
@@ -751,7 +783,9 @@
         // 入力マスの数値を描画
         function updateAnswerBoxUI(index) {
             const box = document.getElementById(`ans-box-${index}`);
-            box.innerText = userAnswers[index];
+            if (box) {
+                box.innerText = userAnswers[index];
+            }
         }
 
         // テンキー入力イベント
@@ -786,7 +820,7 @@
             }
         }
 
-        // おつり答え合わせ
+        // おつり答え合わせ (レシートの生成)
         function checkAnswer() {
             // ユーザーの入力値を合体して数値化
             let userAnsStr = "";
@@ -817,7 +851,7 @@
                 receiptList.innerHTML = "";
                 cart.forEach(item => {
                     const li = document.createElement("li");
-                    li.className = "flex justify-between";
+                    li.className = "flex justify-between font-kyokasho";
                     li.innerHTML = `<span>${item.name}</span><span>${item.price} 円</span>`;
                     receiptList.appendChild(li);
                 });
@@ -830,7 +864,7 @@
                 
                 document.getElementById("success-modal").classList.remove("hidden");
             } else {
-                // 不正解 (画面ゆらしは行わず、ブザー音のみで知らせます)
+                // 不正解 (画面を揺らさず静かにブザーだけを流す)
                 playIncorrectSound();
             }
         }
