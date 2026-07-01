@@ -474,7 +474,7 @@
             const config = {
                 fps: 15,
                 qrbox: (width, height) => {
-                    // スキャン用の枠の高さを大幅に大きく、かざしやすく拡張
+                    // スキャン用の枠の高さを大幅に大きく、かざしやすく拡張 (ズーム時に捉えやすいよう約70%の範囲に設定)
                     const scanWidth = Math.min(width * 0.8, 320);
                     const scanHeight = Math.min(height * 0.7, 240);
                     return { width: scanWidth, height: scanHeight };
@@ -493,6 +493,34 @@
             ).then(() => {
                 const container = document.getElementById("camera-fallback-msg");
                 if (container) container.classList.add("hidden");
+
+                // カメラ起動が完全に完了し、映像が安定したタイミングでズーム倍率を設定 (20cm離れてもしっかり検出されるように2.0倍を目標に設定)
+                setTimeout(() => {
+                    try {
+                        const capabilities = html5QrcodeScanner.getRunningTrackCapabilities();
+                        if (capabilities && capabilities.zoom) {
+                            const minZoom = capabilities.zoom.min || 1;
+                            const maxZoom = capabilities.zoom.max || 1;
+                            
+                            // 2.0倍のズームを目標に設定。ハードウェアの最大ズームを超えない範囲にクランプします
+                            const targetZoom = Math.min(2.0, maxZoom);
+                            if (targetZoom > minZoom) {
+                                html5QrcodeScanner.applyVideoConstraints({
+                                    advanced: [{ zoom: targetZoom }]
+                                }).then(() => {
+                                    console.log("Zoom successfully applied:", targetZoom);
+                                }).catch(err => {
+                                    console.warn("Failed to apply zoom constraints:", err);
+                                });
+                            }
+                        } else {
+                            console.log("This device/browser does not support camera zoom.");
+                        }
+                    } catch (e) {
+                        console.warn("Error applying camera capabilities:", e);
+                    }
+                }, 1200);
+
             }).catch(err => {
                 console.warn(err);
             });
