@@ -333,7 +333,7 @@
                 readerDiv.classList.add("back-camera");
             }
 
-            html5QrScanner.start(cameraId, {
+            html5QrcodeScanner.start(cameraId, {
                 fps: 15,
                 // 全画面にしても枠が縦に伸びないよう、画面の高さ(h)に依存させず横長の比率で固定
                 qrbox: (w, h) => {
