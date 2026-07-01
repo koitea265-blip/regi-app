@@ -514,9 +514,10 @@
             const config = {
                 fps: 15,
                 qrbox: (width, height) => {
-                    // スキャン用の枠の高さを大幅に大きく、かざしやすく拡張 (ズーム時に捉えやすいよう約70%の範囲に設定)
-                    const scanWidth = Math.min(width * 0.8, 320);
-                    const scanHeight = Math.min(height * 0.7, 240);
+                    // スキャン枠の高さを大幅に狭く（従来の半分以下）してスリット状に変更。
+                    // 本のように2列で並んだバーコードの片方だけを確実に狙えるようにします。
+                    const scanWidth = Math.min(width * 0.8, 300);
+                    const scanHeight = Math.min(height * 0.3, 85); // 縦幅を狭める
                     return { width: scanWidth, height: scanHeight };
                 }
             };
