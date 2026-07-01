@@ -324,6 +324,9 @@
         let currentPayment = 0;
         let correctAnswer = 0;
         
+        // 累計正解数 (これで問題数をカウントし、支払額の出し方パターンを解放する)
+        let solvedCount = 0;
+        
         // 位ごと (0=一, 1=十, 2=百, 3=千) の入力値保持
         let digitValues = { 0: "", 1: "", 2: "", 3: "" };
         let activeFocusDigit = 0; // 初期フォーカスは「一の位」
@@ -598,29 +601,83 @@
         function startCheckout() {
             if (currentTotal === 0) return;
 
-            // 支払うお金の決定（100, 500, 1000, 5000, 10000円札を適切にチョイス）
-            if (currentTotal <= 100) {
-                currentPayment = 100;
-            } else if (currentTotal <= 500) {
-                currentPayment = 500;
-            } else if (currentTotal <= 1000) {
-                currentPayment = 1000;
-            } else if (currentTotal <= 5000) {
-                currentPayment = 5000;
-            } else {
-                currentPayment = 10000;
+            // 支払いパターンの設定
+            let paymentType = "basic"; // デフォルトは基本(直上キリ番)
+            
+            if (solvedCount >= 2) {
+                // 3問目以降は応用的な支払いパターンをシャッフルで出題する
+                const rand = Math.random();
+                if (rand < 0.4) {
+                    paymentType = "basic"; // 基本パターン
+                } else if (rand < 0.75) {
+                    paymentType = "hasu";  // おつりをすっきりさせる端数ぴったり(例: 2789円に対して3089円を出す)
+                } else {
+                    paymentType = "large"; // 大雑把に大きなお札(例: 2789円に対して5000円を出す)
+                }
             }
 
-            if (currentPayment === currentTotal) {
-                currentPayment += 1000;
+            // 1. まず基本の支払額（お札）を算出する
+            let basicPayment = 10000;
+            if (currentTotal <= 100) {
+                basicPayment = 100;
+            } else if (currentTotal <= 500) {
+                basicPayment = 500;
+            } else if (currentTotal <= 1000) {
+                basicPayment = 1000;
+            } else {
+                // 合計を超える最小の千円単位のキリの良いお金 (例: 2789円なら3000円)
+                basicPayment = Math.ceil(currentTotal / 1000) * 1000;
+            }
+
+            // 合計と同じ金額になった場合は、おつりが生じるよう1段階上げる
+            if (basicPayment === currentTotal) {
+                if (basicPayment < 500) basicPayment = 500;
+                else if (basicPayment < 1000) basicPayment = 1000;
+                else basicPayment += 1000;
+            }
+
+            currentPayment = basicPayment;
+
+            // 2. 選択されたパターンに合わせて支払額を変化・拡張
+            if (paymentType === "hasu") {
+                const hasu = currentTotal % 100; // 下2桁の端数 (例: 2789円なら89円)
+                if (hasu > 0 && (basicPayment + hasu) > currentTotal) {
+                    currentPayment = basicPayment + hasu; // 端数を足して出す (例: 3000 + 89 = 3089円)
+                } else {
+                    paymentType = "basic"; // 端数がない、あるいは成立しない場合は基本へ戻る
+                }
+            } else if (paymentType === "large") {
+                // 5000円札や10000円札を使った大きめパターン
+                if (currentTotal < 5000) {
+                    currentPayment = 5000; // 5000円
+                } else if (currentTotal < 10000) {
+                    currentPayment = 10000; // 10000円
+                } else {
+                    currentPayment = Math.ceil(currentTotal / 5000) * 5000;
+                    if (currentPayment === currentTotal) {
+                        currentPayment += 5000;
+                    }
+                }
+            }
+
+            // 安全チェック (必ず支払額が合計を上回るように調整)
+            if (currentPayment <= currentTotal) {
+                currentPayment = Math.ceil((currentTotal + 1) / 1000) * 1000;
             }
 
             correctAnswer = currentPayment - currentTotal;
             digitValues = { 0: "", 1: "", 2: "", 3: "" };
             
-            document.getElementById('payment-text').innerText = `ごうけい ${currentTotal}円。おさいふから ${currentPayment}円 だしました！`;
+            // 出し方に応じた声かけヒントテキストの変更
+            let paymentMsg = `ごうけい ${currentTotal}円。おさいふから ${currentPayment}円 だしました！`;
+            if (paymentType === "hasu") {
+                paymentMsg = `💡おつりをスッキリさせる出し方！ごうけい ${currentTotal}円に ${currentPayment}円 だしました！`;
+            } else if (paymentType === "large") {
+                paymentMsg = `お財布から大きなお札で！ごうけい ${currentTotal}円に ${currentPayment}円 だしました！`;
+            }
+            document.getElementById('payment-text').innerText = paymentMsg;
             
-            // 筆算の支払額をマスにはめ込む
+            // 筆算の支払額をマスにはめ込む (4桁)
             const payStr = currentPayment.toString().padStart(4, ' ');
             document.getElementById('cell-p3').innerText = payStr[0] !== ' ' ? payStr[0] : '';
             document.getElementById('cell-p2').innerText = payStr[1] !== ' ' ? payStr[1] : '';
@@ -698,6 +755,7 @@
             if (userNum === correctAnswer) {
                 playSuccessSound();
                 closeModal();
+                solvedCount++; // 累計正解問数を加算 (3問目以降の拡張モード解放用)
                 document.getElementById('success-overlay').classList.remove('hidden');
             } else {
                 playErrorSound();
