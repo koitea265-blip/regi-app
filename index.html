@@ -141,21 +141,22 @@
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
                 <!-- 左：ひっ算エリア -->
-                <div class="flex-1 flex flex-col items-center">
-                    <div class="w-full max-w-[340px] flex items-center justify-between mb-2 bg-white px-3 py-1.5 rounded-lg shadow-sm">
+                <div class="flex flex-col gap-2 w-full max-w-[340px] mx-auto">
+                    <div class="relative w-full flex items-center justify-between bg-white px-3 py-1.5 rounded-lg shadow-sm border border-sky-100">
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-500 font-bold">✍️ メモペン:</span>
                             <button onclick="setPenColor('#ef4444')" id="btn-pen-red" class="w-6 h-6 rounded-full bg-red-500 border-2 border-white ring-2 ring-red-500"></button>
                             <button onclick="setPenColor('#3b82f6')" id="btn-pen-blue" class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white"></button>
                             <button onclick="setPenColor('#1e293b')" id="btn-pen-black" class="w-6 h-6 rounded-full bg-slate-800 border-2 border-white"></button>
                         </div>
-                        <button onclick="clearCanvas()" class="text-xs bg-amber-100 text-amber-800 font-bold py-1 px-2.5 rounded">🧹 メモ消去</button>
+                        <button onclick="clearCanvas()" class="text-xs bg-amber-100 text-amber-800 font-bold py-1 px-2.5 rounded hover:bg-amber-200 transition">🧹 メモ消去</button>
                     </div>
 
-                    <div class="relative w-full max-w-[340px] bg-white rounded-xl shadow-lg border-2 border-sky-300 p-2 overflow-hidden">
+                    <div class="relative w-full bg-white rounded-xl shadow-lg border-2 border-sky-300 p-2 overflow-hidden">
                         <div class="relative w-full" id="canvas-container">
                             <div id="calculation-grid-container"></div>
-                            <canvas id="memo-canvas" class="absolute top-0 left-0 w-full h-full cursor-crosshair z-20"></canvas>
+                            <!-- スマホの誤作動を防ぐ touch-none を追加 -->
+                            <canvas id="memo-canvas" class="absolute top-0 left-0 w-full h-full cursor-crosshair z-20 touch-none"></canvas>
                         </div>
                         <div id="answer-grid-container"></div>
                     </div>
@@ -213,7 +214,7 @@
                 </div>
                 <div class="flex justify-between text-[10.5px] text-slate-600 px-1 mt-0.5">
                     <span>担 当: 店長</span>
-                    <span>取 引: No.<span id="receipt-tx-no"></span></span>
+                    <span>取 折: No.<span id="receipt-tx-no"></span></span>
                 </div>
 
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
@@ -275,8 +276,7 @@
         let cart = [], solvedCount = 0;
         let totalAmount = 0, paidAmount = 0, changeAmount = 0, currentFocusIndex = 0, userAnswers = ["","","",""];
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
-        // カメラ管理用の変数を html5QrcodeScanner に統一
-        let html5QrcodeScanner = null, isFrontCamera = true;
+        let html5QrScanner = null, isFrontCamera = true;
         let isSolved = false; // 正解済みかどうかのフラグ
 
         // FNV-1a 高精度ハッシュアルゴリズムでバーコード別に完全固有の商品を指定
@@ -296,61 +296,57 @@
 
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
-            try {
-                const devices = await Html5Qrcode.getCameras();
-                if (devices && devices.length > 0) {
-                    startScanning(devices[0].id);
-                } else {
-                    container.innerHTML = "カメラが見つかりません。テストボタンで遊んでね！";
-                }
-            } catch (err) {
-                container.innerHTML = "カメラを起動できませんでした。";
-            }
-        }
-
-        // スキャナーの実際の開始
-        function startScanning(cameraId) {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
-                    launchScannerInstance(cameraId);
-                }).catch(err => {
-                    console.warn(err);
-                    launchScannerInstance(cameraId); // エラーでも再試行
-                });
-            } else {
-                launchScannerInstance(cameraId);
-            }
-        }
-
-        function launchScannerInstance(cameraId) {
-            html5QrcodeScanner = new Html5Qrcode("reader");
+            container.classList.remove("hidden");
+            container.innerHTML = `
+                <span class="text-4xl mb-3">📷</span>
+                <p class="font-bold mb-1">カメラを起動しています...</p>
+            `;
             
-            // 鏡映し判定と背面(アウトカメラ)時のクラス切り替え
-            const readerDiv = document.getElementById("reader");
-            if (isFrontCamera) {
-                readerDiv.classList.remove("back-camera");
-            } else {
-                readerDiv.classList.add("back-camera");
-            }
-
-            html5QrcodeScanner.start(cameraId, {
-                fps: 15,
-                // 全画面にしても枠が縦に伸びないよう、画面の高さ(h)に依存させず横長の比率で固定
-                qrbox: (w, h) => {
-                    // 横幅を画面の85%、または最大500pxまで広げる
-                    let scanWidth = Math.min(w * 0.85, 500); 
-                    // 縦幅を横幅の半分、または最大250pxまで広げる
-                    let scanHeight = Math.min(scanWidth * 0.5, 250); 
-                    
-                    // 【修正】html5-qrcodeの「最低50px以上」というエラーを防ぐための安全処理
-                    scanWidth = Math.max(50, scanWidth);
-                    scanHeight = Math.max(50, scanHeight);
-                    
-                    return { width: scanWidth, height: scanHeight };
+            try {
+                // 既に稼働中のインスタンスがあれば、事前に確実に停止させる
+                if (html5QrScanner) {
+                    try {
+                        await html5QrScanner.stop();
+                    } catch (e) {
+                        // 既に停止している場合などの競合エラーは無視
+                    }
                 }
-            }, onScanSuccess).then(() => {
-                document.getElementById("camera-fallback-msg").classList.add("hidden");
-            }).catch(e => console.log(e));
+
+                html5QrScanner = new Html5Qrcode("reader");
+                const readerDiv = document.getElementById("reader");
+                
+                // 鏡映し判定と背面(アウトカメラ)時のクラス切り替え
+                if (isFrontCamera) {
+                    readerDiv.classList.remove("back-camera");
+                } else {
+                    readerDiv.classList.add("back-camera");
+                }
+
+                // facingModeで直接指定することで、ブラウザ側のカメラ起動を安定化させる
+                const facingMode = isFrontCamera ? "user" : "environment";
+
+                await html5QrScanner.start(
+                    { facingMode: facingMode },
+                    {
+                        fps: 15,
+                        qrbox: (w, h) => {
+                            const scanWidth = Math.min(w * 0.75, 260); // 広めの横幅
+                            const scanHeight = Math.min(scanWidth * 0.35, 90); // 縦幅は横幅の35%か最大90pxで完全固定
+                            return { width: scanWidth, height: scanHeight };
+                        }
+                    },
+                    onScanSuccess
+                );
+                
+                container.classList.add("hidden");
+            } catch (err) {
+                console.error("Camera start failed:", err);
+                container.innerHTML = `
+                    <span class="text-4xl mb-3">⚠️</span>
+                    <p class="font-bold mb-1 text-rose-400">カメラを起動できませんでした</p>
+                    <p class="text-xs text-slate-300 px-4 mt-1">カメラの許可（きょか）を確認するか、テストボタン「⚡ ぴっ！」で遊んでね！</p>
+                `;
+            }
         }
 
         // 誤認防止フィルター（連続2回一致で検知成功）
@@ -424,9 +420,6 @@
             document.getElementById("total-count").innerText = cart.length + " 点";
             document.getElementById("total-price").innerText = total.toLocaleString();
             document.getElementById("checkout-btn").disabled = cart.length === 0;
-
-            // 商品が追加されたら、リストを一番下まで自動スクロールする
-            list.scrollTop = list.scrollHeight;
         }
 
         function removeItem(id) { 
@@ -439,7 +432,7 @@
             renderCart(); 
         }
 
-        // 実生活に即した賢い支払いロジック (例: 2854円のとき、3054円を提示)
+        // 実生活に即した賢い支払いロジック
         function getOptimalPayment(total) {
             const baseThousand = Math.ceil(total / 1000) * 1000;
             if (solvedCount < 1) return baseThousand === total ? baseThousand + 1000 : baseThousand;
@@ -448,7 +441,7 @@
             if (rand < 0.5) {
                 const hasu = total % 100; // 端数(一・十の位)
                 if (hasu > 0 && (baseThousand + hasu) > total) {
-                    return baseThousand + hasu; // 端数合わせ (例: 2854 -> 3054)
+                    return baseThousand + hasu; // 端数合わせ
                 }
             }
             return (total < 4000 && Math.random() > 0.6) ? 5000 : (baseThousand === total ? baseThousand + 1000 : baseThousand);
@@ -480,7 +473,7 @@
             const paidStr = paidAmount.toString().padStart(cols, " ");
             const totalStr = totalAmount.toString().padStart(cols - 1, " ");
 
-            // 1行目：くり下がり行 (高さh-24でたっぷり2つ数字を書ける)
+            // 1行目：くり下がり行
             for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-24 bg-sky-50/30"></div>`; 
             
             // 2行目：ひかれる数
@@ -669,6 +662,7 @@
                 ctx.stroke();
             };
             
+            // PCのマウス操作用
             canvas.onmousedown = (e) => { 
                 isDrawing = true; 
                 ctx.beginPath(); 
@@ -678,23 +672,33 @@
             canvas.onmousemove = draw;
             window.onmouseup = () => isDrawing = false;
             
-            canvas.ontouchstart = (e) => { 
+            // スマホ・タブレットのタッチ操作用
+            canvas.addEventListener("touchstart", (e) => { 
                 isDrawing = true; 
                 ctx.beginPath(); 
                 const r = canvas.getBoundingClientRect(); 
                 ctx.moveTo(e.touches[0].clientX-r.left, e.touches[0].clientY-r.top); 
                 e.preventDefault(); 
-            };
-            canvas.ontouchmove = (e) => { 
+            }, { passive: false });
+            
+            canvas.addEventListener("touchmove", (e) => { 
                 draw(e); 
                 e.preventDefault(); 
-            };
+            }, { passive: false });
+
+            canvas.addEventListener("touchend", () => {
+                isDrawing = false;
+            });
         }
         
         function resizeCanvas() { 
             const c = document.getElementById("canvas-container"); 
-            canvas.width = c.offsetWidth; 
-            canvas.height = c.offsetHeight; 
+            if (c.offsetWidth > 0 && c.offsetHeight > 0) {
+                canvas.width = c.offsetWidth; 
+                canvas.height = c.offsetHeight; 
+            } else {
+                setTimeout(resizeCanvas, 50);
+            }
         }
         
         function setPenColor(c) { 
