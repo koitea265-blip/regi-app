@@ -297,7 +297,6 @@
 
     <!-- ==================== JavaScript ロジック ==================== -->
     <script>
-        // 50種類以上のダミー商品データ (1円単位の価格、子供たちが親しみやすいアイテム)
         const dummyProducts = [
             { name: "りんご (🍎)", price: 124 },
             { name: "みかん (🍊)", price: 87 },
@@ -602,38 +601,36 @@
 
         // ==================== モーダルおつり学習ロジック ====================
 
-        // 正しいお札・硬貨の支払いをスマートに決める賢いアルゴリズム
         function getOptimalPayment(total) {
-            // 基本的な紙輩の候補
+            // 基本的な紙幣の候補
             const bills = [100, 500, 1000, 2000, 3000, 5000, 10000];
             let nextBill = bills.find(b => b >= total);
             if (!nextBill) nextBill = 10000;
 
-            // 1問目と2問目はシンプルな切り番を提示
+            // 1問目と2問目はシンプルなキリの良いお札の金額を提示
             if (solvedCount <= 1) {
                 return nextBill;
             }
 
-            // 3問目以降は実践的な「おつりをきれいにする出し方」と「5000円出すパターン」を交ぜる
+            // 3問目以降はより実践的な「お釣りの小銭をスッキリさせる」端数合わせと5000円出し
             const rand = Math.random();
-            if (rand < 0.35) {
-                // 【端数合わせ応用パターン】(おつりを100円玉や500円玉に絞るテクニック)
-                // 例: 2789円に対して3089円支払い → おつり300円
-                const lastTwo = total % 100; // 一・十の位を取得 (89円)
+            if (rand < 0.40) {
+                // 【賢い端数合わせ支払いパターン】（お釣りをお札や大きめの硬貨だけにする）
+                // 例: 2854円に対して、お札のキリ番（3000円）に下2桁の端数（54円）を足して3054円出す。お釣りは綺麗に200円。
+                const lastTwo = total % 100;
                 if (lastTwo > 0) {
-                    let hasuPaid = Math.ceil(total / 100) * 100 + lastTwo;
-                    // 引かれる数が10000以下で無理のない範囲
-                    if (hasuPaid < total) {
-                        hasuPaid += 100;
-                    }
+                    // 合計金額を1000円単位で切り上げた金額ベースを算出（例: 2854 -> 3000）
+                    const baseBill = Math.ceil(total / 1000) * 1000;
+                    const hasuPaid = baseBill + lastTwo;
+                    
                     if (hasuPaid > total && hasuPaid <= 10000) {
                         return hasuPaid;
                     }
                 }
-            } else if (rand < 0.65) {
-                // 【大きなお札（5000円など）で雑に支払うパターン】
+            } else if (rand < 0.70) {
+                // 【大きめの5000円札や10000円札をドンと差し出すパターン】
                 if (total < 1000 && Math.random() > 0.5) {
-                    return 5000; // 小額でもお財布に5000円しかなかった状況
+                    return 5000; // 小額会計だけど5000円札しかなかった状況
                 } else if (total < 5000 && Math.random() > 0.5) {
                     return 5000;
                 } else if (total < 10000) {
@@ -669,7 +666,6 @@
             document.getElementById("payment-modal").classList.remove("hidden");
         }
 
-        // 方眼紙の中に位を揃えて数字を充填 (5列グリッドと6列グリッドの動的切替システム)
         function setupCalculationGrid() {
             // お支払い金額が10000円（5桁）のときは6列、それ以下は5列に動的切り替え！
             const cols = paidAmount >= 10000 ? 6 : 5;
@@ -820,7 +816,6 @@
             }
         }
 
-        // おつり答え合わせ (レシートの生成)
         function checkAnswer() {
             // ユーザーの入力値を合体して数値化
             let userAnsStr = "";
