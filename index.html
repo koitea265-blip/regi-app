@@ -25,19 +25,19 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* ==================== 100%確実なCSSデジタルズームシステム ==================== */
-        /* カメラ映像（video要素）をCSS側で強制的に1.8倍にズームアップ！ */
+        /* ==================== 100%確実なCSSデジタルズームシステム ＝ 鏡（左右反転）をデフォルトに！ ==================== */
+        /* 初期起動時（インカメラ想定）は、最初から左右反転（鏡）＋ 1.8倍ズームで強制表示！ */
         #reader video {
             object-fit: cover !important;
             width: 100% !important;
             height: 100% !important;
-            transform: scale(1.8) !important; /* 1.8倍にズーム */
+            transform: scale(-1.8, 1.8) !important; /* 鏡（マイナス反転）＆ 1.8倍ズーム */
             transform-origin: center !important;
         }
 
-        /* 鏡映し表示用 (前面インカメラ時) ＋ 1.8倍ズーム */
-        .mirror-video video {
-            transform: scale(-1.8, 1.8) !important; /* 横方向だけマイナスに反転して鏡表示 */
+        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし ＋ 1.8倍ズーム */
+        .back-camera video {
+            transform: scale(1.8) !important; /* 反転なし通常向き ＆ 1.8倍ズーム */
             transform-origin: center !important;
         }
 
@@ -90,8 +90,8 @@
             <div class="relative flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <!-- スキャン枠 & レーザーアニメーション -->
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center">
-                    <!-- カメラ表示ターゲット用div -->
-                    <div id="reader" class="w-full h-full mirror-video"></div>
+                    <!-- カメラ表示ターゲット用div (初期状態から鏡表示を適用) -->
+                    <div id="reader" class="w-full h-full"></div>
                     
                     <!-- 赤いレーザー光線アニメーション -->
                     <div class="absolute left-0 right-0 h-1 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-bounce z-10" style="animation-duration: 3s;"></div>
@@ -128,7 +128,7 @@
             </h2>
             
             <ul id="cart-list" class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1">
-                <li id="cart-placeholder" class="text-gray-400 text-center mt-16">おかいもの を はじめよう！<br>バーコードにかざすか、テストボタンを押してね。</li>
+                <li id="cart-placeholder" class="text-gray-400 text-center mt-16 font-kyokasho">おかいもの を はじめよう！<br>バーコードにかざすか、テストボタンを押してね。</li>
             </ul>
 
             <!-- お会計ボタンエリア -->
@@ -308,6 +308,7 @@
 
     <!-- ==================== JavaScript ロジック ==================== -->
     <script>
+        // 70種類以上に倍増・拡張したダミー商品データベース (かぶりを極限まで減らし、1円単位でお買い物算数の価値を高める)
         const dummyProducts = [
             { name: "りんご (🍎)", price: 124 },
             { name: "みかん (🍊)", price: 87 },
@@ -359,7 +360,32 @@
             { name: "保冷水筒 (🍶)", price: 1890 },
             { name: "子ども用歯ブラシ (🪥)", price: 112 },
             { name: "おもしろい絵本 (📖)", price: 836 },
-            { name: "星のキーホルダー (🔑)", price: 345 }
+            { name: "星のキーホルダー (🔑)", price: 345 },
+            // 新規追加アイテム群（商品バラエティを最大級に）
+            { name: "ポップコーン (🍿)", price: 184 },
+            { name: "ホットドッグ (🌭)", price: 263 },
+            { name: "ピースピザ (🍕)", price: 382 },
+            { name: "メロンパン (🍞)", price: 143 },
+            { name: "シュークリーム (🧁)", price: 152 },
+            { name: "わたがし (☁️)", price: 112 },
+            { name: "フランクフルト (🌭)", price: 194 },
+            { name: "おえかきちょう (🎨)", price: 145 },
+            { name: "12色クレヨン (🖍️)", price: 382 },
+            { name: "水彩えのぐ (🎨)", price: 684 },
+            { name: "虫めがね (🔍)", price: 215 },
+            { name: "虫かご (🕸️)", price: 432 },
+            { name: "カラフルなわとび (➰)", price: 294 },
+            { name: "シャボン玉セット (🫧)", price: 134 },
+            { name: "お花のヘアクリップ (🌸)", price: 94 },
+            { name: "ぷくぷくシール (🐟)", price: 112 },
+            { name: "らいおんバッジ (🦁)", price: 183 },
+            { name: "ねこペンケース (✏️)", price: 594 },
+            { name: "キャラクターかさ (☂️)", price: 783 },
+            { name: "どうぶつハンカチ (🧼)", price: 143 },
+            { name: "じゆうちょう (📒)", price: 123 },
+            { name: "30cmじょうぎ (📏)", price: 134 },
+            { name: "カラフルねんど (🎨)", price: 245 },
+            { name: "バドミントンシャトル (🏸)", price: 184 }
         ];
 
         // アプリケーション状態
@@ -384,12 +410,15 @@
         let isDrawing = false;
         let penColor = "#ef4444"; // デフォルト赤
 
-        // バーコードの一致をダミー商品に結びつけるハッシュ関数
+        // ==================== 超強力 FNV-1a 32ビット分散ハッシュアルゴリズム ====================
         function getProductFromBarcode(barcode) {
-            let hash = 0;
+            let hash = 2166136261; // FNV-1a 32-bit初期オフセット
             for (let i = 0; i < barcode.length; i++) {
-                hash = barcode.charCodeAt(i) + ((hash << 5) - hash);
+                hash ^= barcode.charCodeAt(i);
+                // 32ビットの整数範囲で乗算を行う（衝突を劇的に削減するハッシュ散布）
+                hash = Math.imul(hash, 16777619);
             }
+            // 余剰を計算して商品インデックスにマッピング
             const index = Math.abs(hash) % dummyProducts.length;
             return dummyProducts[index];
         }
@@ -474,12 +503,12 @@
         function launchScannerInstance(cameraId) {
             html5QrcodeScanner = new Html5Qrcode("reader");
             
-            // 前面カメラの場合は鏡表示にするCSSクラスを適用
+            // 鏡映し判定と背面(アウトカメラ)時のクラス切り替え
             const readerDiv = document.getElementById("reader");
             if (isFrontCamera) {
-                readerDiv.classList.add("mirror-video");
+                readerDiv.classList.remove("back-camera"); // 鏡表示(デフォルトCSS)をそのまま有効化
             } else {
-                readerDiv.classList.remove("mirror-video");
+                readerDiv.classList.add("back-camera");    // 鏡表示を解除
             }
 
             const config = {
@@ -504,34 +533,6 @@
             ).then(() => {
                 const container = document.getElementById("camera-fallback-msg");
                 if (container) container.classList.add("hidden");
-
-                // カメラ起動が完全に完了し、映像が安定したタイミングでズーム倍率を設定 (20cm離れてもしっかり検出されるように2.0倍を目標に設定)
-                setTimeout(() => {
-                    try {
-                        const capabilities = html5QrcodeScanner.getRunningTrackCapabilities();
-                        if (capabilities && capabilities.zoom) {
-                            const minZoom = capabilities.zoom.min || 1;
-                            const maxZoom = capabilities.zoom.max || 1;
-                            
-                            // 2.0倍のズームを目標に設定。ハードウェアの最大ズームを超えない範囲にクランプします
-                            const targetZoom = Math.min(2.0, maxZoom);
-                            if (targetZoom > minZoom) {
-                                html5QrcodeScanner.applyVideoConstraints({
-                                    advanced: [{ zoom: targetZoom }]
-                                }).then(() => {
-                                    console.log("Zoom successfully applied:", targetZoom);
-                                }).catch(err => {
-                                    console.warn("Failed to apply zoom constraints:", err);
-                                });
-                            }
-                        } else {
-                            console.log("This device/browser does not support camera zoom.");
-                        }
-                    } catch (e) {
-                        console.warn("Error applying camera capabilities:", e);
-                    }
-                }, 1200);
-
             }).catch(err => {
                 console.warn(err);
             });
@@ -639,7 +640,6 @@
         }
 
         // ==================== モーダルおつり学習ロジック ====================
-
         function getOptimalPayment(total) {
             // 基本的な紙幣の候補
             const bills = [100, 500, 1000, 2000, 3000, 5000, 10000];
@@ -667,7 +667,7 @@
                     }
                 }
             } else if (rand < 0.70) {
-                // 【大きめの5000円札や10000円札をドンと差し出すパターン】
+                // 【大きめの5000円札や10000円札をドンと出すパターン】
                 if (total < 1000 && Math.random() > 0.5) {
                     return 5000; // 小額会計だけど5000円札しかなかった状況
                 } else if (total < 5000 && Math.random() > 0.5) {
