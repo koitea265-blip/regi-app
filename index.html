@@ -329,10 +329,10 @@
 
             html5QrScanner.start(cameraId, {
                 fps: 15,
-                // スキャン枠を少し広げて、近づけなくても捉えやすいサイズに調整
+                // 全画面にしても枠が縦に伸びないよう、画面の高さ(h)に依存させず横長の比率で固定
                 qrbox: (w, h) => {
                     const scanWidth = Math.min(w * 0.75, 260); // 広めの横幅
-                    const scanHeight = Math.min(h * 0.35, 110); // 広めの縦幅
+                    const scanHeight = Math.min(scanWidth * 0.35, 90); // 縦幅は横幅の35%か最大90pxで完全固定
                     return { width: scanWidth, height: scanHeight };
                 }
             }, onScanSuccess).then(() => {
