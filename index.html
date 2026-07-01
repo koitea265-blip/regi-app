@@ -512,12 +512,11 @@
             }
 
             const config = {
-                fps: 15,
+                fps: 10, // 過敏すぎる反応を抑えるためフレームレートを少し下げる
                 qrbox: (width, height) => {
-                    // スキャン枠の高さを大幅に狭く（従来の半分以下）してスリット状に変更。
-                    // 本のように2列で並んだバーコードの片方だけを確実に狙えるようにします。
-                    const scanWidth = Math.min(width * 0.8, 300);
-                    const scanHeight = Math.min(height * 0.3, 85); // 縦幅を狭める
+                    // スキャン枠をさらに極小のスリット状に絞り込む（誤読を徹底防止）
+                    const scanWidth = Math.min(width * 0.7, 240);
+                    const scanHeight = Math.min(height * 0.2, 50); // 縦幅をさらに細く
                     return { width: scanWidth, height: scanHeight };
                 }
             };
@@ -561,15 +560,43 @@
             }
         }
 
-        // バーコードが読み取れたときの処理
+        // バーコードが読み取れたときの処理 (誤読防止システム搭載)
         let lastScanTime = 0;
+        let pendingBarcode = null;
+        let pendingBarcodeCount = 0;
+
         function handleScannedBarcode(code) {
             const now = Date.now();
-            if (now - lastScanTime < 1800) return; // 連続スキャンの防止ガード
-            lastScanTime = now;
+            
+            // カートに入れた直後のクールダウン中は無反応にする
+            if (now - lastScanTime < 1800) {
+                pendingBarcode = null;
+                pendingBarcodeCount = 0;
+                return;
+            }
 
-            const product = getProductFromBarcode(code);
-            addToCart(product);
+            // 【誤爆防止フィルター】: チラッと映ったものは無視し、
+            // 同じバーコードが連続で3回（約0.3秒間）認識されたら「確定」とする
+            if (pendingBarcode === code) {
+                pendingBarcodeCount++;
+                if (pendingBarcodeCount >= 3) {
+                    lastScanTime = now;
+                    pendingBarcodeCount = 0;
+                    const product = getProductFromBarcode(code);
+                    addToCart(product);
+                }
+            } else {
+                // 新しいバーコードが見えたらカウントをリセットしてやり直し
+                pendingBarcode = code;
+                pendingBarcodeCount = 1;
+                
+                // 枠から外れてしまったら一定時間で記憶を消去
+                clearTimeout(window.pendingResetTimer);
+                window.pendingResetTimer = setTimeout(() => {
+                    pendingBarcode = null;
+                    pendingBarcodeCount = 0;
+                }, 800);
+            }
         }
 
         // テスト用スキャン
