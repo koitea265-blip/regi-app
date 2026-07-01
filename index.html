@@ -25,9 +25,20 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* 鏡映し表示用 (インカメラ) */
+        /* ==================== 100%確実なCSSデジタルズームシステム ==================== */
+        /* カメラ映像（video要素）をCSS側で強制的に1.8倍にズームアップ！ */
+        #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+            transform: scale(1.8) !important; /* 1.8倍にズーム */
+            transform-origin: center !important;
+        }
+
+        /* 鏡映し表示用 (前面インカメラ時) ＋ 1.8倍ズーム */
         .mirror-video video {
-            transform: scaleX(-1);
+            transform: scale(-1.8, 1.8) !important; /* 横方向だけマイナスに反転して鏡表示 */
+            transform-origin: center !important;
         }
 
         /* 方眼紙用の罫線 */
@@ -706,7 +717,7 @@
             grid.id = "calculation-grid";
             grid.className = `grid grid-cols-${cols} border-t border-l border-sky-200`;
             
-            // 行1: くり下がり行 (h-24)
+            // 行1: くり下がり行 (縦に2回余裕をもって書けるよう高さを大きく h-24)
             for (let i = 0; i < cols; i++) {
                 const cell = document.createElement("div");
                 cell.className = "graph-cell h-24 bg-sky-50/30";
