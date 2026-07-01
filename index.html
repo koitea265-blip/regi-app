@@ -275,7 +275,8 @@
         let cart = [], solvedCount = 0;
         let totalAmount = 0, paidAmount = 0, changeAmount = 0, currentFocusIndex = 0, userAnswers = ["","","",""];
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
-        let html5QrcodeScanner = null, isFrontCamera = true;
+        // カメラ管理用の変数を html5QrScanner に統一しました
+        let html5QrScanner = null, isFrontCamera = true;
         let isSolved = false; // 正解済みかどうかのフラグ
 
         // FNV-1a 高精度ハッシュアルゴリズムでバーコード別に完全固有の商品を指定
