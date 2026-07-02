@@ -392,22 +392,18 @@
                     {
                         fps: 15,
                         qrbox: (w, h) => {
-                            // 画面の実際のプレビュー領域(DOM)の幅と高さを取得
-                            const readerEl = document.getElementById("reader");
-                            const displayW = readerEl ? readerEl.clientWidth : 300;
-                            const displayH = readerEl ? readerEl.clientHeight : 200;
+                            // 【本質的解決】
+                            // ライブラリのプレビュー枠アスペクト比は、この関数が返す縦横比に「完全に同期」します。
+                            // 画面上の見かけ上の比率を1.44:1にするためには、補正項を排して
+                            // 直接的にストリーム解像度 (w, h) から 1.44 : 1 の幅・高さを計算する必要があります。
                             
-                            // 表示する「見かけの横幅」を決定（コンテナ幅の75%を占めるように大きく構成）
-                            const targetDisplayWidth = Math.max(Math.min(displayW * 0.75, 480), 240);
+                            // カメラ生映像の横幅の 70% を切り出しの基準幅に設定
+                            const scanWidth = Math.max(Math.min(w * 0.7, 480), 200);
                             
-                            // 見かけの縦幅を 1.44 : 1 (横 : 縦) の比率で厳密に計算（縦長化を徹底的に防止）
-                            const targetDisplayHeight = Math.round(targetDisplayWidth / 1.44);
+                            // 縦幅を「1.44 : 1」の比率で完全に固定して決定
+                            const scanHeight = Math.round(scanWidth / 1.44);
                             
-                            // ライブラリ内のストリームスケーリングマッピングを相殺するための逆変換補正
-                            const scanWidth = Math.round(targetDisplayWidth * (w / displayW));
-                            const scanHeight = Math.round(targetDisplayHeight * (h / displayH));
-                            
-                            // 最低保障50px制限エラーを防御
+                            // 最低保障50px制限エラーを防御し、完璧に固定された比率を返却
                             return { 
                                 width: Math.max(scanWidth, 50), 
                                 height: Math.max(scanHeight, 50) 
