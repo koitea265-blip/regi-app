@@ -509,12 +509,21 @@
                 // facingModeで直接指定することで、ブラウザ側のカメラ起動を安定化させる
                 const facingMode = isFrontCamera ? "user" : "environment";
 
+                // 【バグ修正】
+                // html5QrScanner.start の第1引数には、キーが厳密に1つのみのオブジェクトを渡す必要があります。
+                // オートフォーカスや解像度の詳細指定は、第2引数オブジェクト内の "videoConstraints" に含めます。
                 await html5QrScanner.start(
-                    { facingMode: facingMode },
+                    { facingMode: facingMode }, // キーは1つだけにする
                     {
-                        fps: 30, // fpsを30に増強：一瞬のピント合致チャンスを逃さない
+                        fps: 30, // fpsを30に設定：手ブレの合間の一瞬の合致をキャッチする
                         experimentalFeatures: {
-                            useBarCodeDetectorIfSupported: true // ネイティブGPUデコーダーが使用可能な場合は自動適用
+                            useBarCodeDetectorIfSupported: true // GPUを叩くネイティブハードウェアデコーダーを解放
+                        },
+                        videoConstraints: {
+                            width: { min: 640, ideal: 1280, max: 1920 },
+                            height: { min: 480, ideal: 720, max: 1080 },
+                            focusMode: "continuous",
+                            exposureMode: "continuous"
                         },
                         qrbox: (w, h) => {
                             // カメラ生映像の横幅の 70% を切り出しの基準幅に設定
@@ -545,34 +554,21 @@
             }
         }
 
-        // 誤認防止フィルター（連続2回一致で検知成功）
-        let lastScanTime = 0, pendingBarcode = null, pendingBarcodeCount = 0;
+        // 手ブレ対応型ファースト・ヒット優先インターバル管理
+        let lastScanTime = 0;
         
         function onScanSuccess(code) {
             const now = Date.now();
+            
+            // 【本質的解決：連続検知を排除し、一発目のヒットを即座に確定させる】
+            // 手ブレ環境では「2回連続一致」の障壁は高すぎます。ピントが合って読めた1フレーム（1発）を即座に採用します。
+            // チャタリング（二重スキャン）は、ヒット後の絶対時間インターバル（1.8秒）のみで論理的に完全ガードします。
             if (now - lastScanTime < 1800) {
-                pendingBarcode = null;
-                pendingBarcodeCount = 0;
-                return;
+                return; // クールダウン期間中は無視
             }
             
-            if (pendingBarcode === code) {
-                pendingBarcodeCount++;
-                if (pendingBarcodeCount >= 2) { // 2回連続で素早く反応
-                    lastScanTime = now; 
-                    pendingBarcodeCount = 0;
-                    addToCart(getProductFromBarcode(code));
-                }
-            } else {
-                pendingBarcode = code; 
-                pendingBarcodeCount = 1;
-                
-                clearTimeout(window.pendingResetTimer);
-                window.pendingResetTimer = setTimeout(() => {
-                    pendingBarcode = null;
-                    pendingBarcodeCount = 0;
-                }, 800);
-            }
+            lastScanTime = now;
+            addToCart(getProductFromBarcode(code));
         }
 
         function toggleCameraFacing() {
