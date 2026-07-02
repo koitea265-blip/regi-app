@@ -21,7 +21,7 @@
             font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
         }
 
-        /* 筆算エリア：正確な教科書体を最優先で強制適用。フォールバックに丸ゴシックを指定してかすれを完全防止 */
+        /* 筆算エリア・レシート：正確な教科書体を最優先で強制適用。フォールバックに丸ゴシックを指定してかすれを完全防止 */
         .font-kyokasho, #calculation-grid .graph-cell, [id^="ans-box-"] {
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", 'M PLUS Rounded 1c', sans-serif !important;
         }
@@ -169,7 +169,7 @@
                     <div id="reader" class="w-full h-full"></div>
                     
                     <!-- 【本質的解決：完全自製アライメントファインダー】 -->
-                    <!-- 外側を半透明 of Slate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く -->
+                    <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
                         <div class="relative w-[75%] aspect-[1.44/0.5] max-w-[440px] min-w-[200px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             
@@ -297,46 +297,41 @@
     <!-- ==================== 正解お祝い・くっきりリアルレシートモーダル ==================== -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
         <div class="flex flex-col items-center max-w-sm w-full my-auto">
-            <!-- レシート用紙エリア：文字かすれと太さのバラつきを徹底排除した高輝度くっきり設計 -->
-            <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
+            <!-- レシート用紙エリア：文字かすれを追放した高コントラスト設計 -->
+            <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-lg"> 
                 <!-- よくできましたスタンプ（レシート紙面の内側・右上に完全固定） -->
-                <div class="absolute top-4 right-4 border-4 border-rose-600 text-rose-600 text-xs font-bold px-2 py-1 rounded-lg rotate-12 bg-white/95 shadow-sm z-10">💮 よくできました</div>
+                <div class="absolute top-4 right-4 border-4 border-rose-600 text-rose-600 text-xs font-black px-2 py-1 rounded-lg rotate-12 bg-white/95 shadow-sm z-10">💮 よくできました</div>
                 
                 <div class="text-center mb-4 mt-2">
-                    <div class="text-lg font-bold text-black">🌻 こどもマーケット さくら店</div>
-                    <div class="text-xs font-bold text-black">おつり計算セルフレジ 特訓コーナー</div>
+                    <div class="text-xl font-black text-black">🌻 こどもマーケット さくら店</div>
+                    <div class="text-sm font-bold text-black">おつり計算セルフレジ 特訓コーナー</div>
                 </div>
                 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
                 <!-- レジ情報・担当者情報 -->
-                <div class="flex justify-between text-xs text-black px-1 font-bold">
+                <div class="flex justify-between text-sm text-black px-1 font-bold">
                     <span id="receipt-date"></span>
                     <span>レジ: 001</span>
                 </div>
-                <div class="flex justify-between text-xs text-black px-1 mt-0.5 font-bold">
-                    <span>担 当: 店長</span>
-                    <span>取 折: No.<span id="receipt-tx-no"></span></span>
-                </div>
-
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
                 <!-- スキャンしたお買い物商品一覧が印字されるスペース -->
-                <ul id="receipt-items-list" class="space-y-1 my-3 text-xs text-black font-bold"></ul>
+                <ul id="receipt-items-list" class="space-y-1.5 my-3 text-sm text-black font-bold"></ul>
                 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
-                <div class="space-y-1 font-bold mt-2 text-black text-sm">
-                    <div class="flex justify-between text-base border-b border-slate-400 pb-1">
+                <!-- 金額サマリー（合計・お預かり・おつりの大きさと色を統一） -->
+                <div class="space-y-2 font-black mt-2 text-black text-base">
+                    <div class="flex justify-between border-b border-slate-400 pb-1">
                         <span>合計（内税）</span>
                         <span><span id="receipt-total-cost">0</span> 円</span>
                     </div>
-                    <div class="flex justify-between pt-1 text-xs text-black">
-                        <span>お預かり</span>
+                    <div class="flex justify-between pt-1 text-base font-black">
+                        <span>おあずかり</span>
                         <span><span id="receipt-paid-amount">0</span> 円</span>
                     </div>
-                    <!-- おつり色を他のテキストと同一の黒(text-black)・同じ太さ(font-bold)に統一 -->
-                    <div class="flex justify-between text-base border-t border-slate-400 pt-1 mt-1 font-bold text-black">
+                    <div class="flex justify-between text-base border-t border-slate-400 pt-1 mt-1 font-black text-black">
                         <span>おつり</span>
                         <span><span id="receipt-change-amount">0</span> 円</span>
                     </div>
@@ -350,7 +345,7 @@
                     <div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div>
                 </div>
                 
-                <div class="text-center text-xs text-black font-bold">
+                <div class="text-center text-[11px] text-slate-700 font-bold">
                     <p>お買い上げありがとうございました！</p>
                 </div>
             </div>
@@ -391,12 +386,12 @@
             { name: "トランプ (🃏)", price: 312 },
             { name: "学習ノート (📓)", price: 118 },
             { name: "２Ｂえんぴつ (✏️)", price: 63 },
-            { name: "よく消える消しゴム ()", price: 84 },
+            { name: "よく消える消しゴム (🧽)", price: 84 },
             { name: "安全はさみ (✂️)", price: 275 },
             { name: "カラフルおりがみ (🎨)", price: 198 },
             { name: "ミニリュック (🎒)", price: 3890 },
             { name: "可愛いハンカチ (🧣)", price: 254 },
-            { name: "くまさんくくした (🧦)", price: 315 },
+            { name: "くまさんくつした (🧦)", price: 315 },
             { name: "サッカーボール (⚽)", price: 1240 },
             { name: "ポテトフライ (🍟)", price: 243 },
             { name: "チョコドーナツ (🍩)", price: 154 },
@@ -429,7 +424,7 @@
             { name: "お花のヘアクリップ (🌸)", price: 94 },
             { name: "ぷくぷくシール (🐟)", price: 112 },
             { name: "らいおんバッジ (🦁)", price: 183 },
-            { name: "nekoペンケース (✏️)", price: 594 },
+            { name: "ねこペンケース (✏️)", price: 594 },
             { name: "キャラクターかさ (☂️)", price: 783 },
             { name: "どうぶつハンカチ (🧼)", price: 143 },
             { name: "じゆうちょう (📒)", price: 123 },
@@ -451,10 +446,6 @@
             for (let i = 0; i < barcode.length; i++) {
                 hash = Math.imul(hash ^ barcode.charCodeAt(i), 16777619);
             }
-            
-            // 【不変決定論的マッピングの確立（バグの根本原因排除）】
-            // 配列の長さ（dummyProducts.length）が今後どれだけ変更されても、
-            // 既存の基本75種に対するバーコードの紐づけが「永久にずれない」よう、剰余の基準を固定定数「75」に設定します。
             const baseModulo = 75; 
             const index = Math.abs(hash) % baseModulo;
             return dummyProducts[index % dummyProducts.length];
@@ -496,36 +487,31 @@
             `;
 
             try {
-                // 既に稼働中のインスタンスがあれば、事前に確実に停止させる
                 if (html5QrScanner) {
                     try {
                         await html5QrScanner.stop();
                     } catch (e) {
-                        // 既に停止している場合などの競合エラーは無視
+                        // 無視
                     }
                 }
 
                 html5QrScanner = new Html5Qrcode("reader");
                 const readerDiv = document.getElementById("reader");
                 
-                // 鏡映し判定と背面(アウトカメラ)時のクラス切り替え
                 if (isFrontCamera) {
                     readerDiv.classList.remove("back-camera");
                 } else {
                     readerDiv.classList.add("back-camera");
                 }
 
-                // facingModeで直接指定することで、ブラウザ側のカメラ起動を安定化させる
                 const facingMode = isFrontCamera ? "user" : "environment";
 
-                // html5QrScanner.start の第1引数には、キーが厳密に1つのみのオブジェクトを渡す必要があります。
-                // オートフォーカスや解像度の詳細指定は、第2引数オブジェクト内の "videoConstraints" に含めます。
                 await html5QrScanner.start(
-                    { facingMode: facingMode }, // キーは1つだけにする
+                    { facingMode: facingMode },
                     {
-                        fps: 30, // fpsを30に設定：手ブレの合間の一瞬の合致をキャッチする
+                        fps: 30,
                         experimentalFeatures: {
-                            useBarCodeDetectorIfSupported: true // GPUを叩くネイティブハードウェアデコーダーを解放
+                            useBarCodeDetectorIfSupported: true
                         },
                         videoConstraints: {
                             width: { min: 640, ideal: 1280, max: 1920 },
@@ -534,13 +520,8 @@
                             exposureMode: "continuous"
                         },
                         qrbox: (w, h) => {
-                            // カメラ生映像 of 横幅の 70% を切り出しの基準幅に設定
                             const scanWidth = Math.max(Math.min(w * 0.7, 480), 200);
-                            
-                            // 縦幅を「1.44 : 0.5」の比率（＝横幅の 約34.72%）で完全に固定
                             const scanHeight = Math.round(scanWidth * 0.5 / 1.44);
-                            
-                            // 最底保障50px制限エラーを防御
                             return { 
                                 width: Math.max(scanWidth, 50), 
                                 height: Math.max(scanHeight, 50) 
@@ -562,18 +543,13 @@
             }
         }
 
-        // 手ブレ対応型ファースト・ヒット優先インターバル管理
         let lastScanTime = 0;
         
         function onScanSuccess(code) {
             const now = Date.now();
-            
-            // 手ブレ環境では「2回連続一致」の障壁は高すぎます。ピントが合って読めた1フレーム（1発）を即座に採用します。
-            // チャタリング（二重スキャン）は、ヒット後の絶対時間インターバル（1.8秒）のみで論理的に完全ガードします。
             if (now - lastScanTime < 1800) {
-                return; // クールダウン期間中は無視
+                return;
             }
-            
             lastScanTime = now;
             addToCart(getProductFromBarcode(code));
         }
@@ -583,7 +559,6 @@
             initScanner();
         }
 
-        // テスト（モック）スキャンも75種の中から完全に抽選されます
         function triggerMockScan() {
             addToCart(dummyProducts[Math.floor(Math.random() * dummyProducts.length)]);
         }
@@ -621,9 +596,6 @@
             document.getElementById("total-price").innerText = total.toLocaleString();
             document.getElementById("checkout-btn").disabled = cart.length === 0;
 
-            // 【UX・視覚的フィードバックの強化】
-            // 商品が追加される（リストが更新される）たびに、一番下に追加された商品が確実に視界に入るよう
-            // リストを自動的に最下部までスムーズにスクロール（せり上げ）させます。
             setTimeout(() => {
                 list.scrollTop = list.scrollHeight;
             }, 50);
@@ -639,23 +611,22 @@
             renderCart(); 
         }
 
-        // 実生活に即した賢い支払いロジック
         function getOptimalPayment(total) {
             const baseThousand = Math.ceil(total / 1000) * 1000;
             if (solvedCount < 1) return baseThousand === total ? baseThousand + 1000 : baseThousand;
             
             const rand = Math.random();
             if (rand < 0.5) {
-                const hasu = total % 100; // 端数(一・十の位)
+                const hasu = total % 100;
                 if (hasu > 0 && (baseThousand + hasu) > total) {
-                    return baseThousand + hasu; // 端数合わせ
+                    return baseThousand + hasu;
                 }
             }
             return (total < 4000 && Math.random() > 0.6) ? 5000 : (baseThousand === total ? baseThousand + 1000 : baseThousand);
         }
 
         function openPaymentModal() {
-            isSolved = false; // フラグをリセット
+            isSolved = false;
             const actionsRow = document.getElementById("action-buttons-row");
             const showBtn = document.getElementById("show-receipt-btn");
             if (actionsRow) actionsRow.classList.remove("hidden");
@@ -670,7 +641,6 @@
             setTimeout(resizeCanvas, 100);
         }
 
-        // 5列または6列 of グリッドを動的に切り替えて構築
         function renderGrid() {
             const cols = paidAmount >= 10000 ? 6 : 5;
             const container = document.getElementById("calculation-grid-container");
@@ -680,29 +650,18 @@
             const paidStr = paidAmount.toString().padStart(cols, " ");
             const totalStr = totalAmount.toString().padStart(cols - 1, " ");
 
-            // 1行目：くり下がり行
             for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-24 bg-sky-50/30"></div>`; 
-            
-            // 2行目：ひかれる数
             for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-16 text-3xl font-bold font-kyokasho text-slate-800">${paidStr[i] !== " " ? paidStr[i] : ""}</div>`; 
-            
-            // 3行目：マイナス記号 ＆ ひく数
             grid.innerHTML += `<div class="graph-cell h-16 text-5xl font-black text-blue-600 font-kyokasho">－</div>`; 
             for(let i=0; i<cols-1; i++) grid.innerHTML += `<div class="graph-cell h-16 text-3xl font-bold font-kyokasho text-slate-800">${totalStr[i] !== " " ? totalStr[i] : ""}</div>`;
-            
-            // 4行目：太い横線
             grid.innerHTML += `<div class="col-span-${cols} h-1.5 bg-slate-800 my-1"></div>`; 
-            
-            // 5行目：横線下の手書きメモスペース
             for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-16 bg-sky-50/10"></div>`; 
 
-            // 6行目：解答入力枠
             const ansContainer = document.getElementById("answer-grid-container");
             ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-2"><div class="flex items-center justify-center text-2xl font-black text-slate-400">=</div></div>`;
             const ansGrid = ansContainer.firstChild;
-            if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-16"></div>`; // 1万の位の空き
+            if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-16"></div>`;
             
-            // 千の位〜一の位 of 入力枠
             for(let i=3; i>=0; i--) ansGrid.innerHTML += `<div onclick="focusDigit(${i})" id="ans-box-${i}" class="m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 transition"></div>`;
             
             userAnswers = ["","","",""]; 
@@ -718,7 +677,7 @@
         }
 
         function pressKey(k) {
-            if (isSolved) return; // 正解後は入力をブロック
+            if (isSolved) return; 
             
             if(typeof k === 'number') {
                 userAnswers[currentFocusIndex] = k.toString();
@@ -740,18 +699,16 @@
 
         function playIncorrectChime() {
             const synthChime = new Tone.PolySynth().toDestination();
-            // sawtooth（のこぎり波）に設定して不快なブザー音にする
             synthChime.set({
                 oscillator: { type: "sawtooth" }
             });
             const now = Tone.now();
-            // 低い不協和音（F#2とG2）を2回連続で鳴らして「ブ、ブー！」を完全に再現！
             synthChime.triggerAttackRelease(["F#2", "G2"], "16n", now);
             synthChime.triggerAttackRelease(["F#2", "G2"], "6n", now + 0.12);
         }
 
         function checkAnswer() {
-            if (isSolved) return; // 既に正解済みの場合は無視
+            if (isSolved) return;
             
             let s = ""; 
             for(let i=3; i>=0; i--) s += userAnswers[i] || (s===""?"":"0");
@@ -760,15 +717,12 @@
                 isSolved = true;
                 playCorrectChime();
                 solvedCount++; 
-                
-                // すぐにレシートを出さず、ボタンを切り替えて答えを確認できるようにする
                 showReceiptButton();
             } else {
                 playIncorrectChime();
             }
         }
 
-        // 低学年向け：自動でおつりを表示する機能
         function showAnswerAutomatic() {
             if (isSolved) return;
             isSolved = true;
@@ -790,7 +744,7 @@
                 }
             }
             
-            currentFocusIndex = -1; // フォーカス解除
+            currentFocusIndex = -1;
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
                 if (b && !userAnswers[i]) {
@@ -802,12 +756,10 @@
             showReceiptButton();
         }
 
-        // 答え合わせ後・自動表示後に「レシートをみる！」ボタンを出す
         function showReceiptButton() {
             document.getElementById("action-buttons-row").classList.add("hidden");
             document.getElementById("show-receipt-btn").classList.remove("hidden");
             
-            // 正解した数字を爽やかなブルーにハイライトして目立たせる
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
                 if (b && userAnswers[i]) {
@@ -817,16 +769,13 @@
             }
         }
 
-        // レシート画面を表示する
         function showReceipt() {
             document.getElementById("payment-modal").classList.add("hidden");
             
-            // 日付・取引Noを取得してレシートへ印字
             const d = new Date(); 
             document.getElementById("receipt-date").innerText = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
             document.getElementById("receipt-tx-no").innerText = Math.floor(Math.random() * 9000) + 1000;
             
-            // 買った商品を省略なしで全明細印字（くっきりカラー設定を同期適用）
             const list = document.getElementById("receipt-items-list"); 
             list.innerHTML = "";
             cart.forEach(i => {
@@ -837,12 +786,10 @@
                     </div>`;
             });
             
-            // お会計額・お預かり額・おつり額の印字
             document.getElementById("receipt-total-cost").innerText = totalAmount.toLocaleString();
             document.getElementById("receipt-paid-amount").innerText = paidAmount.toLocaleString();
             document.getElementById("receipt-change-amount").innerText = changeAmount.toLocaleString();
             
-            // レシートモーダルを表示
             document.getElementById("success-modal").classList.remove("hidden");
         }
 
@@ -881,7 +828,6 @@
                 ctx.stroke();
             };
             
-            // PCのマウス操作用
             canvas.onmousedown = (e) => { 
                 isDrawing = true; 
                 ctx.beginPath(); 
@@ -891,7 +837,6 @@
             canvas.onmousemove = draw;
             window.onmouseup = () => isDrawing = false;
             
-            // スマホ・タブレットのタッチ操作用
             canvas.addEventListener("touchstart", (e) => { 
                 isDrawing = true; 
                 ctx.beginPath(); 
@@ -920,13 +865,6 @@
             }
         }
         
-        // typo修正：ハンカチの絵文字コードの修復
-        dummyProducts.forEach(prod => {
-            if (prod.name.includes("よく消える消しゴム")) {
-                prod.name = prod.name.replace("よく消える消しゴム ()", "よく消える消しゴム (🧽)");
-            }
-        });
-
         function setPenColor(c) { 
             penColor = c; 
         }
