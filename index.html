@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>セルフレジでおかいけいしよう</title>
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Html5-Qrcode -->
+    <!-- Tailwind CSS (バージョン 3.4.15 に固定) -->
+    <script src="https://cdn.tailwindcss.com/3.4.15"></script>
+    <!-- Html5-Qrcode (バージョン 2.3.8 に固定) -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <!-- Tone.js -->
+    <!-- Tone.js (バージョン 14.8.49 に固定) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     
     <!-- Google Fonts -->
@@ -392,11 +392,26 @@
                     {
                         fps: 15,
                         qrbox: (w, h) => {
-                            // 縦横比 1.44 : 1（横:縦）を厳格に適用
-                            // カメラプレビューの幅 w に対し、75%に当たるサイズ（最大400px、最小200px）を算出
-                            const scanWidth = Math.max(Math.min(w * 0.75, 400), 200); 
-                            const scanHeight = Math.round(scanWidth / 1.44); 
-                            return { width: scanWidth, height: scanHeight };
+                            // 画面の実際のプレビュー領域(DOM)の幅と高さを取得
+                            const readerEl = document.getElementById("reader");
+                            const displayW = readerEl ? readerEl.clientWidth : 300;
+                            const displayH = readerEl ? readerEl.clientHeight : 200;
+                            
+                            // 表示する「見かけの横幅」を決定（コンテナ幅の75%を占めるように大きく構成）
+                            const targetDisplayWidth = Math.max(Math.min(displayW * 0.75, 480), 240);
+                            
+                            // 見かけの縦幅を 1.44 : 1 (横 : 縦) の比率で厳密に計算（縦長化を徹底的に防止）
+                            const targetDisplayHeight = Math.round(targetDisplayWidth / 1.44);
+                            
+                            // ライブラリ内のストリームスケーリングマッピングを相殺するための逆変換補正
+                            const scanWidth = Math.round(targetDisplayWidth * (w / displayW));
+                            const scanHeight = Math.round(targetDisplayHeight * (h / displayH));
+                            
+                            // 最低保障50px制限エラーを防御
+                            return { 
+                                width: Math.max(scanWidth, 50), 
+                                height: Math.max(scanHeight, 50) 
+                            };
                         }
                     },
                     onScanSuccess
@@ -560,7 +575,7 @@
             const ansGrid = ansContainer.firstChild;
             if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-16"></div>`; // 1万の位の空き
             
-            // 千の位〜一の位の入力枠
+            // 千の位〜一の位 of 入力枠
             for(let i=3; i>=0; i--) ansGrid.innerHTML += `<div onclick="focusDigit(${i})" id="ans-box-${i}" class="m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 transition"></div>`;
             
             userAnswers = ["","","",""]; 
