@@ -63,6 +63,36 @@
             border-radius: 8px;
             border-top: 8px solid #10b981; /* 上部のエメラルドカラーの太線 */
         }
+
+        /* 赤い読み取りレーザーの上下ループスイープアニメーション */
+        @keyframes laser-sweep {
+            0% { 
+                top: 25%; 
+                opacity: 0.5; 
+                filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.8));
+            }
+            50% { 
+                top: 75%; 
+                opacity: 1; 
+                filter: drop-shadow(0 0 10px rgba(239, 68, 68, 1)) drop-shadow(0 0 20px rgba(239, 68, 68, 0.8));
+            }
+            100% { 
+                top: 25%; 
+                opacity: 0.5; 
+                filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.8));
+            }
+        }
+
+        .scanning-laser {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #ef4444;
+            z-index: 10;
+            animation: laser-sweep 2.2s infinite ease-in-out;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col select-none bg-slate-50 no-select">
@@ -82,8 +112,8 @@
             <div class="relative flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center">
                     <div id="reader" class="w-full h-full"></div>
-                    <!-- 狙いやすい一本線のレーザー -->
-                    <div class="absolute left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)] animate-pulse z-10"></div>
+                    <!-- なめらかに上下する近未来感のあるレーザーライン -->
+                    <div class="scanning-laser"></div>
                     
                     <div id="camera-fallback-msg" class="absolute inset-0 bg-slate-950/90 text-white flex flex-col items-center justify-center p-6 text-center z-20 pointer-events-none">
                         <span class="text-4xl mb-3">📷</span>
@@ -392,18 +422,14 @@
                     {
                         fps: 15,
                         qrbox: (w, h) => {
-                            // 【本質的解決】
-                            // ライブラリのプレビュー枠アスペクト比は、この関数が返す縦横比に「完全に同期」します。
-                            // 画面上の見かけ上の比率を1.44:1にするためには、補正項を排して
-                            // 直接的にストリーム解像度 (w, h) から 1.44 : 1 の幅・高さを計算する必要があります。
-                            
+                            // 【本質的解決 - 1.44 : 0.5比率の実現】
                             // カメラ生映像の横幅の 70% を切り出しの基準幅に設定
                             const scanWidth = Math.max(Math.min(w * 0.7, 480), 200);
                             
-                            // 縦幅を「1.44 : 1」の比率で完全に固定して決定
-                            const scanHeight = Math.round(scanWidth / 1.44);
+                            // 縦幅を「1.44 : 0.5」の比率（＝横幅の 約34.72%）で完全に固定
+                            const scanHeight = Math.round(scanWidth * 0.5 / 1.44);
                             
-                            // 最低保障50px制限エラーを防御し、完璧に固定された比率を返却
+                            // 最低保障50px制限エラーを防御
                             return { 
                                 width: Math.max(scanWidth, 50), 
                                 height: Math.max(scanHeight, 50) 
