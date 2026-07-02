@@ -46,9 +46,22 @@
             filter: brightness(1.6) contrast(1.9) grayscale(1) !important;
         }
 
-        /* ライブラリが自動生成する不格好でバグの多いスキャン枠とシャドウを完全非表示化 */
-        #reader__scan_region, #reader svg {
+        /* 【二重枠対策】ライブラリが動的に自動生成する枠、L字境界、SVG、ボタン、余計なテキストを完全消滅させる */
+        #reader__scan_region, 
+        #reader svg, 
+        #reader span, 
+        #reader button {
             display: none !important;
+        }
+
+        /* ライブラリ動的生成要素のボーダーやボックスシャドウ、背景色を強制リセット（ビデオトラックのみを生かす） */
+        #reader div, 
+        #reader td, 
+        #reader table {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            background-color: transparent !important;
         }
 
         /* 方眼罫線 */
@@ -183,10 +196,6 @@
                     ⚡ ぴっ！(テスト用)
                 </button>
                 <div class="flex gap-2">
-                    <!-- トーチ（物理ライト）ボタン：ブラウザがサポートしている場合に動的表示 -->
-                    <button id="toggle-torch-btn" onclick="toggleTorch()" class="hidden bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 text-sm rounded-lg">
-                        🔦 ライトをつける
-                    </button>
                     <button id="toggle-camera-btn" onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-sm rounded-lg">
                         📷 カメラ切り替え
                     </button>
@@ -432,7 +441,6 @@
         let html5QrScanner = null, isFrontCamera = true;
         let isSolved = false; // 正解済みかどうかのフラグ
         let isDarkBoost = false; // 暗所ブーストON/OFFフラグ
-        let torchEnabled = false; // 物理ライトON/OFFフラグ
 
         // FNV-1a 高精度ハッシュアルゴリズムでバーコード別に完全固有の商品を指定
         function getProductFromBarcode(barcode) {
@@ -470,27 +478,6 @@
             }
         }
 
-        // 物理フラッシュライト（トーチ）の制御
-        async function toggleTorch() {
-            if (!html5QrScanner) return;
-            try {
-                if (html5QrScanner.isTorchSupported()) {
-                    torchEnabled = !torchEnabled;
-                    await html5QrScanner.setTorchMode(torchEnabled);
-                    const btn = document.getElementById("toggle-torch-btn");
-                    if (torchEnabled) {
-                        btn.innerText = "🔦 ライトを消す";
-                        btn.className = "bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold py-2 px-3 text-sm rounded-lg shadow-lg";
-                    } else {
-                        btn.innerText = "🔦 ライトをつける";
-                        btn.className = "bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 text-sm rounded-lg";
-                    }
-                }
-            } catch (err) {
-                console.error("Torch control failed:", err);
-            }
-        }
-
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             container.classList.remove("hidden");
@@ -498,12 +485,6 @@
                 <span class="text-4xl mb-3">📷</span>
                 <p class="font-bold mb-1">カメラを起動しています...</p>
             `;
-            
-            // ライト初期状態をリセット
-            torchEnabled = false;
-            document.getElementById("toggle-torch-btn").classList.add("hidden");
-            document.getElementById("toggle-torch-btn").innerText = "🔦 ライトをつける";
-            document.getElementById("toggle-torch-btn").className = "bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 text-sm rounded-lg";
 
             try {
                 // 既に稼働中のインスタンスがあれば、事前に確実に停止させる
@@ -536,14 +517,13 @@
                             useBarCodeDetectorIfSupported: true // ネイティブGPUデコーダーが使用可能な場合は自動適用
                         },
                         qrbox: (w, h) => {
-                            // 【本質的解決 - 1.44 : 0.5比率の実現】
                             // カメラ生映像の横幅の 70% を切り出しの基準幅に設定
                             const scanWidth = Math.max(Math.min(w * 0.7, 480), 200);
                             
                             // 縦幅を「1.44 : 0.5」の比率（＝横幅の 約34.72%）で完全に固定
                             const scanHeight = Math.round(scanWidth * 0.5 / 1.44);
                             
-                            // 最低保障50px制限エラーを防御
+                            // 最底保障50px制限エラーを防御
                             return { 
                                 width: Math.max(scanWidth, 50), 
                                 height: Math.max(scanHeight, 50) 
@@ -554,17 +534,6 @@
                 );
                 
                 container.classList.add("hidden");
-
-                // カメラ起動成功後に、トーチ（物理ライト）に対応しているか検出してボタンを表示
-                setTimeout(() => {
-                    try {
-                        if (html5QrScanner && html5QrScanner.isTorchSupported()) {
-                            document.getElementById("toggle-torch-btn").classList.remove("hidden");
-                        }
-                    } catch (e) {
-                        console.warn("Torch support check omitted or not supported.", e);
-                    }
-                }, 1000);
 
             } catch (err) {
                 console.error("Camera start failed:", err);
