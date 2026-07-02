@@ -21,9 +21,9 @@
             font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
         }
 
-        /* 筆算エリア・レシート：正確な教科書体を最優先で強制適用。フォールバックに丸ゴシックを指定してかすれを完全防止 */
+        /* 筆算エリア・レシート：正確なゴシック・丸ゴシックを最優先で適用し、かすれを完全防止 */
         .font-kyokasho, #calculation-grid .graph-cell, [id^="ans-box-"] {
-            font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", 'M PLUS Rounded 1c', sans-serif !important;
+            font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
         }
 
         /* カメラの左右反転（鏡）かつ1.8倍デジタルズーム表示（デフォルト適用） */
@@ -298,40 +298,45 @@
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
         <div class="flex flex-col items-center max-w-sm w-full my-auto">
             <!-- レシート用紙エリア：文字かすれを追放した高コントラスト設計 -->
-            <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-lg"> 
+            <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
                 <!-- よくできましたスタンプ（レシート紙面の内側・右上に完全固定） -->
                 <div class="absolute top-4 right-4 border-4 border-rose-600 text-rose-600 text-xs font-black px-2 py-1 rounded-lg rotate-12 bg-white/95 shadow-sm z-10">💮 よくできました</div>
                 
                 <div class="text-center mb-4 mt-2">
-                    <div class="text-xl font-black text-black">🌻 こどもマーケット さくら店</div>
-                    <div class="text-sm font-bold text-black">おつり計算セルフレジ 特訓コーナー</div>
+                    <div class="text-lg font-black text-black font-kyokasho">🌻 こどもマーケット さくら店</div>
+                    <div class="text-[11px] text-slate-900 font-bold">おつり計算セルフレジ 特訓コーナー</div>
                 </div>
                 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
                 <!-- レジ情報・担当者情報 -->
-                <div class="flex justify-between text-sm text-black px-1 font-bold">
+                <div class="flex justify-between text-[11px] text-slate-900 px-1 font-bold">
                     <span id="receipt-date"></span>
                     <span>レジ: 001</span>
                 </div>
+                <div class="flex justify-between text-[11px] text-slate-900 px-1 mt-0.5 font-bold">
+                    <span>担 当: 店長</span>
+                    <span>取 折: No.<span id="receipt-tx-no"></span></span>
+                </div>
+
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
                 <!-- スキャンしたお買い物商品一覧が印字されるスペース -->
-                <ul id="receipt-items-list" class="space-y-1.5 my-3 text-sm text-black font-bold"></ul>
+                <ul id="receipt-items-list" class="space-y-1 my-3 text-xs text-black font-bold"></ul>
                 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
                 <!-- 金額サマリー（合計・お預かり・おつりの大きさと色を統一） -->
                 <div class="space-y-2 font-black mt-2 text-black text-base">
-                    <div class="flex justify-between border-b border-slate-400 pb-1">
+                    <div class="flex justify-between text-base border-b border-slate-500 pb-1">
                         <span>合計（内税）</span>
                         <span><span id="receipt-total-cost">0</span> 円</span>
                     </div>
-                    <div class="flex justify-between pt-1 text-base font-black">
+                    <div class="flex justify-between pt-1 text-base font-black text-black">
                         <span>おあずかり</span>
                         <span><span id="receipt-paid-amount">0</span> 円</span>
                     </div>
-                    <div class="flex justify-between text-base border-t border-slate-400 pt-1 mt-1 font-black text-black">
+                    <div class="flex justify-between text-base border-t border-slate-500 pt-1 mt-1 font-black text-black">
                         <span>おつり</span>
                         <span><span id="receipt-change-amount">0</span> 円</span>
                     </div>
@@ -345,7 +350,7 @@
                     <div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div>
                 </div>
                 
-                <div class="text-center text-[11px] text-slate-700 font-bold">
+                <div class="text-center text-[11px] text-slate-900 font-bold">
                     <p>お買い上げありがとうございました！</p>
                 </div>
             </div>
@@ -507,11 +512,11 @@
                 const facingMode = isFrontCamera ? "user" : "environment";
 
                 await html5QrScanner.start(
-                    { facingMode: facingMode },
+                    { facingMode: facingMode }, // キーは1つだけにする
                     {
-                        fps: 30,
+                        fps: 30, // fpsを30に設定：手ブレの合間の一瞬の合致をキャッチする
                         experimentalFeatures: {
-                            useBarCodeDetectorIfSupported: true
+                            useBarCodeDetectorIfSupported: true // GPUを叩くネイティブハードウェアデコーダーを解放
                         },
                         videoConstraints: {
                             width: { min: 640, ideal: 1280, max: 1920 },
@@ -520,8 +525,13 @@
                             exposureMode: "continuous"
                         },
                         qrbox: (w, h) => {
+                            // カメラ生映像の横幅の 70% を切り出しの基準幅に設定
                             const scanWidth = Math.max(Math.min(w * 0.7, 480), 200);
+                            
+                            // 縦幅を「1.44 : 0.5」の比率（＝横幅の 約34.72%）で完全に固定
                             const scanHeight = Math.round(scanWidth * 0.5 / 1.44);
+                            
+                            // 最低保障50px制限エラーを防御
                             return { 
                                 width: Math.max(scanWidth, 50), 
                                 height: Math.max(scanHeight, 50) 
@@ -543,13 +553,18 @@
             }
         }
 
+        // 手ブレ対応型ファースト・ヒット優先インターバル管理
         let lastScanTime = 0;
         
         function onScanSuccess(code) {
             const now = Date.now();
+            
+            // 手ブレ環境では「2回連続一致」の障壁は高すぎます。ピントが合って読めた1フレーム（1発）を即座に採用します。
+            // チャタリング（二重スキャン）は、ヒット後の絶対時間インターバル（1.8秒）のみで論理的に完全ガードします。
             if (now - lastScanTime < 1800) {
-                return;
+                return; // クールダウン期間中は無視
             }
+            
             lastScanTime = now;
             addToCart(getProductFromBarcode(code));
         }
@@ -559,6 +574,7 @@
             initScanner();
         }
 
+        // テスト（モック）スキャンも75種の中から完全に抽選されます
         function triggerMockScan() {
             addToCart(dummyProducts[Math.floor(Math.random() * dummyProducts.length)]);
         }
@@ -596,6 +612,9 @@
             document.getElementById("total-price").innerText = total.toLocaleString();
             document.getElementById("checkout-btn").disabled = cart.length === 0;
 
+            // 【UX・視覚的フィードバックの強化】
+            // 商品が追加される（リストが更新される）たびに、一番下に追加された商品が確実に視界に入るよう
+            // リストを自動的に最下部までスムーズにスクロール（せり上げ）させます。
             setTimeout(() => {
                 list.scrollTop = list.scrollHeight;
             }, 50);
@@ -611,22 +630,24 @@
             renderCart(); 
         }
 
+        // 実生活に即した賢い支払いロジック
         function getOptimalPayment(total) {
             const baseThousand = Math.ceil(total / 1000) * 1000;
             if (solvedCount < 1) return baseThousand === total ? baseThousand + 1000 : baseThousand;
             
             const rand = Math.random();
             if (rand < 0.5) {
-                const hasu = total % 100;
+                const hasu = total % 100; // 端数(一・十の位)
                 if (hasu > 0 && (baseThousand + hasu) > total) {
-                    return baseThousand + hasu;
+                    return baseThousand + hasu; // 端数合わせ
                 }
             }
             return (total < 4000 && Math.random() > 0.6) ? 5000 : (baseThousand === total ? baseThousand + 1000 : baseThousand);
         }
 
+        // ==================== モーダルを開いた時にカメラ処理を「一時停止」する ====================
         function openPaymentModal() {
-            isSolved = false;
+            isSolved = false; // フラグをリセット
             const actionsRow = document.getElementById("action-buttons-row");
             const showBtn = document.getElementById("show-receipt-btn");
             if (actionsRow) actionsRow.classList.remove("hidden");
@@ -636,9 +657,53 @@
             paidAmount = getOptimalPayment(totalAmount);
             changeAmount = paidAmount - totalAmount;
             document.getElementById("payment-info").innerText = `ごうけい ${totalAmount} 円。おさいふから ${paidAmount} 円 だしました！`;
+            
             renderGrid();
+            
+            // モーダルを開く
             document.getElementById("payment-modal").classList.remove("hidden");
+            
+            // 【バグ回避の決定打】
+            // DOMが隠れた状態でスキャンループが回るとライブラリがクラッシュ・リロードを引き起こすため、
+            // モーダルオープン中はカメラの解析処理を明示的に一時停止(pause)します。
+            if (html5QrScanner && html5QrScanner.getState() === 2) { // 2 = SCANNING
+                try {
+                    html5QrScanner.pause(true); // true を渡すと映像ストリームごとフリーズしてリソースを解放します
+                } catch(e) {
+                    console.warn("Scanner pause ignored.", e);
+                }
+            }
+
             setTimeout(resizeCanvas, 100);
+        }
+
+        // ==================== モーダルを閉じる時にカメラ処理を「再開」する ====================
+        function closePaymentModal() { 
+            document.getElementById("payment-modal").classList.add("hidden"); 
+            
+            // お会計をやめてスキャン画面に戻った際、フリーズしていたカメラを安全に再開(resume)させます。
+            if (html5QrScanner && html5QrScanner.getState() === 3) { // 3 = PAUSED
+                try {
+                    html5QrScanner.resume();
+                } catch(e) {
+                    console.warn("Scanner resume failed.", e);
+                }
+            }
+        }
+
+        // レシート画面から次へ進む時もカメラを「再開」する
+        function resetAppAndCloseSuccess() { 
+            document.getElementById("success-modal").classList.add("hidden"); 
+            cart = []; 
+            renderCart(); 
+            
+            if (html5QrScanner && html5QrScanner.getState() === 3) { // 3 = PAUSED
+                try {
+                    html5QrScanner.resume();
+                } catch(e) {
+                    console.warn("Scanner resume failed.", e);
+                }
+            }
         }
 
         function renderGrid() {
@@ -800,16 +865,6 @@
             synthChime.triggerAttackRelease("E5", "8n", now + 0.1);
             synthChime.triggerAttackRelease("G5", "8n", now + 0.2);
             synthChime.triggerAttackRelease("C6", "4n", now + 0.3);
-        }
-
-        function resetAppAndCloseSuccess() { 
-            document.getElementById("success-modal").classList.add("hidden"); 
-            cart = []; 
-            renderCart(); 
-        }
-        
-        function closePaymentModal() { 
-            document.getElementById("payment-modal").classList.add("hidden"); 
         }
 
         function setupMemoCanvas() {
