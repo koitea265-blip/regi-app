@@ -33,11 +33,22 @@
             height: 100% !important;
             transform: scale(-1.8, 1.8) !important; /* 鏡 ＆ 1.8倍拡大 */
             transform-origin: center !important;
+            transition: filter 0.3s ease;
         }
 
         /* 背面カメラ切り替え時の向き補正（鏡なし ＆ 1.8倍ズーム） */
         .back-camera video {
             transform: scale(1.8, 1.8) !important; 
+        }
+
+        /* 暗所ブースト（白黒＋超高コントラスト＋高輝度）でバーコード認識率を強制最大化 */
+        .dark-boost-active video {
+            filter: brightness(1.6) contrast(1.9) grayscale(1) !important;
+        }
+
+        /* ライブラリが自動生成する不格好でバグの多いスキャン枠とシャドウを完全非表示化 */
+        #reader__scan_region, #reader svg {
+            display: none !important;
         }
 
         /* 方眼罫線 */
@@ -64,22 +75,41 @@
             border-top: 8px solid #10b981; /* 上部のエメラルドカラーの太線 */
         }
 
-        /* 赤い読み取りレーザーの上下ループスイープアニメーション */
+        /* 赤い読み取りレーザーの上下ループスイープアニメーション (自製スキャン窓の中だけで動作) */
         @keyframes laser-sweep {
             0% { 
-                top: 25%; 
-                opacity: 0.5; 
-                filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.8));
+                top: 8%; 
+                opacity: 0.4; 
+                filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.7));
             }
             50% { 
-                top: 75%; 
+                top: 92%; 
                 opacity: 1; 
-                filter: drop-shadow(0 0 10px rgba(239, 68, 68, 1)) drop-shadow(0 0 20px rgba(239, 68, 68, 0.8));
+                filter: drop-shadow(0 0 4px rgba(239, 68, 68, 1)) drop-shadow(0 0 8px rgba(239, 68, 68, 0.8));
             }
             100% { 
-                top: 25%; 
-                opacity: 0.5; 
-                filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.8));
+                top: 8%; 
+                opacity: 0.4; 
+                filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.7));
+            }
+        }
+
+        /* 暗所ブースト時のスキャナーレーザー（暗視風グリーンに変化） */
+        @keyframes laser-sweep-boost {
+            0% { 
+                top: 8%; 
+                opacity: 0.4; 
+                filter: drop-shadow(0 0 1px rgba(16, 185, 129, 0.7));
+            }
+            50% { 
+                top: 92%; 
+                opacity: 1; 
+                filter: drop-shadow(0 0 4px rgba(16, 185, 129, 1)) drop-shadow(0 0 8px rgba(16, 185, 129, 0.8));
+            }
+            100% { 
+                top: 8%; 
+                opacity: 0.4; 
+                filter: drop-shadow(0 0 1px rgba(16, 185, 129, 0.7));
             }
         }
 
@@ -93,6 +123,11 @@
             animation: laser-sweep 2.2s infinite ease-in-out;
             pointer-events: none;
         }
+
+        .dark-boost-active .scanning-laser {
+            background-color: #10b981 !important;
+            animation: laser-sweep-boost 1.6s infinite ease-in-out; /* 検出サイクルを速めてアライブ感を強化 */
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col select-none bg-slate-50 no-select">
@@ -104,16 +139,37 @@
 
     <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden min-h-0">
         
+        <!-- 左：スキャンエリア -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 border border-emerald-100 min-h-0">
-            <h2 class="text-xl font-bold mb-2 text-gray-700 flex items-center gap-1.5">
-                <span>📸</span> バーコードをスキャンしよう！
-            </h2>
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-1.5">
+                    <span>📸</span> バーコードをスキャンしよう！
+                </h2>
+                <!-- 🌙 くらやみブースト切り替えボタン -->
+                <button id="dark-boost-btn" onclick="toggleDarkBoost()" class="bg-slate-800 hover:bg-slate-900 text-yellow-300 font-bold py-1.5 px-3 rounded-full text-xs flex items-center gap-1 shadow transition">
+                    <span id="dark-boost-icon">🌙</span> <span id="dark-boost-text">くらやみブースト: OFF</span>
+                </button>
+            </div>
             
             <div class="relative flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center">
                     <div id="reader" class="w-full h-full"></div>
-                    <!-- なめらかに上下する近未来感のあるレーザーライン -->
-                    <div class="scanning-laser"></div>
+                    
+                    <!-- 【本質的解決：完全自製アライメントファインダー】 -->
+                    <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く -->
+                    <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
+                        <div class="relative w-[75%] aspect-[1.44/0.5] max-w-[440px] min-w-[200px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
+                            
+                            <!-- 白いL字の4隅フレーム（カメラ環境に絶対に左右されない） -->
+                            <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
+                            <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
+                            <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-sm"></div>
+                            <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-sm"></div>
+                            
+                            <!-- 往復する読み取りレーザーをこのスキャン領域の中に完璧に閉じ込めて走査させる -->
+                            <div class="scanning-laser"></div>
+                        </div>
+                    </div>
                     
                     <div id="camera-fallback-msg" class="absolute inset-0 bg-slate-950/90 text-white flex flex-col items-center justify-center p-6 text-center z-20 pointer-events-none">
                         <span class="text-4xl mb-3">📷</span>
@@ -127,6 +183,10 @@
                     ⚡ ぴっ！(テスト用)
                 </button>
                 <div class="flex gap-2">
+                    <!-- トーチ（物理ライト）ボタン：ブラウザがサポートしている場合に動的表示 -->
+                    <button id="toggle-torch-btn" onclick="toggleTorch()" class="hidden bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 text-sm rounded-lg">
+                        🔦 ライトをつける
+                    </button>
                     <button id="toggle-camera-btn" onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-sm rounded-lg">
                         📷 カメラ切り替え
                     </button>
@@ -137,6 +197,7 @@
             </div>
         </section>
 
+        <!-- 右：商品カートエリア -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 min-h-0 border border-emerald-100">
             <h2 class="text-xl font-bold mb-3 text-gray-700 border-b-2 border-gray-100 pb-2 flex items-center gap-1.5">
                 <span>📋</span> おかいあげ商品
@@ -323,7 +384,7 @@
             { name: "カラフルおりがみ (🎨)", price: 198 },
             { name: "ミニリュック (🎒)", price: 3890 },
             { name: "可愛いハンカチ (🧣)", price: 254 },
-            { name: "くまさんくつした (🧦)", price: 315 },
+            { name: "くまさんくくした (🧦)", price: 315 },
             { name: "サッカーボール (⚽)", price: 1240 },
             { name: "ポテトフライ (🍟)", price: 243 },
             { name: "チョコドーナツ (🍩)", price: 154 },
@@ -370,6 +431,8 @@
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
         let html5QrScanner = null, isFrontCamera = true;
         let isSolved = false; // 正解済みかどうかのフラグ
+        let isDarkBoost = false; // 暗所ブーストON/OFFフラグ
+        let torchEnabled = false; // 物理ライトON/OFFフラグ
 
         // FNV-1a 高精度ハッシュアルゴリズムでバーコード別に完全固有の商品を指定
         function getProductFromBarcode(barcode) {
@@ -386,6 +449,48 @@
             renderCart(); 
         };
 
+        // 暗所ブースト機能の切り替え
+        function toggleDarkBoost() {
+            isDarkBoost = !isDarkBoost;
+            const container = document.getElementById("scanner-container");
+            const btnText = document.getElementById("dark-boost-text");
+            const btnIcon = document.getElementById("dark-boost-icon");
+            const btn = document.getElementById("dark-boost-btn");
+
+            if (isDarkBoost) {
+                container.classList.add("dark-boost-active");
+                btnText.innerText = "くらやみブースト: ON";
+                btnIcon.innerText = "🌟";
+                btn.className = "bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-1.5 px-3 rounded-full text-xs flex items-center gap-1 shadow transition animate-pulse";
+            } else {
+                container.classList.remove("dark-boost-active");
+                btnText.innerText = "くらやみブースト: OFF";
+                btnIcon.innerText = "🌙";
+                btn.className = "bg-slate-800 hover:bg-slate-900 text-yellow-300 font-bold py-1.5 px-3 rounded-full text-xs flex items-center gap-1 shadow transition";
+            }
+        }
+
+        // 物理フラッシュライト（トーチ）の制御
+        async function toggleTorch() {
+            if (!html5QrScanner) return;
+            try {
+                if (html5QrScanner.isTorchSupported()) {
+                    torchEnabled = !torchEnabled;
+                    await html5QrScanner.setTorchMode(torchEnabled);
+                    const btn = document.getElementById("toggle-torch-btn");
+                    if (torchEnabled) {
+                        btn.innerText = "🔦 ライトを消す";
+                        btn.className = "bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold py-2 px-3 text-sm rounded-lg shadow-lg";
+                    } else {
+                        btn.innerText = "🔦 ライトをつける";
+                        btn.className = "bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 text-sm rounded-lg";
+                    }
+                }
+            } catch (err) {
+                console.error("Torch control failed:", err);
+            }
+        }
+
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             container.classList.remove("hidden");
@@ -394,6 +499,12 @@
                 <p class="font-bold mb-1">カメラを起動しています...</p>
             `;
             
+            // ライト初期状態をリセット
+            torchEnabled = false;
+            document.getElementById("toggle-torch-btn").classList.add("hidden");
+            document.getElementById("toggle-torch-btn").innerText = "🔦 ライトをつける";
+            document.getElementById("toggle-torch-btn").className = "bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 text-sm rounded-lg";
+
             try {
                 // 既に稼働中のインスタンスがあれば、事前に確実に停止させる
                 if (html5QrScanner) {
@@ -420,7 +531,10 @@
                 await html5QrScanner.start(
                     { facingMode: facingMode },
                     {
-                        fps: 15,
+                        fps: 30, // fpsを30に増強：一瞬のピント合致チャンスを逃さない
+                        experimentalFeatures: {
+                            useBarCodeDetectorIfSupported: true // ネイティブGPUデコーダーが使用可能な場合は自動適用
+                        },
                         qrbox: (w, h) => {
                             // 【本質的解決 - 1.44 : 0.5比率の実現】
                             // カメラ生映像の横幅の 70% を切り出しの基準幅に設定
@@ -440,6 +554,18 @@
                 );
                 
                 container.classList.add("hidden");
+
+                // カメラ起動成功後に、トーチ（物理ライト）に対応しているか検出してボタンを表示
+                setTimeout(() => {
+                    try {
+                        if (html5QrScanner && html5QrScanner.isTorchSupported()) {
+                            document.getElementById("toggle-torch-btn").classList.remove("hidden");
+                        }
+                    } catch (e) {
+                        console.warn("Torch support check omitted or not supported.", e);
+                    }
+                }, 1000);
+
             } catch (err) {
                 console.error("Camera start failed:", err);
                 container.innerHTML = `
@@ -633,6 +759,18 @@
             }
         }
 
+        function playIncorrectChime() {
+            const synthChime = new Tone.PolySynth().toDestination();
+            // sawtooth（のこぎり波）に設定して不快なブザー音にする
+            synthChime.set({
+                oscillator: { type: "sawtooth" }
+            });
+            const now = Tone.now();
+            // 低い不協和音（F#2とG2）を2回連続で鳴らして「ブ、ブー！」を完全に再現！
+            synthChime.triggerAttackRelease(["F#2", "G2"], "16n", now);
+            synthChime.triggerAttackRelease(["F#2", "G2"], "6n", now + 0.12);
+        }
+
         function checkAnswer() {
             if (isSolved) return; // 既に正解済みの場合は無視
             
@@ -647,7 +785,7 @@
                 // すぐにレシートを出さず、ボタンを切り替えて答えを確認できるようにする
                 showReceiptButton();
             } else {
-                new Tone.Synth().toDestination().triggerAttackRelease("A3", "4n");
+                playIncorrectChime();
             }
         }
 
