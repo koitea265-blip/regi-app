@@ -21,9 +21,9 @@
             font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
         }
 
-        /* 筆算エリア・レシート：正確な教科書体を最優先で強制適用 */
+        /* 筆算エリア・レシート：正確な教科書体を最優先で強制適用。フォールバックに丸ゴシックを指定してかすれを完全防止 */
         .font-kyokasho, #calculation-grid .graph-cell, [id^="ans-box-"] {
-            font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", YuMincho, serif !important;
+            font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", 'M PLUS Rounded 1c', sans-serif !important;
         }
 
         /* カメラの左右反転（鏡）かつ1.8倍デジタルズーム表示（デフォルト適用） */
@@ -294,60 +294,62 @@
         </div>
     </div>
 
+    <!-- ==================== 正解お祝い・くっきりリアルレシートモーダル ==================== -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
         <div class="flex flex-col items-center max-w-sm w-full my-auto">
-            <div class="receipt-paper w-full bg-white text-slate-800 p-6 font-mono text-sm">
+            <!-- レシート用紙エリア：文字かすれを追放した高コントラスト設計 -->
+            <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
                 <!-- よくできましたスタンプ（レシート紙面の内側・右上に完全固定） -->
-                <div class="absolute top-4 right-4 border-4 border-rose-500 text-rose-500 text-xs font-black px-2 py-1 rounded-lg rotate-12 bg-white/90 shadow-sm z-10">💮 よくできました</div>
+                <div class="absolute top-4 right-4 border-4 border-rose-600 text-rose-600 text-xs font-black px-2.5 py-1 rounded-lg rotate-12 bg-white/95 shadow-sm z-10">💮 よくできました</div>
                 
                 <div class="text-center mb-4 mt-2">
-                    <div class="text-lg font-black font-kyokasho">🌻 こどもマーケット さくら店</div>
-                    <div class="text-[10px] text-slate-400">おつり計算セルフレジ 特訓コーナー</div>
+                    <div class="text-lg font-black text-black font-kyokasho">🌻 こどもマーケット さくら店</div>
+                    <div class="text-[11px] text-slate-700">おつり計算セルフレジ 特訓コーナー</div>
                 </div>
                 
-                <div class="border-b border-dashed border-slate-300 my-2"></div>
+                <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
                 <!-- レジ情報・担当者情報 -->
-                <div class="flex justify-between text-[10.5px] text-slate-600 px-1">
+                <div class="flex justify-between text-[11px] text-slate-900 px-1 font-bold">
                     <span id="receipt-date"></span>
                     <span>レジ: 001</span>
                 </div>
-                <div class="flex justify-between text-[10.5px] text-slate-600 px-1 mt-0.5">
+                <div class="flex justify-between text-[11px] text-slate-900 px-1 mt-0.5 font-bold">
                     <span>担 当: 店長</span>
                     <span>取 折: No.<span id="receipt-tx-no"></span></span>
                 </div>
 
-                <div class="border-b border-dashed border-slate-300 my-2"></div>
+                <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
                 <!-- スキャンしたお買い物商品一覧が印字されるスペース -->
-                <ul id="receipt-items-list" class="space-y-1 my-3 text-xs"></ul>
+                <ul id="receipt-items-list" class="space-y-1 my-3 text-xs text-black font-bold"></ul>
                 
-                <div class="border-b border-dashed border-slate-300 my-2"></div>
+                <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
-                <div class="space-y-1 font-bold mt-2">
-                    <div class="flex justify-between text-base border-b pb-1">
+                <div class="space-y-1 font-black mt-2 text-black text-sm">
+                    <div class="flex justify-between text-base border-b border-slate-400 pb-1">
                         <span>合計（内税）</span>
                         <span><span id="receipt-total-cost">0</span> 円</span>
                     </div>
-                    <div class="flex justify-between pt-1 text-xs text-slate-600">
+                    <div class="flex justify-between pt-1 text-xs text-slate-800">
                         <span>お預かり</span>
                         <span><span id="receipt-paid-amount">0</span> 円</span>
                     </div>
-                    <div class="flex justify-between text-lg text-emerald-600 border-t-2 border-double pt-1 mt-1">
+                    <div class="flex justify-between text-lg text-emerald-700 border-t-2 border-double border-slate-500 pt-1 mt-1 font-black">
                         <span>おつり</span>
                         <span><span id="receipt-change-amount">0</span> 円</span>
                     </div>
                 </div>
 
                 <!-- ダミーバーコード -->
-                <div class="flex justify-center items-center gap-0.5 mt-6 mb-2 h-8 opacity-70">
-                    <div class="w-1 h-full bg-slate-800"></div><div class="w-2 h-full bg-slate-800"></div><div class="w-1 h-full bg-slate-800"></div>
-                    <div class="w-3 h-full bg-slate-800"></div><div class="w-1 h-full bg-slate-800"></div><div class="w-2 h-full bg-slate-800"></div>
-                    <div class="w-1 h-full bg-slate-800"></div><div class="w-3 h-full bg-slate-800"></div><div class="w-2 h-full bg-slate-800"></div>
-                    <div class="w-1 h-full bg-slate-800"></div><div class="w-2 h-full bg-slate-800"></div><div class="w-1 h-full bg-slate-800"></div>
+                <div class="flex justify-center items-center gap-0.5 mt-6 mb-2 h-8 opacity-90">
+                    <div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div>
+                    <div class="w-3 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div>
+                    <div class="w-1 h-full bg-slate-950"></div><div class="w-3 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div>
+                    <div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div>
                 </div>
                 
-                <div class="text-center text-[10px] text-slate-400">
+                <div class="text-center text-[11px] text-slate-700 font-bold">
                     <p>お買い上げありがとうございました！</p>
                 </div>
             </div>
@@ -509,7 +511,6 @@
                 // facingModeで直接指定することで、ブラウザ側のカメラ起動を安定化させる
                 const facingMode = isFrontCamera ? "user" : "environment";
 
-                // 【バグ修正】
                 // html5QrScanner.start の第1引数には、キーが厳密に1つのみのオブジェクトを渡す必要があります。
                 // オートフォーカスや解像度の詳細指定は、第2引数オブジェクト内の "videoConstraints" に含めます。
                 await html5QrScanner.start(
@@ -812,12 +813,12 @@
             document.getElementById("receipt-date").innerText = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
             document.getElementById("receipt-tx-no").innerText = Math.floor(Math.random() * 9000) + 1000;
             
-            // 買った商品を省略なしで全明細印字
+            // 買った商品を省略なしで全明細印字（くっきりカラー設定を同期適用）
             const list = document.getElementById("receipt-items-list"); 
             list.innerHTML = "";
             cart.forEach(i => {
                 list.innerHTML += `
-                    <div class="flex justify-between">
+                    <div class="flex justify-between text-black font-bold">
                         <span>${i.name}</span>
                         <span>${i.price} 円</span>
                     </div>`;
