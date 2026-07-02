@@ -168,18 +168,18 @@
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center">
                     <div id="reader" class="w-full h-full"></div>
                     
-                    <!-- 【本質的解決：完全自製アライメントファインダー】 -->
-                    <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く -->
+                    <!-- 【UI層：完全自製アライメントファインダー】 -->
+                    <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く（見た目だけ） -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
                         <div class="relative w-[75%] aspect-[1.44/0.5] max-w-[440px] min-w-[200px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             
-                            <!-- 白いL字の4隅フレーム（カメラ環境に絶対に左右されない） -->
+                            <!-- 白いL字の4隅フレーム -->
                             <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
                             <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
                             <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-sm"></div>
                             <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-sm"></div>
                             
-                            <!-- 往復する読み取りレーザーをこのスキャン領域の中に完璧に閉じ込めて走査させる -->
+                            <!-- 往復する読み取りレーザー -->
                             <div class="scanning-laser"></div>
                         </div>
                     </div>
@@ -514,7 +514,9 @@
                 await html5QrScanner.start(
                     { facingMode: facingMode }, // キーは1つだけにする
                     {
-                        fps: 30, // fpsを30に設定：手ブレの合間の一瞬の合致をキャッチする
+                        // 【本質的解決 - 負荷低減】
+                        // モバイル環境でのフレームドロップと発熱を防ぎ、1フレームあたりのデコード完了を担保するためにFPSを15に最適化
+                        fps: 15,
                         experimentalFeatures: {
                             useBarCodeDetectorIfSupported: true // GPUを叩くネイティブハードウェアデコーダーを解放
                         },
@@ -525,13 +527,14 @@
                             exposureMode: "continuous"
                         },
                         qrbox: (w, h) => {
-                            // カメラ生映像の横幅の 70% を切り出しの基準幅に設定
-                            const scanWidth = Math.max(Math.min(w * 0.7, 480), 200);
+                            // 【本質的解決 - UIと内部判定の完全分離】
+                            // UIの見た目（極細スリット）にデコードの判定領域まで合わせる必要は一切ありません。
+                            // 判定領域（qrbox）はバーコードの縦線を十分に拾えるよう、大きく広く（正方形に近く）確保します。
+                            const scanWidth = Math.max(Math.min(w * 0.8, 500), 250);
                             
-                            // 縦幅を「1.44 : 0.5」の比率（＝横幅の 約34.72%）で完全に固定
-                            const scanHeight = Math.round(scanWidth * 0.5 / 1.44);
+                            // 縦幅をスリット幅にせず、横幅の80%にあえて大きく確保する（甘め判定の極意）
+                            const scanHeight = Math.round(scanWidth * 0.8);
                             
-                            // 最低保障50px制限エラーを防御
                             return { 
                                 width: Math.max(scanWidth, 50), 
                                 height: Math.max(scanHeight, 50) 
