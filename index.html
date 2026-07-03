@@ -25,40 +25,60 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* ==================== カメラ映像のズレをなくすための安全なCSS ==================== */
-        /* 余計な transform や object-fit: cover を外すことで、映像とスキャン領域の座標ズレ（視差）をなくします。
-           これにより、5cmまで近づけなくても、枠内にバーコードを合わせるだけで正確に読み取れます。 */
+        /* ==================== 安定していた 1.8倍 デジタルズーム ==================== */
         #reader video {
-            border-radius: 8px;
+            object-fit: cover !important;
             width: 100% !important;
-            max-height: 100% !important;
-            /* object-fit: cover は映像の一部を切り取り、解析座標を狂わせるため使用しません */
+            height: 100% !important;
+            transform: scale(-1.8, 1.8) !important; /* 鏡（左右反転）＆ 1.8倍のズーム */
+            transform-origin: center !important;
         }
 
-        /* ==================== ライブラリが自動生成する「二重枠」の完全非表示 ==================== */
-        #reader {
-            border: none !important;
+        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・1.8倍ズーム */
+        .back-camera video {
+            transform: scale(1.8) !important;
+            transform-origin: center !important;
         }
-        #reader__scan_region {
+
+        /* ==================== 【二重枠バグ完全排除】ライブラリが生成する枠・マスクの完全無効化 ==================== */
+        /* ライブラリが動的・自動生成する枠線、半透明グレーのマスク、境界線、影を網羅的に打ち消します */
+        #reader,
+        #reader__scan_region,
+        #reader__scan_region *,
+        .qrbox-border,
+        [id$="__border"],
+        [class*="qrbox-border"],
+        div[style*="border-style"],
+        div[style*="border-color"],
+        div[style*="border-width"],
+        div[style*="background-color: rgba(0, 0, 0, 0.48)"],
+        div[style*="background-color:rgba(0, 0, 0, 0.48)"],
+        div[style*="background-color: rgba(0,0,0,0.48)"] {
             border: none !important;
-        }
-        /* ライブラリが作る半透明のマスク（太いボーダーで表現されている）を透明化して見えなくする */
-        #reader__scan_region > div {
-            border-color: transparent !important;
+            border-width: 0px !important;
             box-shadow: none !important;
             background: transparent !important;
+            background-color: transparent !important;
+            outline: none !important;
         }
-        /* ライブラリが作る四隅の枠線（SVG）を完全に消去 */
-        #reader__scan_region svg {
+
+        /* ライブラリ側の四隅の枠（SVGなど）やスキャン用ガイドパーツを徹底的に排除 */
+        #reader__scan_region svg,
+        #reader__scan_region img,
+        #reader__scan_region span,
+        #reader__scan_region div div {
             display: none !important;
+            border: none !important;
+            border-width: 0px !important;
+            width: 0px !important;
+            height: 0px !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
         }
 
         /* ==================== 【おおいマスク＆往復レーザー】自前バーコードスリット枠 ==================== */
         #custom-scan-frame {
-            position: absolute;
-            /* JS側の qrbox とサイズを完全に一致させることで、見た目と解析座標のズレを100%なくす */
-            width: 280px;
-            height: 160px;
+            position: absolute; /* 子要素の基準位置 */
             /* 読み取り枠の外側を薄暗くおおうマスク効果 */
             box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65) !important;
             border-radius: 4px;
@@ -145,12 +165,12 @@
                 <!-- スキャン枠 & レーザーアニメーション -->
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden">
                     <!-- カメラ表示ターゲット用div -->
-                    <div id="reader" class="w-full max-h-full flex items-center justify-center"></div>
+                    <div id="reader" class="w-full h-full"></div>
                     
                     <!-- 【自前の高品質バーコード読み取り枠 overlay】 -->
                     <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10 overflow-hidden">
-                        <!-- 固定サイズ(280x160)にすることで、JS側のqrboxと完全に一致し、視差ズレが解消されます -->
-                        <div id="custom-scan-frame" class="border-0 transition-all duration-300 flex items-center justify-center">
+                        <!-- 動的に広がる横長のスリット枠 -->
+                        <div id="custom-scan-frame" class="absolute w-[85%] max-w-[500px] h-[40%] max-h-[250px] border-0 flex items-center justify-center transition-all duration-300">
                             <!-- 四隅の白いかっこ [ ] -->
                             <div class="absolute top-0 left-0 w-8 h-8 border-t-[6px] border-l-[6px] border-white rounded-tl-sm z-20"></div>
                             <div class="absolute top-0 right-0 w-8 h-8 border-t-[6px] border-r-[6px] border-white rounded-tr-sm z-20"></div>
@@ -584,14 +604,10 @@
                 if (html5QrcodeScanner) {
                     try {
                         await html5QrcodeScanner.stop();
-                    } catch (err) {
-                        // Ignore
-                    }
+                    } catch (err) {}
                     try {
                         html5QrcodeScanner.clear();
-                    } catch (err) {
-                        // Ignore
-                    }
+                    } catch (err) {}
                 }
                 
                 // エラーを避けるためにDOMを一度綺麗にしてからインスタンスを作り直す
@@ -606,13 +622,10 @@
                     readerDiv.classList.add("back-camera");    
                 }
 
-                // 【超重要：20cm離した位置からサクサクデコードできる精密スキャンパラメータ】
-                // 自作枠（280x160）とサイズを完全に一致させることで、視差ズレを100%なくします。
-                const scanWidth = 280;
-                const scanHeight = 160;
-
+                // 【最も安定して読めていた時の本来の設定に復元】
+                // 動的な関数計算に戻すことで、枠のサイズが元の大きな幅（最大500px）になり横に短くなる問題が直ります。
                 const config = {
-                    fps: 15, // 安定性を重視してフレームレートを調整
+                    fps: 15,
                     formatsToSupport: [
                         Html5QrcodeSupportedFormats.EAN_13,
                         Html5QrcodeSupportedFormats.EAN_8,
@@ -620,84 +633,31 @@
                         Html5QrcodeSupportedFormats.UPC_A,
                         Html5QrcodeSupportedFormats.UPC_E
                     ],
-                    qrbox: { width: scanWidth, height: scanHeight }
-                };
-
-                const cameraConfigHD = {
-                    deviceId: { exact: cameraId },
-                    video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+                    qrbox: (w, h) => {
+                        let scanWidth = Math.min(w * 0.85, 500);
+                        let scanHeight = Math.min(scanWidth * 0.5, 250);
+                        scanWidth = Math.max(50, scanWidth);
+                        scanHeight = Math.max(50, scanHeight);
+                        return { width: scanWidth, height: scanHeight };
                     }
                 };
 
                 try {
-                    // まずHD画質設定でスキャナーをスタート
+                    // 最も安定しているシンプルな起動モード（エラーや競合を引き起こすHD指定等を排除）
                     await html5QrcodeScanner.start(
-                        cameraConfigHD,
+                        cameraId,
                         config,
                         onScanSuccessInternal,
                         onScanErrorInternal
                     );
                     hideFallbackMessage();
-                    applyHardwareZoom();
                 } catch (err) {
-                    console.warn("HD camera launch failed. Falling back...", err);
-                    
-                    try {
-                        await html5QrcodeScanner.clear();
-                    } catch(clearErr) {}
-                    
-                    document.getElementById("reader").innerHTML = "";
-                    html5QrcodeScanner = new Html5Qrcode("reader");
-
-                    try {
-                        // 最終手段：プレーン文字列による最も互換性の高い起動
-                        await html5QrcodeScanner.start(
-                            cameraId,
-                            config,
-                            onScanSuccessInternal,
-                            onScanErrorInternal
-                        );
-                        hideFallbackMessage();
-                        applyHardwareZoom();
-                    } catch(err3) {
-                        console.error("All camera launch attempts failed:", err3);
-                        showFallbackError();
-                    }
+                    console.error("Camera launch failed:", err);
+                    showFallbackError();
                 }
             } finally {
                 isScannerTransitioning = false;
             }
-        }
-
-        // 本物のカメラ側デジタルズーム制御（対応ブラウザ向け）
-        function applyHardwareZoom() {
-            setTimeout(() => {
-                const videoElement = document.querySelector("#reader video");
-                if (videoElement && videoElement.srcObject) {
-                    const videoTrack = videoElement.srcObject.getVideoTracks()[0];
-                    if (videoTrack && typeof videoTrack.getCapabilities === "function") {
-                        try {
-                            const capabilities = videoTrack.getCapabilities();
-                            if (capabilities.zoom) {
-                                const maxZoom = capabilities.zoom.max || 1;
-                                // 20cm離れていてもバーコードが大きく映るようにズームを適用
-                                const targetZoom = Math.min(2.0, maxZoom);
-                                videoTrack.applyConstraints({
-                                    advanced: [{ zoom: targetZoom }]
-                                }).then(() => {
-                                    console.log("Hardware zoom successfully applied: ", targetZoom);
-                                }).catch(e => {
-                                    console.warn("Hardware zoom application failed:", e);
-                                });
-                            }
-                        } catch (capabilitiesErr) {
-                            console.warn("Could not read camera capabilities for zoom:", capabilitiesErr);
-                        }
-                    }
-                }
-            }, 1000); // カメラ映像が安定するまで待つ
         }
 
         function onScanSuccessInternal(decodedText) {
@@ -706,19 +666,6 @@
 
         function onScanErrorInternal(errorMessage) {
             // スキャン中エラー（無視）
-        }
-
-        function hideFallbackMessage() {
-            const container = document.getElementById("camera-fallback-msg");
-            if (container) container.classList.add("hidden");
-        }
-
-        function showFallbackError() {
-            const container = document.getElementById("camera-fallback-msg");
-            if (container) {
-                container.classList.remove("hidden");
-                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しんでね！</p>`;
-            }
         }
 
         // カメラ切り替え
@@ -741,6 +688,19 @@
                 startScanning(currentCameraId);
             } catch (e) {
                 console.warn(e);
+            }
+        }
+
+        function hideFallbackMessage() {
+            const container = document.getElementById("camera-fallback-msg");
+            if (container) container.classList.add("hidden");
+        }
+
+        function showFallbackError() {
+            const container = document.getElementById("camera-fallback-msg");
+            if (container) {
+                container.classList.remove("hidden");
+                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しんでね！</p>`;
             }
         }
 
@@ -1064,7 +1024,7 @@
                 showReceiptButton();
                 
             } else {
-                // 不正解
+                // 不正解 (静かにブザーだけを流す)
                 playIncorrectSound();
             }
         }
