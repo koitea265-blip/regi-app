@@ -190,7 +190,7 @@
 
             <!-- 操作コントロールパネル -->
             <div class="mt-3 flex flex-wrap gap-2 justify-between items-center">
-                <button onclick="triggerMockScan()" class="bg-amber-50 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg shadow active:scale-95 transition flex items-center gap-1">
+                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg shadow active:scale-95 transition flex items-center gap-1">
                     <span>⚡</span> ぴっ！(テストスキャン)
                 </button>
                 <div class="flex gap-2">
@@ -332,18 +332,6 @@
                     <div class="text-[10px] text-slate-400">TEL: 028-654-3210</div>
                 </div>
 
-                <div class="border-b border-dashed border-slate-300 my-2"></div>
-                
-                <!-- 【修復：消えていた必須要素 receipt-date と receipt-tx-no を完全に復活！】 -->
-                <div class="flex justify-between text-[10.5px] text-slate-600 px-1">
-                    <span id="receipt-date"></span>
-                    <span>レジ: 001</span>
-                </div>
-                <div class="flex justify-between text-[10.5px] text-slate-600 px-1 mt-0.5">
-                    <span>担 当: 店長</span>
-                    <span>取 折: No.<span id="receipt-tx-no"></span></span>
-                </div>
-                
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
                 
                 <!-- 購入した商品の一覧：縦スクロールバーを完全に廃止し自動で長く伸びる設計に -->
@@ -1078,40 +1066,24 @@
             // 動的レシートデータの生成
             const date = new Date();
             const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-            
-            // 【修復：安全な null チェックと書き込み】
-            const elDate = document.getElementById("receipt-date");
-            const elTxNo = document.getElementById("receipt-tx-no");
-            
-            if (elDate) {
-                elDate.innerText = formattedDate;
-            }
-            if (elTxNo) {
-                elTxNo.innerText = String(Math.floor(Math.random() * 9000) + 1000);
-            }
+            document.getElementById("receipt-date").innerText = formattedDate;
+            document.getElementById("receipt-tx-no").innerText = Math.floor(Math.random() * 9000) + 1000;
 
             // レシートの商品リストをクリア＆構築
             const receiptList = document.getElementById("receipt-items-list");
-            if (receiptList) {
-                receiptList.innerHTML = "";
-                cart.forEach(item => {
-                    const li = document.createElement("li");
-                    li.className = "flex justify-between font-kyokasho";
-                    li.innerHTML = `<span>${item.name}</span><span>${item.price} 円</span>`;
-                    receiptList.appendChild(li);
-                });
-            }
+            receiptList.innerHTML = "";
+            cart.forEach(item => {
+                const li = document.createElement("li");
+                li.className = "flex justify-between font-kyokasho";
+                li.innerHTML = `<span>${item.name}</span><span>${item.price} 円</span>`;
+                receiptList.appendChild(li);
+            });
 
             // レシートの下部サマリーの反映
-            const elTotalQty = document.getElementById("receipt-total-qty");
-            const elTotalCost = document.getElementById("receipt-total-cost");
-            const elPaidAmt = document.getElementById("receipt-paid-amount");
-            const elChangeAmt = document.getElementById("receipt-change-amount");
-
-            if (elTotalQty) elTotalQty.innerText = `${cart.length} 点`;
-            if (elTotalCost) elTotalCost.innerText = totalAmount.toLocaleString();
-            if (elPaidAmt) elPaidAmt.innerText = paidAmount.toLocaleString();
-            if (elChangeAmt) elChangeAmt.innerText = changeAmount.toLocaleString();
+            document.getElementById("receipt-total-qty").innerText = `${cart.length} 点`;
+            document.getElementById("receipt-total-cost").innerText = totalAmount.toLocaleString();
+            document.getElementById("receipt-paid-amount").innerText = paidAmount.toLocaleString();
+            document.getElementById("receipt-change-amount").innerText = changeAmount.toLocaleString();
             
             document.getElementById("success-modal").classList.remove("hidden");
         }
