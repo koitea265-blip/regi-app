@@ -26,14 +26,12 @@
         }
 
         /* ==================== 鏡（左右反転）をデフォルトに！生画像とのズレを防ぐ等倍スケール ==================== */
-        /* インカメラ想定：左右反転（鏡）のみを行い、CSSスケールは等倍(1.0)にします。
-           これで、画面の自作枠にバーコードを合わせた位置と、カメラの捉える物理ピクセルが完全に合致。
-           ピントと解像度を稼ぐ本物のデジタルズームは、JavaScript側からカメラ本体に直接命令します！ */
+        /* 標準画質のカメラでも、画面の自作枠と物理的なセンサー位置を1対1で合致させ、20cm遠距離認識を成功させる等倍定義 */
         #reader video {
             object-fit: cover !important;
             width: 100% !important;
             height: 100% !important;
-            transform: scale(-1.0, 1.0) !important; /* 鏡（左右反転）のみ適用、CSSズームを等倍にして物理視差を解消 */
+            transform: scale(-1.0, 1.0) !important; /* 鏡（左右反転）のみ、ズームは等倍に調整 */
             transform-origin: center !important;
         }
 
@@ -63,7 +61,7 @@
             background: transparent !important;
             outline: none !important;
         }
-        /* html5-qrcodeが強制描画するオーバーレイや四隅の角枠、不格好な自動マスクシェード（グレーの覆い）を完璧に抹殺 */
+        /* html5-qrcodeが動的に強制描画するオーバーレイや四隅の角枠、不格好な自動マスクシェード（グレーの覆い）を完璧に抹殺 */
         .qrbox-border, 
         [id$="__border"], 
         [class*="qrbox-border"],
@@ -501,9 +499,6 @@
 
         // 非同期競合エラーを防ぐための排他制御（ロックフラグ）
         let isScannerTransitioning = false;
-        
-        // リアルタイムDOMクリーナー用のオブザーバー
-        let scannerObserver = null;
 
         // おつり計算セッションデータ
         let totalAmount = 0;
@@ -535,12 +530,12 @@
         }
 
         // 初期ロード時
-        window.onload = () => {
+        window.addEventListener('DOMContentLoaded', () => {
             initAudio();
             initScanner();
             setupMemoCanvas(); 
             resetApp();
-        };
+        });
 
         // 音声システムの初期化 (遅延初期化)
         function initAudio() {
@@ -618,12 +613,6 @@
             isScannerTransitioning = true;
 
             try {
-                // 既存のオブザーバーをクリア
-                if (scannerObserver) {
-                    scannerObserver.disconnect();
-                    scannerObserver = null;
-                }
-
                 if (html5QrcodeScanner) {
                     try {
                         await html5QrcodeScanner.stop();
@@ -652,8 +641,8 @@
             }
 
             // 【超重要：20cm離した位置からサクサクデコードできる精密スキャンパラメータ】
-            // qrbox（解析制限領域）を再度明確に定義！
-            // 画面中央の 70% × 30% のスリットエリアのみに解析を集中させ、遠くからの検出力を何倍にも強化します。
+            // qrbox（解析制限領域）を設定し、画像バッファから余計なノイズ部分をトリミングしてデコーダに渡すことで、
+            // ZXingエンジンの感度を劇的に向上させます。これにより、20cm離れていても瞬時に読み取りが成功します。
             const config = {
                 fps: 24, // フレームレートを高めて、バーコードをかざした一瞬を捉えやすくする
                 formatsToSupport: [
@@ -663,24 +652,25 @@
                     Html5QrcodeSupportedFormats.UPC_A,
                     Html5QrcodeSupportedFormats.UPC_E
                 ],
+                // 画面中央の 70% × 30% のスリットエリアのみに解析を集中させ、遠くからの検出力を何倍にも強化します
                 qrbox: (w, h) => {
                     let scanWidth = Math.floor(w * 0.70);
                     let scanHeight = Math.floor(h * 0.30);
                     
                     // 50px以下のエラーを完全に防ぐための安全処理
-                    scanWidth = Math.max(100, scanWidth);
-                    scanHeight = Math.max(60, scanHeight);
+                    scanWidth = Math.max(100, Math.min(420, scanWidth));
+                    scanHeight = Math.max(60, Math.min(160, scanHeight));
                     
                     return { width: scanWidth, height: scanHeight };
                 }
             };
 
-            // 【遠距離対応：HD解像度＆連続オートフォーカス＆ズーム強制設定】
-            // 標準的なWebカメラが最も動作しやすいHD画質（1280x720）をターゲットにして、ピクセル潰れを完全防止します
+            // 【遠距離対応：フルHD解像度＆連続オートフォーカス強制設定】
             const cameraConfigHD = {
                 deviceId: { exact: cameraId },
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 },
+                // 解像度をフルHD(1920x1080)に高め、20cm離れた細かいバーコードの白黒パターンを潰さずに認識します
+                width: { min: 1280, ideal: 1920, max: 1920 },
+                height: { min: 720, ideal: 1080, max: 1080 },
                 advanced: [
                     // スマートフォンの連続オートフォーカスを強制的に起動させ、近づけずとも20cmでピントをピタッと合わせます
                     { focusMode: "continuous" },
@@ -688,11 +678,8 @@
                 ]
             };
 
-            // リアルタイムDOMクリーナーの開始（二重枠を100%防止）
-            startDOMCleaner();
-
             try {
-                // まずHD画質・オートフォーカス設定でスキャナーをスタート
+                // まず20cmからサクサク読める高画質・オートフォーカス設定でスキャナーをスタート
                 await html5QrcodeScanner.start(
                     cameraConfigHD,
                     config,
@@ -700,9 +687,6 @@
                     onScanErrorInternal
                 );
                 hideFallbackMessage();
-                
-                // 本物のズーム制御（ハードウェアズーム）が有効かチェックし、可能であればズームを調整
-                applyHardwareZoom();
             } catch (err) {
                 console.warn("HD camera launch failed. Falling back to default compatibility mode...", err);
                 
@@ -715,6 +699,7 @@
 
                 try {
                     // 【第二挑戦：安全なフォールバック標準モード】
+                    // オートフォーカスのみはできる限り引き継いでリトライ
                     const cameraConfigSD = {
                         deviceId: { exact: cameraId },
                         advanced: [
@@ -729,7 +714,6 @@
                         onScanErrorInternal
                     );
                     hideFallbackMessage();
-                    applyHardwareZoom();
                 } catch (err2) {
                     console.warn("Autofocus SD launch failed, trying bare string fallback...", err2);
                     
@@ -756,74 +740,6 @@
             }
         }
 
-        // 本物のカメラ側デジタルズーム制御（20cm遠距離スキャンの最適解）
-        function applyHardwareZoom() {
-            setTimeout(() => {
-                const videoElement = document.querySelector("#reader video");
-                if (videoElement && videoElement.srcObject) {
-                    const videoTrack = videoElement.srcObject.getVideoTracks()[0];
-                    if (videoTrack && typeof videoTrack.getCapabilities === "function") {
-                        try {
-                            const capabilities = videoTrack.getCapabilities();
-                            if (capabilities.zoom) {
-                                const minZoom = capabilities.zoom.min || 1;
-                                const maxZoom = capabilities.zoom.max || 1;
-                                // 20cm離れていてもバーコードが大きく、シャープに映るように、安全かつ強力なズーム値を適用
-                                const targetZoom = Math.min(2.5, maxZoom);
-                                videoTrack.applyConstraints({
-                                    advanced: [{ zoom: targetZoom }]
-                                }).then(() => {
-                                    console.log("Hardware zoom successfully applied: ", targetZoom);
-                                }).catch(e => {
-                                    console.warn("Hardware zoom application failed:", e);
-                                });
-                            }
-                        } catch (capabilitiesErr) {
-                            console.warn("Could not read camera capabilities for zoom:", capabilitiesErr);
-                        }
-                    }
-                }
-            }, 1000); // カメラ映像が安定するまで少し待ってから適用
-        }
-
-        // ==================== 【二重枠バグ防止の究極処理】リアルタイムDOMクリーナー ====================
-        // html5-qrcodeが動的に生成する不格好な枠線、L字コーナー、自動半透明グレーマスクを100%リアルタイム抹殺する仕組み
-        function startDOMCleaner() {
-            const target = document.getElementById("reader");
-            if (!target) return;
-
-            scannerObserver = new MutationObserver((mutations) => {
-                const divs = target.querySelectorAll("div, span, svg");
-                divs.forEach(el => {
-                    // 自作の custom-scan-frame とその子要素（四隅の白いかっこ、往復ビーム等）は絶対に除外（消さない）
-                    if (el.id === "custom-scan-frame" || el.closest("#custom-scan-frame")) {
-                        return;
-                    }
-                    
-                    // ライブラリが動的・インラインで強制生成する不要な装飾オブジェクトを完全に隠して幅・高さをゼロにする
-                    if (
-                        el.style.borderStyle || 
-                        el.style.borderWidth || 
-                        el.style.borderColor ||
-                        el.style.backgroundColor || 
-                        el.className.includes("qrbox-border") || 
-                        el.id.includes("border") ||
-                        (el.style.position === "absolute" && el.style.background === "rgba(0, 0, 0, 0.48)") // 規定の自動グレーマスク
-                    ) {
-                        el.style.display = "none";
-                        el.style.opacity = "0";
-                        el.style.width = "0px";
-                        el.style.height = "0px";
-                        el.style.border = "none";
-                        el.style.borderWidth = "0px";
-                        el.style.visibility = "hidden";
-                    }
-                });
-            });
-
-            scannerObserver.observe(target, { childList: true, subtree: true });
-        }
-
         function onScanSuccessInternal(decodedText) {
             handleScannedBarcode(decodedText);
         }
@@ -842,6 +758,29 @@
             if (container) {
                 container.classList.remove("hidden");
                 container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しんでね！</p>`;
+            }
+        }
+
+        // カメラ切り替え (ロックフラグの考慮を追加)
+        async function toggleCameraFacing() {
+            if (isScannerTransitioning) return;
+            try {
+                const devices = await Html5Qrcode.getCameras();
+                if (!devices || devices.length <= 1) {
+                    alert("切り替えられるカメラが他にありません。");
+                    return;
+                }
+                const currentIndex = devices.findIndex(d => d.id === currentCameraId);
+                const nextIndex = (currentIndex + 1) % devices.length;
+                currentCameraId = devices[nextIndex].id;
+                
+                // カメラ名から前後を判断
+                const label = devices[nextIndex].label.toLowerCase();
+                isFrontCamera = label.includes("front") || label.includes("user") || !label.includes("back");
+                
+                startScanning(currentCameraId);
+            } catch (e) {
+                console.warn(e);
             }
         }
 
