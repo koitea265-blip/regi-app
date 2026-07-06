@@ -231,6 +231,7 @@
         </section>
     </main>
 
+    <!-- おつり計算ひっ算モーダル -->
     <div id="payment-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
         <div class="bg-sky-50 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border-4 border-sky-400">
             <div class="bg-sky-500 text-white p-4 text-center">
@@ -293,9 +294,11 @@
     </div>
 
     <!-- ==================== 正解お祝い・くっきりリアルレシートモーダル ==================== -->
-    <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
+    <!-- 変更点: flex items-center (中央固定) を外し、overflow-y-auto と items-start (上部から配置) を追加。
+         さらに py-12 を追加して、画面全体をスクロールした際に十分な上下の余白を確保 -->
+    <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full my-auto">
-            <!-- レシート用紙エリア：文字かすれを追放した高コントラスト設計 -->
+            <!-- レシート用紙エリア -->
             <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
                 <!-- よくできましたスタンプ -->
                 <div class="absolute top-4 right-4 border-4 border-rose-600 text-rose-600 text-xs font-black px-2 py-1 rounded-lg rotate-12 bg-white/95 shadow-sm z-10">💮 よくできました</div>
@@ -320,11 +323,12 @@
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
                 <!-- スキャンしたお買い物商品一覧が印字されるスペース -->
+                <!-- 変更点: 高さを制限していたクラス(もしあれば)を取り除き、商品数に応じてそのまま伸びるように設定 -->
                 <ul id="receipt-items-list" class="space-y-1 my-3 text-xs text-black font-bold"></ul>
                 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
-                <!-- 金額サマリー（合計・お預かり・おつりの大きさと色を統一） -->
+                <!-- 金額サマリー -->
                 <div class="space-y-2 font-black mt-2 text-black text-base">
                     <div class="flex justify-between text-base border-b border-slate-500 pb-1">
                         <span>合計（内税）</span>
@@ -352,6 +356,7 @@
                     <p>お買い上げありがとうございました！</p>
                 </div>
             </div>
+            <!-- つぎへボタン -->
             <button onclick="resetAppAndCloseSuccess()" class="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-xl text-xl shadow-lg transition">つぎのお買い物へ！</button>
         </div>
     </div>
@@ -524,14 +529,11 @@
 
                 let started = false;
                 
-                // 【本質的解決】 複雑な constraints を廃止し、2段階の堅牢な起動フォールバックを実行
                 try {
-                    // フェーズ1: 指定された向きのカメラで起動
                     await html5QrScanner.start({ facingMode: isFrontCamera ? "user" : "environment" }, scanConfig, onScanSuccess);
                     started = true;
                 } catch (err1) {
                     console.warn("facingMode start failed:", err1);
-                    // フェーズ2: デバイス固有のエラー（Requested device not found 等）を回避するため、カメラリストから直接取得
                     const cameras = await Html5Qrcode.getCameras();
                     if (cameras && cameras.length > 0) {
                         const camId = isFrontCamera ? cameras[0].id : cameras[cameras.length - 1].id;
@@ -542,7 +544,6 @@
 
                 if (started) {
                     container.classList.add("hidden");
-                    // 起動成功後、可能であれば安全にオートフォーカスを適用
                     try {
                         if (typeof html5QrScanner.applyVideoConstraints === 'function') {
                             await html5QrScanner.applyVideoConstraints({
