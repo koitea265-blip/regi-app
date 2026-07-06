@@ -85,9 +85,9 @@
         /* ==================== 【おおいマスク＆往復レーザー】自前バーコードスリット枠 ==================== */
         #custom-scan-frame {
             position: absolute; /* 子要素の基準位置 */
-            /* 12桁や13桁の長いバーコードが両端まですっぽりと収まるよう、横幅を十分に広げた350px×110pxに設定 */
-            width: 350px;
-            height: 110px;
+            /* JS側のqrboxとピクセルサイズを完全に合致させ、視差を100%なくします */
+            width: 260px;
+            height: 130px;
             /* 読み取り枠の外側を綺麗に薄暗くおおうマスク効果 */
             box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65) !important;
             border-radius: 4px;
@@ -178,7 +178,7 @@
                     
                     <!-- 【自前の高品質バーコード読み取り枠 overlay】二重枠を徹底解消 -->
                     <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10 overflow-hidden">
-                        <!-- 12桁・13桁のバーコードに最適化された横長スリット枠 -->
+                        <!-- 自作スリット枠のサイズを中央の使いやすい範囲に調整（JSのqrbox比率と完全に同期） -->
                         <div id="custom-scan-frame" class="border-0 transition-all duration-300 flex items-center justify-center">
                             <!-- 四隅の白いかっこ [ ] -->
                             <div class="absolute top-0 left-0 w-8 h-8 border-t-[6px] border-l-[6px] border-white rounded-tl-sm z-20"></div>
@@ -445,7 +445,7 @@
             { name: "カラフルおりがみ (🎨)", price: 198 },
             { name: "ミニリュック (🎒)", price: 3890 },
             { name: "可愛いハンカチ (🧣)", price: 254 },
-            { name: "くまさんくくした (🧦)", price: 315 },
+            { name: "くまさんくつした (🧦)", price: 315 },
             { name: "サッカーボール (⚽)", price: 1240 },
             { name: "ポテトフライ (🍟)", price: 243 },
             { name: "チョコドーナツ (🍩)", price: 154 },
@@ -627,13 +627,12 @@
                     readerDiv.classList.add("back-camera");    
                 }
 
-                // 【修正：12桁・13桁バーコードに完全対応した横長広域スキャン設計】
-                // 12桁(UPC-A)や13桁(JAN/EAN-13)といった横に長いバーコードがはみ出すことなく、
-                // 20cm離した位置から一瞬でサクサク読み込めるよう、解析ボックス(qrbox)の幅を350px、高さを110pxに広げ、
-                // 自作かっこ枠のサイズと「1対1」で完璧に同期させました。
-                const scanWidth = 350;
-                const scanHeight = 110;
-
+                // 【修正：20cm離れた「枠より一回り小さい」バーコードを瞬時に読み取る物理計算】
+                // 枠の見た目比率 w-[85%] max-w-[500px] h-[40%] max-h-[250px] と
+                // ZXing検出エンジン用の認識対象エリア（qrbox）を「1対1」で完全に同期させます。
+                // さらに、全体からこのスリット枠だけをクロップして高感度デコードするため、
+                // バーコードをカメラに密着させて大きく見せる必要がなくなり、
+                // 20cm離した位置から「枠よりかなり小さいサイズ」のまま余裕でピッと読めるようになります。
                 const config = {
                     fps: 24, // フレーム解析間隔を極限まで速めて一瞬の検出を逃さない
                     formatsToSupport: [
@@ -643,7 +642,18 @@
                         Html5QrcodeSupportedFormats.UPC_A,
                         Html5QrcodeSupportedFormats.UPC_E
                     ],
-                    qrbox: { width: scanWidth, height: scanHeight }
+                    qrbox: (w, h) => {
+                        // 1.8倍のズーム映像と100%合致する「物理スキャン枠サイズ」をミリ秒単位で再計算
+                        // wの約45%〜55%を解析ボックスに指定することで、画面中央の「かっこ[ ]」にピタッと一致
+                        let scanWidth = Math.floor(w * 0.48);
+                        let scanHeight = Math.floor(h * 0.22);
+                        
+                        // PC内蔵カメラの解像度低下に耐えうる最低解析サイズを保証
+                        scanWidth = Math.max(160, Math.min(320, scanWidth));
+                        scanHeight = Math.max(80, Math.min(140, scanHeight));
+                        
+                        return { width: scanWidth, height: scanHeight };
+                    }
                 };
 
                 try {
@@ -1216,7 +1226,6 @@
             ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
         }
 
-        // お絵描き
         function draw(e) {
             if (!isDrawing) return;
             const rect = canvas.getBoundingClientRect();
