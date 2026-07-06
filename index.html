@@ -334,8 +334,8 @@
 
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
                 
-                <!-- 購入した商品の一覧：縦スクロールバーを完全に廃止し自動で長く伸びる設計に -->
-                <ul id="receipt-items-list" class="space-y-1.5 my-3 text-xs text-slate-700" style="max-height: none !important; overflow: visible !important;">
+                <!-- 購入した商品の一覧 -->
+                <ul id="receipt-items-list" class="space-y-1.5 my-3 text-xs text-slate-700">
                     <!-- JSで動的に追加されます -->
                 </ul>
                 
@@ -351,13 +351,11 @@
                         <span>合計（内税）</span>
                         <span><span id="receipt-total-cost">0</span> 円</span>
                     </div>
-                    <!-- お預かり：黒色・等倍 text-base -->
-                    <div class="flex justify-between pt-1 text-base text-black font-bold">
+                    <div class="flex justify-between pt-1 text-base text-black">
                         <span>お預かり</span>
                         <span><span id="receipt-paid-amount">0</span> 円</span>
                     </div>
-                    <!-- おつり：黒色・等倍 text-base -->
-                    <div class="flex justify-between pt-1 text-base text-black font-bold border-t-2 border-double border-slate-400">
+                    <div class="flex justify-between pt-1 text-base text-black border-t-2 border-double border-slate-400">
                         <span>おつり</span>
                         <span><span id="receipt-change-amount">0</span> 円</span>
                     </div>
@@ -683,6 +681,14 @@
         function hideFallbackMessage() {
             const container = document.getElementById("camera-fallback-msg");
             if (container) container.classList.add("hidden");
+        }
+
+        function showFallbackError() {
+            const container = document.getElementById("camera-fallback-msg");
+            if (container) {
+                container.classList.remove("hidden");
+                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しね！</p>`;
+            }
         }
 
         // バーコードが読み取れたときの処理
