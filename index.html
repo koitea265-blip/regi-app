@@ -20,28 +20,27 @@
             font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
         }
 
-        /* 筆算の数字は教科書体フォントを適用 (最優先で適用されるように!importantと詳細度を強化) */
+        /* 筆算の数字は教科書体フォントを適用 */
         .font-kyokasho {
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* ==================== 鏡（左右反転）＆ 標準カメラ（VGA/HD）の20cm読取を実証する2.0倍デジタルズーム ==================== */
-        /* 標準的な解像度が低いWebカメラでも、20cm離れたバーコードを枠内で大きく捉え、デコーダに適切なピクセルを送るための2.0倍スケール表示 */
+        /* ==================== 鏡（左右反転）をデフォルトに！生画像とのズレを防ぐ等倍スケール ==================== */
         #reader video {
             object-fit: cover !important;
             width: 100% !important;
             height: 100% !important;
-            transform: scale(-2.0, 2.0) !important; /* 鏡（左右反転）＆ 2.0倍の強力表示ズーム */
+            transform: scale(-1.0, 1.0) !important; /* 鏡（左右反転）のみ適用、CSSズームを等倍にして物理視差をゼロに */
             transform-origin: center !important;
         }
 
-        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・2.0倍スケール */
+        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・等倍スケール */
         .back-camera video {
-            transform: scale(2.0) !important; /* 背面は反転なし・2.0倍ズーム */
+            transform: scale(1.0) !important;
             transform-origin: center !important;
         }
 
-        /* ==================== 【二重枠バグ・マスク再発防止の決定版】自動枠と自動シャドウを徹底根絶するCSS ==================== */
+        /* ==================== 【二重枠バグ完全排除】ライブラリが生成する枠・マスクの完全無効化 ==================== */
         #reader {
             border: none !important;
         }
@@ -51,7 +50,7 @@
             align-items: center !important;
             justify-content: center !important;
         }
-        /* 自動生成される境界線やコンテナ、L字、赤いスキャンラインなどの強制描画パーツを完璧に排除します */
+        /* ライブラリが動的・自動生成する境界線や背景、L字パーツ、赤い動的スキャンラインなどを完全に消し去る */
         #reader__scan_region div,
         #reader__scan_region span,
         #reader__scan_region svg {
@@ -61,16 +60,16 @@
             background: transparent !important;
             outline: none !important;
         }
-        /* html5-qrcodeが動的に強制描画するオーバーレイや四隅のL字角枠、不格好な自動マスクシェード（グレーの覆い）を完璧に抹殺 */
+        /* html5-qrcodeが強制描画するオーバーレイや四隅の角枠、不格好な自動マスクシェード（グレーの覆い）を完璧に抹殺 */
         .qrbox-border, 
         [id$="__border"], 
         [class*="qrbox-border"],
         #reader__scan_region > div > div,
-        #reader__scan_region ~ div,
-        .shaded-region,
-        div[style*="background-color"],
         div[style*="border-style"],
-        div[style*="border-width"] {
+        div[style*="border-color"],
+        div[style*="border-width"],
+        div[style*="background-color: rgba(0, 0, 0, 0.48)"],
+        div[style*="background-color:rgba(0, 0, 0, 0.48)"] {
             display: none !important;
             border: none !important;
             border-width: 0px !important;
@@ -81,16 +80,21 @@
             visibility: hidden !important;
         }
 
-        /* ==================== 【おおいマスク＆往復レーザー復活】自前バーコードスリット枠スタイル ==================== */
+        /* ==================== 【おおいマスク＆往復レーザー】自前バーコードスリット枠 ==================== */
         #custom-scan-frame {
-            position: absolute; /* 子要素のレーザーライン、四隅のかっこを絶対配置するための基準 */
-            /* 読み取り枠の外側を綺麗に薄暗くおおう、お買い物レジ仕様のマスク効果。
-               親のoverflow-hiddenにより、カメラのプレビューファインダーの範囲外にははみ出しません */
+            position: absolute; /* 子要素の基準位置 */
+            /* 12桁や13桁の長いバーコードが両端までぴったり収まり、かつJSのqrboxと同期するアスペクト比を維持 */
+            width: 85%;
+            max-width: 600px;
+            height: 35%;
+            max-height: 250px;
+            /* 読み取り枠の外側を綺麗に薄暗くおおうマスク効果 */
             box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65) !important;
             border-radius: 4px;
+            z-index: 20;
         }
 
-        /* 赤いスキャンレーザーが上から下、下から上へと滑らかにスライド往復し続けるアニメーション */
+        /* 赤いスキャンレーザーが滑らかに往復し続けるアニメーション */
         @keyframes laserSweep {
             0% { top: 3%; }
             50% { top: 95%; }
@@ -111,7 +115,7 @@
         /* 方眼紙用の罫線 */
         .graph-cell {
             position: relative;
-            border-right: 1px solid #bae6fd; /* スカイブルー of 罫線 */
+            border-right: 1px solid #bae6fd;
             border-bottom: 1px solid #bae6fd;
             display: flex;
             align-items: center;
@@ -121,7 +125,7 @@
             border-right: none;
         }
 
-        /* タッチデバイスでの不要な選択やスクロールを防ぐ */
+        /* タッチデバイスでの不要な選択を防ぐ */
         .no-select {
             -webkit-touch-callout: none;
             user-select: none;
@@ -132,19 +136,7 @@
             background: #ffffff;
             position: relative;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            border-radius: 8px; /* ストレートで角をほんの少し丸めた自然な仕上がり */
-        }
-
-        /* レシート内のスクロールバーを細く控えめにする */
-        .receipt-scroll::-webkit-scrollbar {
-            width: 5px;
-        }
-        .receipt-scroll::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 5px;
-        }
-        .receipt-scroll::-webkit-scrollbar-track {
-            background-color: transparent;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -172,21 +164,17 @@
                     <!-- カメラ表示ターゲット用div -->
                     <div id="reader" class="w-full h-full"></div>
                     
-                    <!-- 【自前の高品質バーコード読み取り枠 overlay】二重枠を徹底解消＆マスク＆往復ビーム復活 -->
+                    <!-- 【自前の高品質バーコード読み取り枠 overlay】二重枠を徹底解消 -->
                     <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10 overflow-hidden">
-                        <!-- 画面サイズ変化に対応する、潰れない横長スリット枠（干渉を防ぐため親のflexから独立させて中央に絶対配置） -->
-                        <div id="custom-scan-frame" class="absolute w-[70%] max-w-[420px] min-w-[220px] h-[30%] max-h-[160px] min-h-[90px] border-0 transition-all duration-300 flex items-center justify-center">
+                        <!-- 自作スリット枠のサイズを中央の使いやすい範囲に調整 -->
+                        <div id="custom-scan-frame" class="border-0 transition-all duration-300 flex items-center justify-center">
                             <!-- 四隅の白いかっこ [ ] -->
-                            <!-- 左上 (L字) -->
                             <div class="absolute top-0 left-0 w-8 h-8 border-t-[6px] border-l-[6px] border-white rounded-tl-sm z-20"></div>
-                            <!-- 右上 (L字) -->
                             <div class="absolute top-0 right-0 w-8 h-8 border-t-[6px] border-r-[6px] border-white rounded-tr-sm z-20"></div>
-                            <!-- 左下 (L字) -->
                             <div class="absolute bottom-0 left-0 w-8 h-8 border-b-[6px] border-l-[6px] border-white rounded-bl-sm z-20"></div>
-                            <!-- 右下 (L字) -->
                             <div class="absolute bottom-0 right-0 w-8 h-8 border-b-[6px] border-r-[6px] border-white rounded-br-sm z-20"></div>
                             
-                            <!-- 狙いやすい上下往復型のスキャンレッドビームを完全実装 -->
+                            <!-- 上下往復型のスキャンレッドビーム -->
                             <div class="laser-line"></div>
                         </div>
                     </div>
@@ -275,19 +263,16 @@
                     <!-- 方眼紙ボード本体 (テーブル＋手書きCanvas) -->
                     <div class="relative w-full max-w-[340px] bg-white rounded-xl shadow-lg border-2 border-sky-300 p-2 overflow-hidden select-none">
                         
-                        <!-- 手書きCanvasを重ねるコンテナ (行1〜行5までを覆う) -->
+                        <!-- 手書きCanvasを重ねるコンテナ -->
                         <div class="relative w-full" id="canvas-container">
-                            
                             <!-- ひっ算グリッドが動的に挿入される場所 -->
                             <div id="calculation-grid-container"></div>
-
                             <!-- お絵描き用Canvas -->
                             <canvas id="memo-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-auto cursor-crosshair z-20"></canvas>
                         </div>
 
-                        <!-- 答え入力枠が動的に挿入される場所 (Canvasの範囲外) -->
+                        <!-- 答え入力枠が動的に挿入される場所 -->
                         <div id="answer-grid-container"></div>
-
                     </div>
                 </div>
 
@@ -330,14 +315,14 @@
     </div>
 
     <!-- ==================== 正解お祝い演出レシートモーダル ==================== -->
-    <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
         <div class="flex flex-col items-center max-w-sm w-full my-auto">
             
             <!-- リアルなフラット感熱紙レシート -->
             <div class="receipt-paper w-full bg-white text-slate-800 p-6 font-mono text-sm border-t-8 border-emerald-500">
                 
-                <!-- スタンプ効果 -->
-                <div class="absolute top-4 right-4 border-4 border-rose-500/80 text-rose-500/80 text-xs font-black px-2 py-1 rounded-lg rotate-12 select-none bg-white/95">
+                <!-- スタンプ効果：位置をさらに右上角（top-2 right-2）に寄せ、文字サイズを少しコンパクトに調整 -->
+                <div class="absolute top-2 right-2 border-4 border-rose-500/80 text-rose-500/80 text-[10.5px] font-black px-1.5 py-0.5 rounded-lg rotate-12 select-none bg-white/95 z-30">
                     💮 たいへんよくできました
                 </div>
 
@@ -349,20 +334,8 @@
 
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
                 
-                <!-- レジ情報・担当者情報 -->
-                <div class="flex justify-between text-[10.5px] text-slate-600 px-1">
-                    <span id="receipt-date"></span>
-                    <span>レジ: 001</span>
-                </div>
-                <div class="flex justify-between text-[10.5px] text-slate-600 px-1 mt-0.5">
-                    <span>担 当: 店長</span>
-                    <span>取 折: No.<span id="receipt-tx-no"></span></span>
-                </div>
-                
-                <div class="border-b border-dashed border-slate-300 my-2"></div>
-                
-                <!-- 購入した商品の一覧 (縦スクロール対応) -->
-                <ul id="receipt-items-list" class="space-y-1.5 my-3 text-xs text-slate-700 max-h-[35vh] overflow-y-auto pr-2 receipt-scroll">
+                <!-- 購入した商品の一覧：縦スクロールバーを完全に廃止し自動で長く伸びる設計に -->
+                <ul id="receipt-items-list" class="space-y-1.5 my-3 text-xs text-slate-700" style="max-height: none !important; overflow: visible !important;">
                     <!-- JSで動的に追加されます -->
                 </ul>
                 
@@ -378,11 +351,13 @@
                         <span>合計（内税）</span>
                         <span><span id="receipt-total-cost">0</span> 円</span>
                     </div>
-                    <div class="flex justify-between pt-1 text-xs text-slate-600">
+                    <!-- お預かり：黒色・等倍 text-base -->
+                    <div class="flex justify-between pt-1 text-base text-black font-bold">
                         <span>お預かり</span>
                         <span><span id="receipt-paid-amount">0</span> 円</span>
                     </div>
-                    <div class="flex justify-between text-lg text-emerald-600 border-t-2 border-double border-slate-400 pt-1">
+                    <!-- おつり：黒色・等倍 text-base -->
+                    <div class="flex justify-between pt-1 text-base text-black font-bold border-t-2 border-double border-slate-400">
                         <span>おつり</span>
                         <span><span id="receipt-change-amount">0</span> 円</span>
                     </div>
@@ -448,7 +423,7 @@
             { name: "カラフルおりがみ (🎨)", price: 198 },
             { name: "ミニリュック (🎒)", price: 3890 },
             { name: "可愛いハンカチ (🧣)", price: 254 },
-            { name: "くまさんくつした (🧦)", price: 315 },
+            { name: "くまさんくくした (🧦)", price: 315 },
             { name: "サッカーボール (⚽)", price: 1240 },
             { name: "ポテトフライ (🍟)", price: 243 },
             { name: "チョコドーナツ (🍩)", price: 154 },
@@ -530,12 +505,12 @@
         }
 
         // 初期ロード時
-        window.addEventListener('DOMContentLoaded', () => {
+        window.onload = () => {
             initAudio();
             initScanner();
             setupMemoCanvas(); 
             resetApp();
-        });
+        };
 
         // 音声システムの初期化 (遅延初期化)
         function initAudio() {
@@ -576,15 +551,15 @@
             synth.triggerAttackRelease("A3", "8n", now + 0.15);
         }
 
-        // カメラバーコードスキャナーの立ち上げ
+        // -==================== カメラパーミッション＆初期化の修復 ====================
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             try {
-                // 事事前にブラウザへ明示的にGetUserMediaを要求し、カメラアクセス権を促す（iFrame環境での安全対策）
+                // 事前にブラウザへ明示的にGetUserMediaを要求し、カメラアクセス権を促す
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                     try {
                         const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                        testStream.getTracks().forEach(track => track.stop()); // 権限を確認したらすぐにストリームを終了
+                        testStream.getTracks().forEach(track => track.stop());
                     } catch (permErr) {
                         console.warn("Camera permission request pre-flight failed:", permErr);
                     }
@@ -592,7 +567,6 @@
 
                 const devices = await Html5Qrcode.getCameras();
                 if (devices && devices.length > 0) {
-                    // フロントカメラ(インカメラ)の優先設定
                     const userFacingCamera = devices.find(device => device.label.toLowerCase().includes("front") || device.label.toLowerCase().includes("user"));
                     currentCameraId = userFacingCamera ? userFacingCamera.id : devices[0].id;
                     isFrontCamera = !!userFacingCamera;
@@ -607,7 +581,7 @@
             }
         }
 
-        // スキャナーの実際の開始 (非同期遷移ロックの追加)
+        // ==================== 遠距離(20cm)読取＆枠サイズズレの再計算 ====================
         async function startScanning(cameraId) {
             if (isScannerTransitioning) return;
             isScannerTransitioning = true;
@@ -616,127 +590,62 @@
                 if (html5QrcodeScanner) {
                     try {
                         await html5QrcodeScanner.stop();
-                    } catch (err) {
-                        console.warn("Stop failed, but resetting instance anyway:", err);
-                    }
+                    } catch (err) {}
+                    try {
+                        html5QrcodeScanner.clear();
+                    } catch (err) {}
                 }
-                await launchScannerInstance(cameraId);
-            } catch (err) {
-                console.error("Start scanning process failed:", err);
-            } finally {
-                isScannerTransitioning = false;
-            }
-        }
-
-        async function launchScannerInstance(cameraId) {
-            // エラーを避けるために毎回新しくインスタンスを作り直す
-            html5QrcodeScanner = new Html5Qrcode("reader");
-            
-            // 鏡映し判定と背面(アウトカメラ)時のクラス切り替え
-            const readerDiv = document.getElementById("reader");
-            if (isFrontCamera) {
-                readerDiv.classList.remove("back-camera"); // 鏡表示(デフォルトCSS)をそのまま有効化
-            } else {
-                readerDiv.classList.add("back-camera");    // 鏡表示を解除
-            }
-
-            // 【超重要：20cm離した位置からサクサクデコードできる精密スキャンパラメータ】
-            // qrbox（解析制限領域）を設定し、画像バッファから余計なノイズ部分をトリミングしてデコーダに渡すことで、
-            // ZXingエンジンの感度を劇的に向上させます。これにより、20cm離れていても瞬時に読み取りが成功します。
-            const config = {
-                fps: 24, // フレームレートを高めて、バーコードをかざした一瞬を捉えやすくする
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E
-                ],
-                // 画面中央の 70% × 30% のスリットエリアのみに解析を集中させ、遠くからの検出力を何倍にも強化します
-                qrbox: (w, h) => {
-                    let scanWidth = Math.floor(w * 0.70);
-                    let scanHeight = Math.floor(h * 0.30);
-                    
-                    // 50px以下のエラーを完全に防ぐための安全処理
-                    scanWidth = Math.max(100, Math.min(420, scanWidth));
-                    scanHeight = Math.max(60, Math.min(160, scanHeight));
-                    
-                    return { width: scanWidth, height: scanHeight };
-                }
-            };
-
-            // 【遠距離対応：フルHD解像度＆連続オートフォーカス強制設定】
-            const cameraConfigHD = {
-                deviceId: { exact: cameraId },
-                // 解像度をフルHD(1920x1080)に高め、20cm離れた細かいバーコードの白黒パターンを潰さずに認識します
-                width: { min: 1280, ideal: 1920, max: 1920 },
-                height: { min: 720, ideal: 1080, max: 1080 },
-                advanced: [
-                    // スマートフォンの連続オートフォーカスを強制的に起動させ、近づけずとも20cmでピントをピタッと合わせます
-                    { focusMode: "continuous" },
-                    { resizeMode: "none" }
-                ]
-            };
-
-            try {
-                // まず20cmからサクサク読める高画質・オートフォーカス設定でスキャナーをスタート
-                await html5QrcodeScanner.start(
-                    cameraConfigHD,
-                    config,
-                    onScanSuccessInternal,
-                    onScanErrorInternal
-                );
-                hideFallbackMessage();
-            } catch (err) {
-                console.warn("HD camera launch failed. Falling back to default compatibility mode...", err);
                 
-                // トランジションエラー状態を引きずらないよう、一度クリアして新しくインスタンスを再生成する
-                try {
-                    await html5QrcodeScanner.clear();
-                } catch(clearErr) {}
-                
+                document.getElementById("reader").innerHTML = "";
                 html5QrcodeScanner = new Html5Qrcode("reader");
+                
+                const readerDiv = document.getElementById("reader");
+                if (isFrontCamera) {
+                    readerDiv.classList.remove("back-camera"); 
+                } else {
+                    readerDiv.classList.add("back-camera");    
+                }
+
+                // 【修正：デバイスの解像度に合わせて動的に幅を最大化する設計】
+                // 固定サイズ(350x110)だと、画面の小さい端末や縦向きのカメラでエラーになるため、
+                // カメラの解像度(w, h)に合わせて、横幅を可能な限り広く(最大85%)取るように関数で再計算します。
+                const config = {
+                    fps: 15, // 安定性を重視
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E
+                    ],
+                    qrbox: (w, h) => {
+                        // 横幅をカメラ解像度の85%に設定し、長いバーコードもカバーする
+                        let scanWidth = Math.floor(w * 0.85);
+                        // 横長の比率（約2.5:1〜3:1）になるように高さを設定
+                        let scanHeight = Math.floor(scanWidth * 0.35);
+                        
+                        // エラーを防ぐための最小サイズ保証と最大サイズ制限
+                        scanWidth = Math.max(200, Math.min(w * 0.95, 600));
+                        scanHeight = Math.max(100, Math.min(h * 0.8, 250));
+                        
+                        return { width: scanWidth, height: scanHeight };
+                    }
+                };
 
                 try {
-                    // 【第二挑戦：安全なフォールバック標準モード】
-                    // オートフォーカスのみはできる限り引き継いでリトライ
-                    const cameraConfigSD = {
-                        deviceId: { exact: cameraId },
-                        advanced: [
-                            { focusMode: "continuous" }
-                        ]
-                    };
-
                     await html5QrcodeScanner.start(
-                        cameraConfigSD,
+                        cameraId,
                         config,
                         onScanSuccessInternal,
                         onScanErrorInternal
                     );
                     hideFallbackMessage();
-                } catch (err2) {
-                    console.warn("Autofocus SD launch failed, trying bare string fallback...", err2);
-                    
-                    try {
-                        await html5QrcodeScanner.clear();
-                    } catch(clearErr2) {}
-                    html5QrcodeScanner = new Html5Qrcode("reader");
-
-                    try {
-                        // 最終手段：プレーン文字列による最も互換性の高い起動
-                        await html5QrcodeScanner.start(
-                            cameraId,
-                            config,
-                            onScanSuccessInternal,
-                            onScanErrorInternal
-                        );
-                        hideFallbackMessage();
-                    } catch(err3) {
-                        console.error("All camera launch attempts failed:", err3);
-                        showFallbackError();
-                        throw err3;
-                    }
+                } catch (err) {
+                    console.error("Camera launch failed:", err);
+                    showFallbackError();
                 }
+            } finally {
+                isScannerTransitioning = false;
             }
         }
 
@@ -748,20 +657,7 @@
             // スキャン中エラー（無視）
         }
 
-        function hideFallbackMessage() {
-            const container = document.getElementById("camera-fallback-msg");
-            if (container) container.classList.add("hidden");
-        }
-
-        function showFallbackError() {
-            const container = document.getElementById("camera-fallback-msg");
-            if (container) {
-                container.classList.remove("hidden");
-                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しんでね！</p>`;
-            }
-        }
-
-        // カメラ切り替え (ロックフラグの考慮を追加)
+        // カメラ切り替え
         async function toggleCameraFacing() {
             if (isScannerTransitioning) return;
             try {
@@ -782,6 +678,11 @@
             } catch (e) {
                 console.warn(e);
             }
+        }
+
+        function hideFallbackMessage() {
+            const container = document.getElementById("camera-fallback-msg");
+            if (container) container.classList.add("hidden");
         }
 
         // バーコードが読み取れたときの処理
@@ -893,7 +794,7 @@
             const bills = [100, 500, 1000, 2000, 3000, 5000, 10000];
             let nextBill = bills.find(b => b >= total);
             
-            // 10000円を超える場合は、5000円単位で切り上げた金額をお財布から出します（例: 12400円なら15000円）
+            // 10000円を超える場合は、5000円単位で切り上げた金額をお財布から出します
             if (!nextBill) {
                 nextBill = Math.ceil(total / 5000) * 5000;
             }
@@ -903,22 +804,18 @@
                 return nextBill;
             }
 
-            // 3問目以降はより実践的な「お釣りの小銭をスッキリさせる」端数合わせと5000円出し
+            // 3問目以降はより実践的な端数合わせと5000円出し
             const rand = Math.random();
             if (rand < 0.40) {
-                // 【賢い端数合わせ支払いパターン】（お釣りをお札や大きめの硬貨だけにする）
                 const lastTwo = total % 100;
                 if (lastTwo > 0) {
-                    // 合計金額を1000円単位で切り上げた金額ベースを算出
                     const baseBill = Math.ceil(total / 1000) * 1000;
                     const hasuPaid = baseBill + lastTwo;
-                    
                     if (hasuPaid > total) {
                         return hasuPaid;
                     }
                 }
             } else if (rand < 0.70) {
-                // 【大きめの紙幣をドンと出すパターン】
                 if (total < 1000 && Math.random() > 0.5) {
                     return 5000; 
                 } else if (total < 5000 && Math.random() > 0.5) {
@@ -928,7 +825,6 @@
                 }
             }
 
-            // デフォルトは直上の紙幣 / 1万円超過時は自動計算された切り上げ額
             return nextBill;
         }
 
@@ -962,11 +858,9 @@
             document.getElementById("payment-modal").classList.remove("hidden");
         }
 
+        // ひっ算グリッドの定義
         function setupCalculationGrid() {
-            // お支払い金額が10000円（5桁）以上のときは6列、それ以下は5列に動的切り替え
             const cols = paidAmount >= 10000 ? 6 : 5;
-            
-            // 1. ひっ算ボード（グリッド）の動的生成
             const gridContainer = document.getElementById("calculation-grid-container");
             gridContainer.innerHTML = "";
             
@@ -974,75 +868,43 @@
             grid.id = "calculation-grid";
             grid.className = `grid grid-cols-${cols} border-t border-l border-sky-200`;
             
-            // 行1: くり下がり行 (縦に2回余裕をもって書けるよう高さを大きく h-24)
             for (let i = 0; i < cols; i++) {
-                const cell = document.createElement("div");
-                cell.className = "graph-cell h-24 bg-sky-50/30";
-                grid.appendChild(cell);
+                grid.appendChild(createCell("graph-cell h-24 bg-sky-50/30"));
             }
             
-            // 行2: ひかれる数 (お財布から出したお金、右詰めで割り振り)
             const paidStr = paidAmount.toString().padStart(cols, " ");
             for (let i = 0; i < cols; i++) {
-                const charPaid = paidStr[i] !== " " ? paidStr[i] : "";
-                const cell = document.createElement("div");
-                cell.className = "graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho";
-                cell.innerText = charPaid;
-                grid.appendChild(cell);
+                grid.appendChild(createCell("graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho", paidStr[i] !== " " ? paidStr[i] : ""));
             }
             
-            // 行3: ひく数 ＆ 引き算記号
-            // 最左（インデックス0）の列にのみマイナス「－」を大きく配置。残りは合計金額。
             const totalStr = totalAmount.toString().padStart(cols - 1, " ");
-            
-            const opCell = document.createElement("div");
-            opCell.className = "graph-cell h-16 text-5xl font-black text-blue-600 font-kyokasho";
-            opCell.innerText = "－";
-            grid.appendChild(opCell);
-            
+            grid.appendChild(createCell("graph-cell h-16 text-5xl font-black text-blue-600 font-kyokasho", "－"));
             for (let i = 0; i < cols - 1; i++) {
-                const charTotal = totalStr[i] !== " " ? totalStr[i] : "";
-                const cell = document.createElement("div");
-                cell.className = "graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho";
-                cell.innerText = charTotal;
-                grid.appendChild(cell);
+                grid.appendChild(createCell("graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho", totalStr[i] !== " " ? totalStr[i] : ""));
             }
             
-            // 行4: 太い横線
             const hr = document.createElement("div");
             hr.className = `col-span-${cols} h-1.5 bg-slate-800 my-1`;
             grid.appendChild(hr);
             
-            // 行5: 横線下の手書きメモ行 (h-16)
             for (let i = 0; i < cols; i++) {
-                const cell = document.createElement("div");
-                cell.className = "graph-cell h-16 bg-sky-50/10";
-                grid.appendChild(cell);
+                grid.appendChild(createCell("graph-cell h-16 bg-sky-50/10"));
             }
             
             gridContainer.appendChild(grid);
 
-            // 2. 答え入力マスの動的生成
             const answerContainer = document.getElementById("answer-grid-container");
             answerContainer.innerHTML = "";
-            
             const ansGrid = document.createElement("div");
             ansGrid.className = `grid grid-cols-${cols} mt-2`;
+            ansGrid.appendChild(createCell("flex items-center justify-center text-2xl font-black text-slate-400 font-kyokasho", "="));
             
-            // 1列目: イコール
-            const eqCell = document.createElement("div");
-            eqCell.className = "flex items-center justify-center text-2xl font-black text-slate-400 font-kyokasho";
-            eqCell.innerText = "=";
-            ansGrid.appendChild(eqCell);
-            
-            // 6列の場合は2列目に空白を入れて位置を調整
             if (cols === 6) {
                 const emptyCell = document.createElement("div");
                 emptyCell.className = "m-1 h-16";
                 ansGrid.appendChild(emptyCell);
             }
             
-            // 答えの入力マス 4つ (千、百、十、一、右寄せ)
             for (let i = 3; i >= 0; i--) {
                 const box = document.createElement("div");
                 box.id = `ans-box-${i}`;
@@ -1050,12 +912,17 @@
                 box.className = "m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 cursor-pointer shadow-inner transition font-kyokasho";
                 ansGrid.appendChild(box);
             }
-            
             answerContainer.appendChild(ansGrid);
 
-            // 答えの入力初期化
             userAnswers = ["", "", "", ""];
             focusDigit(0);
+        }
+
+        function createCell(className, text = "") {
+            const cell = document.createElement("div");
+            cell.className = className;
+            cell.innerText = text;
+            return cell;
         }
 
         // 指定の位に入力フォーカスを当てる
@@ -1327,6 +1194,7 @@
             ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
         }
 
+        // お絵描き
         function draw(e) {
             if (!isDrawing) return;
             const rect = canvas.getBoundingClientRect();
