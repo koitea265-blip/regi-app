@@ -25,19 +25,19 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* ==================== 鏡（左右反転）をデフォルトに！生画像とのズレを防ぐ等倍スケール ==================== */
-        /* 標準画質のカメラでも、画面の自作枠と物理的なセンサー位置を1対1で合致させ、20cm遠距離認識を成功させる等倍定義 */
+        /* ==================== 鏡（左右反転）＆ 標準カメラ（VGA/HD）の20cm読取を実証する2.0倍デジタルズーム ==================== */
+        /* 標準的な解像度が低いWebカメラでも、20cm離れたバーコードを枠内で大きく捉え、デコーダに適切なピクセルを送るための2.0倍スケール表示 */
         #reader video {
             object-fit: cover !important;
             width: 100% !important;
             height: 100% !important;
-            transform: scale(-1.0, 1.0) !important; /* 鏡（左右反転）のみ、ズームは等倍に調整 */
+            transform: scale(-2.0, 2.0) !important; /* 鏡（左右反転）＆ 2.0倍の強力表示ズーム */
             transform-origin: center !important;
         }
 
-        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・等倍スケール */
+        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・2.0倍スケール */
         .back-camera video {
-            transform: scale(1.0) !important; /* 背面は等倍・反転なし */
+            transform: scale(2.0) !important; /* 背面は反転なし・2.0倍ズーム */
             transform-origin: center !important;
         }
 
@@ -61,7 +61,7 @@
             background: transparent !important;
             outline: none !important;
         }
-        /* html5-qrcodeが動的に強制描画するオーバーレイや四隅の角枠、不格好な自動マスクシェード（グレーの覆い）を完璧に抹殺 */
+        /* html5-qrcodeが動的に強制描画するオーバーレイや四隅のL字角枠、不格好な自動マスクシェード（グレーの覆い）を完璧に抹殺 */
         .qrbox-border, 
         [id$="__border"], 
         [class*="qrbox-border"],
@@ -580,7 +580,7 @@
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             try {
-                // 事前にブラウザへ明示的にGetUserMediaを要求し、カメラアクセス権を促す（iFrame環境での安全対策）
+                // 事事前にブラウザへ明示的にGetUserMediaを要求し、カメラアクセス権を促す（iFrame環境での安全対策）
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                     try {
                         const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -962,9 +962,11 @@
             document.getElementById("payment-modal").classList.remove("hidden");
         }
 
-        // ひっ算グリッドの定義
         function setupCalculationGrid() {
+            // お支払い金額が10000円（5桁）以上のときは6列、それ以下は5列に動的切り替え
             const cols = paidAmount >= 10000 ? 6 : 5;
+            
+            // 1. ひっ算ボード（グリッド）の動的生成
             const gridContainer = document.getElementById("calculation-grid-container");
             gridContainer.innerHTML = "";
             
@@ -972,43 +974,75 @@
             grid.id = "calculation-grid";
             grid.className = `grid grid-cols-${cols} border-t border-l border-sky-200`;
             
+            // 行1: くり下がり行 (縦に2回余裕をもって書けるよう高さを大きく h-24)
             for (let i = 0; i < cols; i++) {
-                grid.appendChild(createCell("graph-cell h-24 bg-sky-50/30"));
+                const cell = document.createElement("div");
+                cell.className = "graph-cell h-24 bg-sky-50/30";
+                grid.appendChild(cell);
             }
             
+            // 行2: ひかれる数 (お財布から出したお金、右詰めで割り振り)
             const paidStr = paidAmount.toString().padStart(cols, " ");
             for (let i = 0; i < cols; i++) {
-                grid.appendChild(createCell("graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho", paidStr[i] !== " " ? paidStr[i] : ""));
+                const charPaid = paidStr[i] !== " " ? paidStr[i] : "";
+                const cell = document.createElement("div");
+                cell.className = "graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho";
+                cell.innerText = charPaid;
+                grid.appendChild(cell);
             }
             
+            // 行3: ひく数 ＆ 引き算記号
+            // 最左（インデックス0）の列にのみマイナス「－」を大きく配置。残りは合計金額。
             const totalStr = totalAmount.toString().padStart(cols - 1, " ");
-            grid.appendChild(createCell("graph-cell h-16 text-5xl font-black text-blue-600 font-kyokasho", "－"));
+            
+            const opCell = document.createElement("div");
+            opCell.className = "graph-cell h-16 text-5xl font-black text-blue-600 font-kyokasho";
+            opCell.innerText = "－";
+            grid.appendChild(opCell);
+            
             for (let i = 0; i < cols - 1; i++) {
-                grid.appendChild(createCell("graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho", totalStr[i] !== " " ? totalStr[i] : ""));
+                const charTotal = totalStr[i] !== " " ? totalStr[i] : "";
+                const cell = document.createElement("div");
+                cell.className = "graph-cell h-16 text-3xl font-bold text-slate-800 font-kyokasho";
+                cell.innerText = charTotal;
+                grid.appendChild(cell);
             }
             
+            // 行4: 太い横線
             const hr = document.createElement("div");
             hr.className = `col-span-${cols} h-1.5 bg-slate-800 my-1`;
             grid.appendChild(hr);
             
+            // 行5: 横線下の手書きメモ行 (h-16)
             for (let i = 0; i < cols; i++) {
-                grid.appendChild(createCell("graph-cell h-16 bg-sky-50/10"));
+                const cell = document.createElement("div");
+                cell.className = "graph-cell h-16 bg-sky-50/10";
+                grid.appendChild(cell);
             }
             
             gridContainer.appendChild(grid);
 
+            // 2. 答え入力マスの動的生成
             const answerContainer = document.getElementById("answer-grid-container");
             answerContainer.innerHTML = "";
+            
             const ansGrid = document.createElement("div");
             ansGrid.className = `grid grid-cols-${cols} mt-2`;
-            ansGrid.appendChild(createCell("flex items-center justify-center text-2xl font-black text-slate-400", "="));
             
+            // 1列目: イコール
+            const eqCell = document.createElement("div");
+            eqCell.className = "flex items-center justify-center text-2xl font-black text-slate-400 font-kyokasho";
+            eqCell.innerText = "=";
+            ansGrid.appendChild(eqCell);
+            
+            // 6列の場合は2列目に空白を入れて位置を調整
             if (cols === 6) {
                 const emptyCell = document.createElement("div");
                 emptyCell.className = "m-1 h-16";
                 ansGrid.appendChild(emptyCell);
             }
             
+            // 答えの入力マス 4つ (千、百、十、一、右寄せ)
             for (let i = 3; i >= 0; i--) {
                 const box = document.createElement("div");
                 box.id = `ans-box-${i}`;
@@ -1016,17 +1050,12 @@
                 box.className = "m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 cursor-pointer shadow-inner transition font-kyokasho";
                 ansGrid.appendChild(box);
             }
+            
             answerContainer.appendChild(ansGrid);
 
+            // 答えの入力初期化
             userAnswers = ["", "", "", ""];
             focusDigit(0);
-        }
-
-        function createCell(className, text = "") {
-            const cell = document.createElement("div");
-            cell.className = className;
-            cell.innerText = text;
-            return cell;
         }
 
         // 指定の位に入力フォーカスを当てる
