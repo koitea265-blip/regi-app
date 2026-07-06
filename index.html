@@ -25,20 +25,20 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* ==================== 視差ズレを防ぎ、20cm離してサクサク読める自然な1.2倍ズーム ==================== */
+        /* ==================== 視差ズレを防ぎ、20cm離してサクサク読める等倍スケール ==================== */
         /* CSSでのビデオ映像の無理な引き伸ばしを抑え、画面の白いかっこ[ ]の位置とカメラの実際の視野を
            ピクセル単位で1対1に同期させます。枠より小さいサイズでもピタッと一瞬で読み取れるようになります。 */
         #reader video {
             object-fit: cover !important;
             width: 100% !important;
             height: 100% !important;
-            transform: scale(-1.2, 1.2) !important; /* 鏡（左右反転）＆ 安定した1.2倍のデジタルズーム */
+            transform: scale(-1.0, 1.0) !important; /* 鏡（左右反転）のみ適用、CSSズームを等倍にして物理視差をゼロに */
             transform-origin: center !important;
         }
 
-        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・1.2倍ズーム */
+        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・等倍ズーム */
         .back-camera video {
-            transform: scale(1.2) !important;
+            transform: scale(1.0) !important;
             transform-origin: center !important;
         }
 
@@ -62,7 +62,7 @@
             background: transparent !important;
             outline: none !important;
         }
-        /* html5-qrcodeが強制描画するオーバーレイや四隅の角枠、不格好な自動マスクシェード（グレーの覆い）を完璧に抹殺 */
+        /* html5-qrcodeが強制描画するオーバーレイや四隅の角枠、動的な枠線を徹底排除 */
         .qrbox-border, 
         [id$="__border"], 
         [class*="qrbox-border"],
@@ -85,11 +85,9 @@
         /* ==================== 【おおいマスク＆往復レーザー】自前バーコードスリット枠 ==================== */
         #custom-scan-frame {
             position: absolute; /* 子要素の基準位置 */
-            /* 12桁や13桁の長いバーコードが両端までぴったり収まり、かつJSのqrboxと100%同期するアスペクト比を維持 */
-            width: 70%;
-            max-width: 360px;
-            height: 25%;
-            max-height: 120px;
+            /* 12桁や13桁の長いバーコードが両端まですっぽりと収まるよう、横幅を十分に広げた350px×110pxに設定 */
+            width: 350px;
+            height: 110px;
             /* 読み取り枠の外側を綺麗に薄暗くおおうマスク効果 */
             box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65) !important;
             border-radius: 4px;
@@ -180,7 +178,7 @@
                     
                     <!-- 【自前の高品質バーコード読み取り枠 overlay】二重枠を徹底解消 -->
                     <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10 overflow-hidden">
-                        <!-- 自作スリット枠のサイズを中央の使いやすい範囲に調整（JSのqrbox比率と完全に同期） -->
+                        <!-- 12桁・13桁のバーコードに最適化された横長スリット枠 -->
                         <div id="custom-scan-frame" class="border-0 transition-all duration-300 flex items-center justify-center">
                             <!-- 四隅の白いかっこ [ ] -->
                             <div class="absolute top-0 left-0 w-8 h-8 border-t-[6px] border-l-[6px] border-white rounded-tl-sm z-20"></div>
@@ -632,7 +630,7 @@
                 // 【修正：12桁・13桁バーコードに完全対応した横長広域スキャン設計】
                 // 12桁(UPC-A)や13桁(JAN/EAN-13)といった横に長いバーコードがはみ出すことなく、
                 // 20cm離した位置から一瞬でサクサク読み込めるよう、解析ボックス(qrbox)の幅を350px、高さを110pxに広げ、
-                // 自作かっこ枠のサイズと「1対1」で完全に同期させました。
+                // 自作かっこ枠のサイズと「1対1」で完璧に同期させました。
                 const scanWidth = 350;
                 const scanHeight = 110;
 
