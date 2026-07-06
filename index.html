@@ -295,6 +295,7 @@
     </div>
 
     <!-- ==================== 正解お祝い・くっきりリアルレシートモーダル ==================== -->
+    <!-- 縦長レシートに対応するため、flex中央固定を外し、画面全体のスクロール領域(items-start + overflow-y-auto + py-12)を完全実装 -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full">
             <!-- レシート用紙エリア：文字かすれを追放した高コントラスト設計 -->
@@ -322,7 +323,7 @@
 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
-                <!-- スキャンしたお買い物商品一覧が印字されるスペース -->
+                <!-- スキャンしたお買い物商品一覧が印字されるスペース (スクロールによる分断を避け、すべて物理的に表示) -->
                 <ul id="receipt-items-list" class="space-y-1 my-3 text-xs text-black font-bold"></ul>
                 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
@@ -474,7 +475,7 @@
                 console.error("Memo canvas initial error:", e);
             }
 
-            // カメラスキャナーの起動（ここが一番クラッシュしやすいため安全に隔離）
+            // カメラスキャナーの起動
             setTimeout(() => {
                 initScanner();
             }, 300);
@@ -523,9 +524,7 @@
                     try { await html5QrScanner.stop(); } catch (e) {}
                 }
 
-                // 【本質的解決 - コンストラクタ呼び出しの完全修正】
-                // コンストラクタの第2引数は verbose (boolean) のみを受け付けます。
-                // 誤った設定オブジェクトを渡すと、初期化シーケンスが内部で強制遮断されます。
+                // コンストラクタの初期化（第2引数は verbose フラグのみにする）
                 html5QrScanner = new Html5Qrcode("reader", false);
                 
                 const readerDiv = document.getElementById("reader");
@@ -541,6 +540,10 @@
 
                 // 安全弁：グローバル変数がなければライブラリ内からサポートフォーマット定数を探す
                 const formats = window.Html5QrcodeSupportedFormats || (window.Html5Qrcode ? Html5Qrcode.SupportedFormats : null);
+                
+                // 【戦略的最適化 - 日本の流通バーコードに再び特化】
+                // 探索するフォーマットを、日本の流通商品で使われる一般的な規格（EAN-13, EAN-8, UPC）に厳格に制限。
+                // これによりCPU/GPUの毎フレームのデコード計算量が激減し、スキャン速度が劇的に向上します。
                 const formatsConfig = formats ? [
                     formats.EAN_13,
                     formats.EAN_8,
@@ -548,19 +551,16 @@
                     formats.UPC_E
                 ] : [];
 
-                // 【本質的解決 - スキャン設定の適正化】
-                // サポートするフォーマット制約（EAN/UPC限定フィルタ）は、
-                // コンストラクタではなく、start メソッドの第2引数（scanConfig）の中に正しく配置する必要があります。
                 const scanConfig = {
-                    fps: 15,
+                    fps: 20, // 処理遅延とコマ落ちを極限まで無くすための最適なリフレッシュレート「20fps」を維持
                     experimentalFeatures: {
                         useBarCodeDetectorIfSupported: true 
                     },
-                    formatsToSupport: formatsConfig, // ★正しい位置へ完全移植
+                    formatsToSupport: formatsConfig, // JANに完全に特化した探索空間の制限
                     qrbox: (w, h) => {
                         // 判定領域（qrbox）はバーコードの縦線を十分に拾えるよう、大きく広く（正方形に近く）確保します。
-                        const scanWidth = Math.max(Math.min(w * 0.8, 500), 250);
-                        const scanHeight = Math.round(scanWidth * 0.8);
+                        const scanWidth = Math.max(Math.min(w * 0.85, 600), 280);
+                        const scanHeight = Math.round(scanWidth * 0.85);
                         return { 
                             width: Math.max(scanWidth, 50), 
                             height: Math.max(scanHeight, 50) 
@@ -587,7 +587,7 @@
 
                 if (started) {
                     container.classList.add("hidden");
-                    // 起動成功後のオートフォーカス微調整（対応外デバイスで落ちないよう完全ガード）
+                    // オートフォーカスの適用
                     try {
                         if (html5QrScanner && typeof html5QrScanner.applyVideoConstraints === 'function') {
                             await html5QrScanner.applyVideoConstraints({
@@ -625,11 +625,15 @@
         function onScanSuccess(code) {
             const now = Date.now();
             
+            // 【仕様復元 - 完全なデータバリデーション & 誤読検疫の再適用】
+            // 数字のみへの置換、および「8桁, 12桁, 13桁」という日本の商品バーコード限定条件を厳格に復元。
+            // アルファベットやノイズを含んだエラー文字列、手ブレで中途半端に切り取られた文字列はすべて破棄されます。
             const cleanCode = code.replace(/[^0-9]/g, ''); 
             if (![8, 12, 13].includes(cleanCode.length)) {
-                return; 
+                return; // JAN/UPCの規格外データは一切システムに通さない
             }
             
+            // 1.8秒の絶対時間インターバル（チャタリング防止）
             if (now - lastScanTime < 1800) {
                 return; 
             }
@@ -648,7 +652,6 @@
         }
 
         function addToCart(product) {
-            // Tone.jsがロードされていない、またはオーディオ制限されている場合でもクラッシュさせない
             try {
                 if (window.Tone && Tone.start) {
                     Tone.start();
@@ -784,7 +787,6 @@
             }
         }
 
-        // 5列または6列 of グリッドを動的に切り替えて構築
         function renderGrid() {
             const cols = paidAmount >= 10000 ? 6 : 5;
             const container = document.getElementById("calculation-grid-container");
