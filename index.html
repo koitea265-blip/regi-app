@@ -169,6 +169,7 @@
                     <div id="reader" class="w-full h-full"></div>
                     
                     <!-- 【UI層：完全自製アライメントファインダー】 -->
+                    <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く（見た目だけ） -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
                         <div class="relative w-[75%] aspect-[1.44/0.5] max-w-[440px] min-w-[200px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             
@@ -294,16 +295,15 @@
     </div>
 
     <!-- ==================== 正解お祝い・くっきりリアルレシートモーダル ==================== -->
-    <!-- 変更点: flex items-center (中央固定) を外し、overflow-y-auto と items-start (上部から配置) を追加。
-         さらに py-12 を追加して、画面全体をスクロールした際に十分な上下の余白を確保 -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
-        <div class="flex flex-col items-center max-w-sm w-full my-auto">
-            <!-- レシート用紙エリア -->
+        <div class="flex flex-col items-center max-w-sm w-full">
+            <!-- レシート用紙エリア：文字かすれを追放した高コントラスト設計 -->
             <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
                 <!-- よくできましたスタンプ -->
                 <div class="absolute top-4 right-4 border-4 border-rose-600 text-rose-600 text-xs font-black px-2 py-1 rounded-lg rotate-12 bg-white/95 shadow-sm z-10">💮 よくできました</div>
                 
-                <div class="text-center mb-4 mt-2">
+                <!-- 【さくら店に重ならない設計】右パディング pr-20 を導入し、右上のスタンプ領域用の余白をあらかじめ物理的に空けて予約します -->
+                <div class="text-center mb-4 mt-2 pr-20 relative">
                     <div class="text-lg font-black text-black font-kyokasho">🌻 こどもマーケット さくら店</div>
                     <div class="text-[11px] text-slate-900 font-bold">おつり計算セルフレジ 特訓コーナー</div>
                 </div>
@@ -317,18 +317,17 @@
                 </div>
                 <div class="flex justify-between text-[11px] text-slate-900 px-1 mt-0.5 font-bold">
                     <span>担 当: 店長</span>
-                    <span>取 折: No.<span id="receipt-tx-no"></span></span>
+                    <span>取引No. <span id="receipt-tx-no"></span></span>
                 </div>
 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
                 <!-- スキャンしたお買い物商品一覧が印字されるスペース -->
-                <!-- 変更点: 高さを制限していたクラス(もしあれば)を取り除き、商品数に応じてそのまま伸びるように設定 -->
                 <ul id="receipt-items-list" class="space-y-1 my-3 text-xs text-black font-bold"></ul>
                 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
-                <!-- 金額サマリー -->
+                <!-- 金額サマリー（合計・お預かり・おつりの大きさと色を統一） -->
                 <div class="space-y-2 font-black mt-2 text-black text-base">
                     <div class="flex justify-between text-base border-b border-slate-500 pb-1">
                         <span>合計（内税）</span>
@@ -362,6 +361,7 @@
     </div>
 
     <script>
+        // 指定されたバラエティ豊かな商品リスト（全75種）
         const dummyProducts = [
             { name: "りんご (🍎)", price: 124 },
             { name: "みかん (🍊)", price: 87 },
@@ -447,6 +447,7 @@
         let isSolved = false; 
         let isDarkBoost = false; 
 
+        // FNV-1a 高精度ハッシュアルゴリズム
         function getProductFromBarcode(barcode) {
             let hash = 2166136261;
             for (let i = 0; i < barcode.length; i++) {
@@ -457,12 +458,29 @@
             return dummyProducts[index % dummyProducts.length];
         }
 
-        window.onload = () => { 
-            initScanner(); 
-            setupMemoCanvas(); 
-            renderCart(); 
-        };
+        // DOMの完全構築を待ち、例外処理を包括して初期化を走らせる防衛コード
+        window.addEventListener("DOMContentLoaded", () => {
+            // カートの描画
+            try {
+                renderCart();
+            } catch(e) {
+                console.error("Cart render initial error:", e);
+            }
 
+            // メモキャンバスの初期化
+            try {
+                setupMemoCanvas();
+            } catch(e) {
+                console.error("Memo canvas initial error:", e);
+            }
+
+            // カメラスキャナーの起動（ここが一番クラッシュしやすいため安全に隔離）
+            setTimeout(() => {
+                initScanner();
+            }, 300);
+        });
+
+        // 暗所ブースト機能の切り替え
         function toggleDarkBoost() {
             isDarkBoost = !isDarkBoost;
             const container = document.getElementById("scanner-container");
@@ -485,39 +503,62 @@
 
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
+            if (!container) return;
+
             container.classList.remove("hidden");
             container.innerHTML = `
                 <span class="text-4xl mb-3">📷</span>
                 <p class="font-bold mb-1">カメラを起動しています...</p>
             `;
 
+            // Html5Qrcode 自体がCDNロードできていないケースをガード
+            if (!window.Html5Qrcode) {
+                console.error("Html5Qrcode library not loaded yet.");
+                showCameraFallback("スキャン用ライブラリが読み込めませんでした。お手数ですがリロードするか、テスト用の「⚡ ぴっ！」ボタンでお遊びください。");
+                return;
+            }
+
             try {
                 if (html5QrScanner) {
                     try { await html5QrScanner.stop(); } catch (e) {}
                 }
 
-                html5QrScanner = new Html5Qrcode("reader", {
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E
-                    ]
-                });
+                // 【本質的解決 - コンストラクタ呼び出しの完全修正】
+                // コンストラクタの第2引数は verbose (boolean) のみを受け付けます。
+                // 誤った設定オブジェクトを渡すと、初期化シーケンスが内部で強制遮断されます。
+                html5QrScanner = new Html5Qrcode("reader", false);
                 
                 const readerDiv = document.getElementById("reader");
-                if (isFrontCamera) {
-                    readerDiv.classList.remove("back-camera");
-                } else {
-                    readerDiv.classList.add("back-camera");
+                if (readerDiv) {
+                    if (isFrontCamera) {
+                        readerDiv.classList.remove("back-camera");
+                    } else {
+                        readerDiv.classList.add("back-camera");
+                    }
                 }
 
+                const facingMode = isFrontCamera ? "user" : "environment";
+
+                // 安全弁：グローバル変数がなければライブラリ内からサポートフォーマット定数を探す
+                const formats = window.Html5QrcodeSupportedFormats || (window.Html5Qrcode ? Html5Qrcode.SupportedFormats : null);
+                const formatsConfig = formats ? [
+                    formats.EAN_13,
+                    formats.EAN_8,
+                    formats.UPC_A,
+                    formats.UPC_E
+                ] : [];
+
+                // 【本質的解決 - スキャン設定の適正化】
+                // サポートするフォーマット制約（EAN/UPC限定フィルタ）は、
+                // コンストラクタではなく、start メソッドの第2引数（scanConfig）の中に正しく配置する必要があります。
                 const scanConfig = {
                     fps: 15,
                     experimentalFeatures: {
                         useBarCodeDetectorIfSupported: true 
                     },
+                    formatsToSupport: formatsConfig, // ★正しい位置へ完全移植
                     qrbox: (w, h) => {
+                        // 判定領域（qrbox）はバーコードの縦線を十分に拾えるよう、大きく広く（正方形に近く）確保します。
                         const scanWidth = Math.max(Math.min(w * 0.8, 500), 250);
                         const scanHeight = Math.round(scanWidth * 0.8);
                         return { 
@@ -530,10 +571,12 @@
                 let started = false;
                 
                 try {
-                    await html5QrScanner.start({ facingMode: isFrontCamera ? "user" : "environment" }, scanConfig, onScanSuccess);
+                    // フェーズ1: 向き指定で起動
+                    await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
                     started = true;
                 } catch (err1) {
-                    console.warn("facingMode start failed:", err1);
+                    console.warn("facingMode start failed, trying manual camera list fallback:", err1);
+                    // フェーズ2: デバイス固有エラーを避けるため、デバイスに接続されたカメラIDで直叩き
                     const cameras = await Html5Qrcode.getCameras();
                     if (cameras && cameras.length > 0) {
                         const camId = isFrontCamera ? cameras[0].id : cameras[cameras.length - 1].id;
@@ -544,26 +587,35 @@
 
                 if (started) {
                     container.classList.add("hidden");
+                    // 起動成功後のオートフォーカス微調整（対応外デバイスで落ちないよう完全ガード）
                     try {
-                        if (typeof html5QrScanner.applyVideoConstraints === 'function') {
+                        if (html5QrScanner && typeof html5QrScanner.applyVideoConstraints === 'function') {
                             await html5QrScanner.applyVideoConstraints({
                                 focusMode: "continuous",
                                 advanced: [{ focusMode: "continuous" }]
                             });
                         }
                     } catch (e) {
-                        console.warn("Auto focus adjustment skipped.", e);
+                        console.warn("Auto focus adjustment skipped:", e);
                     }
                 } else {
-                    throw new Error("Requested device not found or unable to access camera.");
+                    throw new Error("No camera started.");
                 }
 
             } catch (err) {
-                console.error("Camera start failed:", err);
+                console.error("Camera start process completely failed:", err);
+                showCameraFallback('カメラの許可がないか、プレビュー環境（Iframe）によるセキュリティポリシー制限のため、物理カメラが起動できませんでした。<br><span class="text-amber-400 font-bold">でも大丈夫！左下の「⚡ ぴっ！(テスト用)」ボタンを使ってすべてのお買い物・ひっ算・レシート機能を100%体験できます！</span>');
+            }
+        }
+
+        function showCameraFallback(msg) {
+            const container = document.getElementById("camera-fallback-msg");
+            if (container) {
+                container.classList.remove("hidden");
                 container.innerHTML = `
                     <span class="text-4xl mb-3">⚠️</span>
-                    <p class="font-bold mb-1 text-rose-400">カメラを起動できませんでした</p>
-                    <p class="text-xs text-slate-300 px-4 mt-1">カメラの許可（きょか）を確認するか、テストボタン「⚡ ぴっ！」で遊んでね！</p>
+                    <p class="font-bold mb-2 text-amber-300">お知らせ</p>
+                    <p class="text-xs text-slate-100 px-6 leading-relaxed text-center">${msg}</p>
                 `;
             }
         }
@@ -596,15 +648,30 @@
         }
 
         function addToCart(product) {
-            new Tone.Synth({oscillator:{type:"sine"},envelope:{attack:0.005,decay:0.1}}).toDestination().triggerAttackRelease("D6", "32n");
-            document.getElementById("scanner-container").classList.add("ring-8", "ring-emerald-400");
-            setTimeout(() => document.getElementById("scanner-container").classList.remove("ring-8", "ring-emerald-400"), 150);
+            // Tone.jsがロードされていない、またはオーディオ制限されている場合でもクラッシュさせない
+            try {
+                if (window.Tone && Tone.start) {
+                    Tone.start();
+                    new Tone.Synth({oscillator:{type:"sine"},envelope:{attack:0.005,decay:0.1}}).toDestination().triggerAttackRelease("D6", "32n");
+                }
+            } catch(e) {
+                console.warn("Audio feedback omitted:", e);
+            }
+
+            const scannerContainer = document.getElementById("scanner-container");
+            if (scannerContainer) {
+                scannerContainer.classList.add("ring-8", "ring-emerald-400");
+                setTimeout(() => scannerContainer.classList.remove("ring-8", "ring-emerald-400"), 150);
+            }
+
             cart.push({ ...product, id: Date.now() + Math.random() });
             renderCart();
         }
 
         function renderCart() {
             const list = document.getElementById("cart-list");
+            if (!list) return;
+
             list.innerHTML = "";
             let total = 0;
             if (cart.length === 0) {
@@ -624,9 +691,14 @@
                     list.appendChild(li);
                 });
             }
-            document.getElementById("total-count").innerText = cart.length + " 点";
-            document.getElementById("total-price").innerText = total.toLocaleString();
-            document.getElementById("checkout-btn").disabled = cart.length === 0;
+
+            const tc = document.getElementById("total-count");
+            const tp = document.getElementById("total-price");
+            const btn = document.getElementById("checkout-btn");
+
+            if (tc) tc.innerText = cart.length + " 点";
+            if (tp) tp.innerText = total.toLocaleString();
+            if (btn) btn.disabled = cart.length === 0;
 
             setTimeout(() => {
                 list.scrollTop = list.scrollHeight;
@@ -667,16 +739,20 @@
             totalAmount = cart.reduce((s, i) => s + i.price, 0);
             paidAmount = getOptimalPayment(totalAmount);
             changeAmount = paidAmount - totalAmount;
-            document.getElementById("payment-info").innerText = `ごうけい ${totalAmount} 円。おさいふから ${paidAmount} 円 だしました！`;
+            
+            const info = document.getElementById("payment-info");
+            if (info) info.innerText = `ごうけい ${totalAmount} 円。おさいふから ${paidAmount} 円 だしました！`;
             
             renderGrid();
             
             document.getElementById("payment-modal").classList.remove("hidden");
             
-            if (html5QrScanner && html5QrScanner.getState() === 2) { 
+            if (html5QrScanner && typeof html5QrScanner.getState === 'function' && html5QrScanner.getState() === 2) { 
                 try {
                     html5QrScanner.pause(true); 
-                } catch(e) {}
+                } catch(e) {
+                    console.warn("Scanner pause error ignored:", e);
+                }
             }
 
             setTimeout(resizeCanvas, 100);
@@ -685,10 +761,12 @@
         function closePaymentModal() { 
             document.getElementById("payment-modal").classList.add("hidden"); 
             
-            if (html5QrScanner && html5QrScanner.getState() === 3) { 
+            if (html5QrScanner && typeof html5QrScanner.getState === 'function' && html5QrScanner.getState() === 3) { 
                 try {
                     html5QrScanner.resume();
-                } catch(e) {}
+                } catch(e) {
+                    console.warn("Scanner resume error ignored:", e);
+                }
             }
         }
 
@@ -697,16 +775,21 @@
             cart = []; 
             renderCart(); 
             
-            if (html5QrScanner && html5QrScanner.getState() === 3) { 
+            if (html5QrScanner && typeof html5QrScanner.getState === 'function' && html5QrScanner.getState() === 3) { 
                 try {
                     html5QrScanner.resume();
-                } catch(e) {}
+                } catch(e) {
+                    console.warn("Scanner resume error ignored:", e);
+                }
             }
         }
 
+        // 5列または6列 of グリッドを動的に切り替えて構築
         function renderGrid() {
             const cols = paidAmount >= 10000 ? 6 : 5;
             const container = document.getElementById("calculation-grid-container");
+            if (!container) return;
+
             container.innerHTML = `<div id="calculation-grid" class="grid grid-cols-${cols} border-t border-l border-sky-200"></div>`;
             const grid = container.firstChild;
 
@@ -721,6 +804,8 @@
             for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-16 bg-sky-50/10"></div>`; 
 
             const ansContainer = document.getElementById("answer-grid-container");
+            if (!ansContainer) return;
+
             ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-2"><div class="flex items-center justify-center text-2xl font-black text-slate-400">=</div></div>`;
             const ansGrid = ansContainer.firstChild;
             if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-16"></div>`;
@@ -744,11 +829,13 @@
             
             if(typeof k === 'number') {
                 userAnswers[currentFocusIndex] = k.toString();
-                document.getElementById(`ans-box-${currentFocusIndex}`).innerText = k;
+                const b = document.getElementById(`ans-box-${currentFocusIndex}`);
+                if (b) b.innerText = k;
                 if(currentFocusIndex < 3) focusDigit(currentFocusIndex + 1);
             } else if(k === 'BS') {
                 userAnswers[currentFocusIndex] = ""; 
-                document.getElementById(`ans-box-${currentFocusIndex}`).innerText = "";
+                const b = document.getElementById(`ans-box-${currentFocusIndex}`);
+                if (b) b.innerText = "";
                 if(currentFocusIndex > 0) focusDigit(currentFocusIndex - 1);
             } else if(k === 'C') {
                 userAnswers = ["","","",""]; 
@@ -761,13 +848,18 @@
         }
 
         function playIncorrectChime() {
-            const synthChime = new Tone.PolySynth().toDestination();
-            synthChime.set({
-                oscillator: { type: "sawtooth" }
-            });
-            const now = Tone.now();
-            synthChime.triggerAttackRelease(["F#2", "G2"], "16n", now);
-            synthChime.triggerAttackRelease(["F#2", "G2"], "6n", now + 0.12);
+            try {
+                if (window.Tone && Tone.start) {
+                    Tone.start();
+                    const synthChime = new Tone.PolySynth().toDestination();
+                    synthChime.set({ oscillator: { type: "sawtooth" } });
+                    const now = Tone.now();
+                    synthChime.triggerAttackRelease(["F#2", "G2"], "16n", now);
+                    synthChime.triggerAttackRelease(["F#2", "G2"], "6n", now + 0.12);
+                }
+            } catch(e) {
+                console.warn("Incorrect chime error ignored:", e);
+            }
         }
 
         function checkAnswer() {
@@ -820,8 +912,10 @@
         }
 
         function showReceiptButton() {
-            document.getElementById("action-buttons-row").classList.add("hidden");
-            document.getElementById("show-receipt-btn").classList.remove("hidden");
+            const row = document.getElementById("action-buttons-row");
+            const btn = document.getElementById("show-receipt-btn");
+            if (row) row.classList.add("hidden");
+            if (btn) btn.classList.remove("hidden");
             
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
@@ -836,41 +930,58 @@
             document.getElementById("payment-modal").classList.add("hidden");
             
             const d = new Date(); 
-            document.getElementById("receipt-date").innerText = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-            document.getElementById("receipt-tx-no").innerText = Math.floor(Math.random() * 9000) + 1000;
+            const dateEl = document.getElementById("receipt-date");
+            const txEl = document.getElementById("receipt-tx-no");
+            
+            if (dateEl) dateEl.innerText = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+            if (txEl) txEl.innerText = Math.floor(Math.random() * 9000) + 1000;
             
             const list = document.getElementById("receipt-items-list"); 
-            list.innerHTML = "";
-            cart.forEach(i => {
-                list.innerHTML += `
-                    <div class="flex justify-between text-black font-bold">
-                        <span>${i.name}</span>
-                        <span>${i.price} 円</span>
-                    </div>`;
-            });
+            if (list) {
+                list.innerHTML = "";
+                cart.forEach(i => {
+                    list.innerHTML += `
+                        <div class="flex justify-between text-black font-bold">
+                            <span>${i.name}</span>
+                            <span>${i.price} 円</span>
+                        </div>`;
+                });
+            }
             
-            document.getElementById("receipt-total-cost").innerText = totalAmount.toLocaleString();
-            document.getElementById("receipt-paid-amount").innerText = paidAmount.toLocaleString();
-            document.getElementById("receipt-change-amount").innerText = changeAmount.toLocaleString();
+            const rcTotal = document.getElementById("receipt-total-cost");
+            const rcPaid = document.getElementById("receipt-paid-amount");
+            const rcChange = document.getElementById("receipt-change-amount");
+
+            if (rcTotal) rcTotal.innerText = totalAmount.toLocaleString();
+            if (rcPaid) rcPaid.innerText = paidAmount.toLocaleString();
+            if (rcChange) rcChange.innerText = changeAmount.toLocaleString();
             
             document.getElementById("success-modal").classList.remove("hidden");
         }
 
         function playCorrectChime() {
-            const synthChime = new Tone.PolySynth().toDestination();
-            const now = Tone.now();
-            synthChime.triggerAttackRelease("C5", "8n", now);
-            synthChime.triggerAttackRelease("E5", "8n", now + 0.1);
-            synthChime.triggerAttackRelease("G5", "8n", now + 0.2);
-            synthChime.triggerAttackRelease("C6", "4n", now + 0.3);
+            try {
+                if (window.Tone && Tone.start) {
+                    Tone.start();
+                    const synthChime = new Tone.PolySynth().toDestination();
+                    const now = Tone.now();
+                    synthChime.triggerAttackRelease("C5", "8n", now);
+                    synthChime.triggerAttackRelease("E5", "8n", now + 0.1);
+                    synthChime.triggerAttackRelease("G5", "8n", now + 0.2);
+                    synthChime.triggerAttackRelease("C6", "4n", now + 0.3);
+                }
+            } catch(e) {
+                console.warn("Correct chime error ignored:", e);
+            }
         }
 
         function setupMemoCanvas() {
             canvas = document.getElementById("memo-canvas"); 
+            if (!canvas) return;
             ctx = canvas.getContext("2d");
             
             const draw = (e) => {
-                if(!isDrawing) return;
+                if(!isDrawing || !ctx) return;
                 const r = canvas.getBoundingClientRect();
                 const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
                 const y = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
@@ -882,6 +993,7 @@
             };
             
             canvas.onmousedown = (e) => { 
+                if (!ctx) return;
                 isDrawing = true; 
                 ctx.beginPath(); 
                 const r = canvas.getBoundingClientRect(); 
@@ -891,6 +1003,7 @@
             window.onmouseup = () => isDrawing = false;
             
             canvas.addEventListener("touchstart", (e) => { 
+                if (!ctx) return;
                 isDrawing = true; 
                 ctx.beginPath(); 
                 const r = canvas.getBoundingClientRect(); 
@@ -910,20 +1023,12 @@
         
         function resizeCanvas() { 
             const c = document.getElementById("canvas-container"); 
-            if (c.offsetWidth > 0 && c.offsetHeight > 0) {
+            if (c && canvas && c.offsetWidth > 0 && c.offsetHeight > 0) {
                 canvas.width = c.offsetWidth; 
                 canvas.height = c.offsetHeight; 
             } else {
                 setTimeout(resizeCanvas, 50);
             }
-        }
-        
-        function setPenColor(c) { 
-            penColor = c; 
-        }
-        
-        function clearCanvas() { 
-            ctx.clearRect(0, 0, canvas.width, canvas.height); 
         }
     </script>
 </body>
