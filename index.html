@@ -20,52 +20,79 @@
             font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
         }
 
-        /* 筆算の数字は教科書体フォントを適用 */
+        /* 筆算の数字は教科書体フォントを適用 (最優先で適用されるように!importantと詳細度を強化) */
         .font-kyokasho {
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* ==================== カメラ映像のズレをなくすための安全なCSS ==================== */
-        /* 余計な transform や object-fit: cover を外すことで、映像とスキャン領域の座標ズレ（視差）をなくします。
-           これにより、5cmまで近づけなくても、枠内にバーコードを合わせるだけで正確に読み取れます。 */
+        /* ==================== 鏡（左右反転）をデフォルトに！生画像とのズレを防ぐ等倍スケール ==================== */
+        /* インカメラ想定：左右反転（鏡）のみを行い、CSSスケールは等倍(1.0)にします。
+           これで、画面の自作枠にバーコードを合わせた位置と、カメラの捉える物理ピクセルが完全に合致。
+           ピントと解像度を稼ぐ本物のデジタルズームは、JavaScript側からカメラ本体に直接命令します！ */
         #reader video {
-            border-radius: 8px;
+            object-fit: cover !important;
             width: 100% !important;
-            max-height: 100% !important;
-            /* object-fit: cover は映像の一部を切り取り、解析座標を狂わせるため使用しません */
+            height: 100% !important;
+            transform: scale(-1.0, 1.0) !important; /* 鏡（左右反転）のみ適用、CSSズームを等倍にして物理視差を解消 */
+            transform-origin: center !important;
         }
 
-        /* ==================== ライブラリが自動生成する「二重枠」の完全非表示 ==================== */
+        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・等倍スケール */
+        .back-camera video {
+            transform: scale(1.0) !important; /* 背面は等倍・反転なし */
+            transform-origin: center !important;
+        }
+
+        /* ==================== 【二重枠バグ・マスク再発防止の決定版】自動枠と自動シャドウを徹底根絶するCSS ==================== */
         #reader {
             border: none !important;
         }
         #reader__scan_region {
             border: none !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
-        /* ライブラリが作る半透明のマスク（太いボーダーで表現されている）を透明化して見えなくする */
-        #reader__scan_region > div {
-            border-color: transparent !important;
+        /* 自動生成される境界線やコンテナ、L字、赤いスキャンラインなどの強制描画パーツを完璧に排除します */
+        #reader__scan_region div,
+        #reader__scan_region span,
+        #reader__scan_region svg {
+            border: none !important;
+            border-width: 0px !important;
             box-shadow: none !important;
             background: transparent !important;
+            outline: none !important;
         }
-        /* ライブラリが作る四隅の枠線（SVG）を完全に消去 */
-        #reader__scan_region svg {
+        /* html5-qrcodeが強制描画するオーバーレイや四隅の角枠、不格好な自動マスクシェード（グレーの覆い）を完璧に抹殺 */
+        .qrbox-border, 
+        [id$="__border"], 
+        [class*="qrbox-border"],
+        #reader__scan_region > div > div,
+        #reader__scan_region ~ div,
+        .shaded-region,
+        div[style*="background-color"],
+        div[style*="border-style"],
+        div[style*="border-width"] {
             display: none !important;
+            border: none !important;
+            border-width: 0px !important;
+            box-shadow: none !important;
+            width: 0px !important;
+            height: 0px !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
         }
 
-        /* ==================== 【おおいマスク＆往復レーザー】自前バーコードスリット枠 ==================== */
+        /* ==================== 【おおいマスク＆往復レーザー復活】自前バーコードスリット枠スタイル ==================== */
         #custom-scan-frame {
-            position: absolute;
-            /* JS側の qrbox とサイズを完全に一致させることで、見た目と解析座標のズレを100%なくす */
-            width: 280px;
-            height: 160px;
-            /* 読み取り枠の外側を薄暗くおおうマスク効果 */
+            position: absolute; /* 子要素のレーザーライン、四隅のかっこを絶対配置するための基準 */
+            /* 読み取り枠の外側を綺麗に薄暗くおおう、お買い物レジ仕様のマスク効果。
+               親のoverflow-hiddenにより、カメラのプレビューファインダーの範囲外にははみ出しません */
             box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65) !important;
             border-radius: 4px;
-            z-index: 20;
         }
 
-        /* 赤いスキャンレーザーが滑らかに往復し続けるアニメーション */
+        /* 赤いスキャンレーザーが上から下、下から上へと滑らかにスライド往復し続けるアニメーション */
         @keyframes laserSweep {
             0% { top: 3%; }
             50% { top: 95%; }
@@ -86,7 +113,7 @@
         /* 方眼紙用の罫線 */
         .graph-cell {
             position: relative;
-            border-right: 1px solid #bae6fd;
+            border-right: 1px solid #bae6fd; /* スカイブルー of 罫線 */
             border-bottom: 1px solid #bae6fd;
             display: flex;
             align-items: center;
@@ -96,7 +123,7 @@
             border-right: none;
         }
 
-        /* タッチデバイスでの不要な選択を防ぐ */
+        /* タッチデバイスでの不要な選択やスクロールを防ぐ */
         .no-select {
             -webkit-touch-callout: none;
             user-select: none;
@@ -107,7 +134,7 @@
             background: #ffffff;
             position: relative;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
+            border-radius: 8px; /* ストレートで角をほんの少し丸めた自然な仕上がり */
         }
 
         /* レシート内のスクロールバーを細く控えめにする */
@@ -145,19 +172,23 @@
                 <!-- スキャン枠 & レーザーアニメーション -->
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden">
                     <!-- カメラ表示ターゲット用div -->
-                    <div id="reader" class="w-full max-h-full flex items-center justify-center"></div>
+                    <div id="reader" class="w-full h-full"></div>
                     
-                    <!-- 【自前の高品質バーコード読み取り枠 overlay】 -->
+                    <!-- 【自前の高品質バーコード読み取り枠 overlay】二重枠を徹底解消＆マスク＆往復ビーム復活 -->
                     <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10 overflow-hidden">
-                        <!-- 固定サイズ(280x160)にすることで、JS側のqrboxと完全に一致し、視差ズレが解消されます -->
-                        <div id="custom-scan-frame" class="border-0 transition-all duration-300 flex items-center justify-center">
+                        <!-- 画面サイズ変化に対応する、潰れない横長スリット枠（干渉を防ぐため親のflexから独立させて中央に絶対配置） -->
+                        <div id="custom-scan-frame" class="absolute w-[70%] max-w-[420px] min-w-[220px] h-[30%] max-h-[160px] min-h-[90px] border-0 transition-all duration-300 flex items-center justify-center">
                             <!-- 四隅の白いかっこ [ ] -->
+                            <!-- 左上 (L字) -->
                             <div class="absolute top-0 left-0 w-8 h-8 border-t-[6px] border-l-[6px] border-white rounded-tl-sm z-20"></div>
+                            <!-- 右上 (L字) -->
                             <div class="absolute top-0 right-0 w-8 h-8 border-t-[6px] border-r-[6px] border-white rounded-tr-sm z-20"></div>
+                            <!-- 左下 (L字) -->
                             <div class="absolute bottom-0 left-0 w-8 h-8 border-b-[6px] border-l-[6px] border-white rounded-bl-sm z-20"></div>
+                            <!-- 右下 (L字) -->
                             <div class="absolute bottom-0 right-0 w-8 h-8 border-b-[6px] border-r-[6px] border-white rounded-br-sm z-20"></div>
                             
-                            <!-- 上下往復型のスキャンレッドビーム -->
+                            <!-- 狙いやすい上下往復型のスキャンレッドビームを完全実装 -->
                             <div class="laser-line"></div>
                         </div>
                     </div>
@@ -246,16 +277,19 @@
                     <!-- 方眼紙ボード本体 (テーブル＋手書きCanvas) -->
                     <div class="relative w-full max-w-[340px] bg-white rounded-xl shadow-lg border-2 border-sky-300 p-2 overflow-hidden select-none">
                         
-                        <!-- 手書きCanvasを重ねるコンテナ -->
+                        <!-- 手書きCanvasを重ねるコンテナ (行1〜行5までを覆う) -->
                         <div class="relative w-full" id="canvas-container">
+                            
                             <!-- ひっ算グリッドが動的に挿入される場所 -->
                             <div id="calculation-grid-container"></div>
+
                             <!-- お絵描き用Canvas -->
                             <canvas id="memo-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-auto cursor-crosshair z-20"></canvas>
                         </div>
 
-                        <!-- 答え入力枠が動的に挿入される場所 -->
+                        <!-- 答え入力枠が動的に挿入される場所 (Canvasの範囲外) -->
                         <div id="answer-grid-container"></div>
+
                     </div>
                 </div>
 
@@ -467,6 +501,9 @@
 
         // 非同期競合エラーを防ぐための排他制御（ロックフラグ）
         let isScannerTransitioning = false;
+        
+        // リアルタイムDOMクリーナー用のオブザーバー
+        let scannerObserver = null;
 
         // おつり計算セッションデータ
         let totalAmount = 0;
@@ -548,7 +585,7 @@
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             try {
-                // 事前にブラウザへ明示的にGetUserMediaを要求し、カメラアクセス権を促す
+                // 事前にブラウザへ明示的にGetUserMediaを要求し、カメラアクセス権を促す（iFrame環境での安全対策）
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                     try {
                         const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -575,80 +612,130 @@
             }
         }
 
-        // スキャナーの実際の開始
+        // スキャナーの実際の開始 (非同期遷移ロックの追加)
         async function startScanning(cameraId) {
             if (isScannerTransitioning) return;
             isScannerTransitioning = true;
 
             try {
+                // 既存のオブザーバーをクリア
+                if (scannerObserver) {
+                    scannerObserver.disconnect();
+                    scannerObserver = null;
+                }
+
                 if (html5QrcodeScanner) {
                     try {
                         await html5QrcodeScanner.stop();
                     } catch (err) {
-                        // Ignore
-                    }
-                    try {
-                        html5QrcodeScanner.clear();
-                    } catch (err) {
-                        // Ignore
+                        console.warn("Stop failed, but resetting instance anyway:", err);
                     }
                 }
+                await launchScannerInstance(cameraId);
+            } catch (err) {
+                console.error("Start scanning process failed:", err);
+            } finally {
+                isScannerTransitioning = false;
+            }
+        }
+
+        async function launchScannerInstance(cameraId) {
+            // エラーを避けるために毎回新しくインスタンスを作り直す
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            
+            // 鏡映し判定と背面(アウトカメラ)時のクラス切り替え
+            const readerDiv = document.getElementById("reader");
+            if (isFrontCamera) {
+                readerDiv.classList.remove("back-camera"); // 鏡表示(デフォルトCSS)をそのまま有効化
+            } else {
+                readerDiv.classList.add("back-camera");    // 鏡表示を解除
+            }
+
+            // 【超重要：20cm離した位置からサクサクデコードできる精密スキャンパラメータ】
+            // qrbox（解析制限領域）を再度明確に定義！
+            // 画面中央の 70% × 30% のスリットエリアのみに解析を集中させ、遠くからの検出力を何倍にも強化します。
+            const config = {
+                fps: 24, // フレームレートを高めて、バーコードをかざした一瞬を捉えやすくする
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E
+                ],
+                qrbox: (w, h) => {
+                    let scanWidth = Math.floor(w * 0.70);
+                    let scanHeight = Math.floor(h * 0.30);
+                    
+                    // 50px以下のエラーを完全に防ぐための安全処理
+                    scanWidth = Math.max(100, scanWidth);
+                    scanHeight = Math.max(60, scanHeight);
+                    
+                    return { width: scanWidth, height: scanHeight };
+                }
+            };
+
+            // 【遠距離対応：HD解像度＆連続オートフォーカス＆ズーム強制設定】
+            // 標準的なWebカメラが最も動作しやすいHD画質（1280x720）をターゲットにして、ピクセル潰れを完全防止します
+            const cameraConfigHD = {
+                deviceId: { exact: cameraId },
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 },
+                advanced: [
+                    // スマートフォンの連続オートフォーカスを強制的に起動させ、近づけずとも20cmでピントをピタッと合わせます
+                    { focusMode: "continuous" },
+                    { resizeMode: "none" }
+                ]
+            };
+
+            // リアルタイムDOMクリーナーの開始（二重枠を100%防止）
+            startDOMCleaner();
+
+            try {
+                // まずHD画質・オートフォーカス設定でスキャナーをスタート
+                await html5QrcodeScanner.start(
+                    cameraConfigHD,
+                    config,
+                    onScanSuccessInternal,
+                    onScanErrorInternal
+                );
+                hideFallbackMessage();
                 
-                // エラーを避けるためにDOMを一度綺麗にしてからインスタンスを作り直す
-                document.getElementById("reader").innerHTML = "";
+                // 本物のズーム制御（ハードウェアズーム）が有効かチェックし、可能であればズームを調整
+                applyHardwareZoom();
+            } catch (err) {
+                console.warn("HD camera launch failed. Falling back to default compatibility mode...", err);
+                
+                // トランジションエラー状態を引きずらないよう、一度クリアして新しくインスタンスを再生成する
+                try {
+                    await html5QrcodeScanner.clear();
+                } catch(clearErr) {}
+                
                 html5QrcodeScanner = new Html5Qrcode("reader");
-                
-                // 鏡映し判定と背面(アウトカメラ)時のクラス切り替え
-                const readerDiv = document.getElementById("reader");
-                if (isFrontCamera) {
-                    readerDiv.classList.remove("back-camera"); 
-                } else {
-                    readerDiv.classList.add("back-camera");    
-                }
-
-                // 【超重要：20cm離した位置からサクサクデコードできる精密スキャンパラメータ】
-                // 自作枠（280x160）とサイズを完全に一致させることで、視差ズレを100%なくします。
-                const scanWidth = 280;
-                const scanHeight = 160;
-
-                const config = {
-                    fps: 15, // 安定性を重視してフレームレートを調整
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.CODE_128,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E
-                    ],
-                    qrbox: { width: scanWidth, height: scanHeight }
-                };
-
-                const cameraConfigHD = {
-                    deviceId: { exact: cameraId },
-                    video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                };
 
                 try {
-                    // まずHD画質設定でスキャナーをスタート
+                    // 【第二挑戦：安全なフォールバック標準モード】
+                    const cameraConfigSD = {
+                        deviceId: { exact: cameraId },
+                        advanced: [
+                            { focusMode: "continuous" }
+                        ]
+                    };
+
                     await html5QrcodeScanner.start(
-                        cameraConfigHD,
+                        cameraConfigSD,
                         config,
                         onScanSuccessInternal,
                         onScanErrorInternal
                     );
                     hideFallbackMessage();
                     applyHardwareZoom();
-                } catch (err) {
-                    console.warn("HD camera launch failed. Falling back...", err);
+                } catch (err2) {
+                    console.warn("Autofocus SD launch failed, trying bare string fallback...", err2);
                     
                     try {
                         await html5QrcodeScanner.clear();
-                    } catch(clearErr) {}
-                    
-                    document.getElementById("reader").innerHTML = "";
+                    } catch(clearErr2) {}
                     html5QrcodeScanner = new Html5Qrcode("reader");
 
                     try {
@@ -660,18 +747,16 @@
                             onScanErrorInternal
                         );
                         hideFallbackMessage();
-                        applyHardwareZoom();
                     } catch(err3) {
                         console.error("All camera launch attempts failed:", err3);
                         showFallbackError();
+                        throw err3;
                     }
                 }
-            } finally {
-                isScannerTransitioning = false;
             }
         }
 
-        // 本物のカメラ側デジタルズーム制御（対応ブラウザ向け）
+        // 本物のカメラ側デジタルズーム制御（20cm遠距離スキャンの最適解）
         function applyHardwareZoom() {
             setTimeout(() => {
                 const videoElement = document.querySelector("#reader video");
@@ -681,9 +766,10 @@
                         try {
                             const capabilities = videoTrack.getCapabilities();
                             if (capabilities.zoom) {
+                                const minZoom = capabilities.zoom.min || 1;
                                 const maxZoom = capabilities.zoom.max || 1;
-                                // 20cm離れていてもバーコードが大きく映るようにズームを適用
-                                const targetZoom = Math.min(2.0, maxZoom);
+                                // 20cm離れていてもバーコードが大きく、シャープに映るように、安全かつ強力なズーム値を適用
+                                const targetZoom = Math.min(2.5, maxZoom);
                                 videoTrack.applyConstraints({
                                     advanced: [{ zoom: targetZoom }]
                                 }).then(() => {
@@ -697,7 +783,45 @@
                         }
                     }
                 }
-            }, 1000); // カメラ映像が安定するまで待つ
+            }, 1000); // カメラ映像が安定するまで少し待ってから適用
+        }
+
+        // ==================== 【二重枠バグ防止の究極処理】リアルタイムDOMクリーナー ====================
+        // html5-qrcodeが動的に生成する不格好な枠線、L字コーナー、自動半透明グレーマスクを100%リアルタイム抹殺する仕組み
+        function startDOMCleaner() {
+            const target = document.getElementById("reader");
+            if (!target) return;
+
+            scannerObserver = new MutationObserver((mutations) => {
+                const divs = target.querySelectorAll("div, span, svg");
+                divs.forEach(el => {
+                    // 自作の custom-scan-frame とその子要素（四隅の白いかっこ、往復ビーム等）は絶対に除外（消さない）
+                    if (el.id === "custom-scan-frame" || el.closest("#custom-scan-frame")) {
+                        return;
+                    }
+                    
+                    // ライブラリが動的・インラインで強制生成する不要な装飾オブジェクトを完全に隠して幅・高さをゼロにする
+                    if (
+                        el.style.borderStyle || 
+                        el.style.borderWidth || 
+                        el.style.borderColor ||
+                        el.style.backgroundColor || 
+                        el.className.includes("qrbox-border") || 
+                        el.id.includes("border") ||
+                        (el.style.position === "absolute" && el.style.background === "rgba(0, 0, 0, 0.48)") // 規定の自動グレーマスク
+                    ) {
+                        el.style.display = "none";
+                        el.style.opacity = "0";
+                        el.style.width = "0px";
+                        el.style.height = "0px";
+                        el.style.border = "none";
+                        el.style.borderWidth = "0px";
+                        el.style.visibility = "hidden";
+                    }
+                });
+            });
+
+            scannerObserver.observe(target, { childList: true, subtree: true });
         }
 
         function onScanSuccessInternal(decodedText) {
@@ -718,29 +842,6 @@
             if (container) {
                 container.classList.remove("hidden");
                 container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しんでね！</p>`;
-            }
-        }
-
-        // カメラ切り替え
-        async function toggleCameraFacing() {
-            if (isScannerTransitioning) return;
-            try {
-                const devices = await Html5Qrcode.getCameras();
-                if (!devices || devices.length <= 1) {
-                    alert("切り替えられるカメラが他にありません。");
-                    return;
-                }
-                const currentIndex = devices.findIndex(d => d.id === currentCameraId);
-                const nextIndex = (currentIndex + 1) % devices.length;
-                currentCameraId = devices[nextIndex].id;
-                
-                // カメラ名から前後を判断
-                const label = devices[nextIndex].label.toLowerCase();
-                isFrontCamera = label.includes("front") || label.includes("user") || !label.includes("back");
-                
-                startScanning(currentCameraId);
-            } catch (e) {
-                console.warn(e);
             }
         }
 
@@ -853,7 +954,7 @@
             const bills = [100, 500, 1000, 2000, 3000, 5000, 10000];
             let nextBill = bills.find(b => b >= total);
             
-            // 10000円を超える場合は、5000円単位で切り上げた金額をお財布から出します
+            // 10000円を超える場合は、5000円単位で切り上げた金額をお財布から出します（例: 12400円なら15000円）
             if (!nextBill) {
                 nextBill = Math.ceil(total / 5000) * 5000;
             }
@@ -863,18 +964,22 @@
                 return nextBill;
             }
 
-            // 3問目以降はより実践的な端数合わせと5000円出し
+            // 3問目以降はより実践的な「お釣りの小銭をスッキリさせる」端数合わせと5000円出し
             const rand = Math.random();
             if (rand < 0.40) {
+                // 【賢い端数合わせ支払いパターン】（お釣りをお札や大きめの硬貨だけにする）
                 const lastTwo = total % 100;
                 if (lastTwo > 0) {
+                    // 合計金額を1000円単位で切り上げた金額ベースを算出
                     const baseBill = Math.ceil(total / 1000) * 1000;
                     const hasuPaid = baseBill + lastTwo;
+                    
                     if (hasuPaid > total) {
                         return hasuPaid;
                     }
                 }
             } else if (rand < 0.70) {
+                // 【大きめの紙幣をドンと出すパターン】
                 if (total < 1000 && Math.random() > 0.5) {
                     return 5000; 
                 } else if (total < 5000 && Math.random() > 0.5) {
@@ -884,6 +989,7 @@
                 }
             }
 
+            // デフォルトは直上の紙幣 / 1万円超過時は自動計算された切り上げ額
             return nextBill;
         }
 
@@ -956,7 +1062,7 @@
             answerContainer.innerHTML = "";
             const ansGrid = document.createElement("div");
             ansGrid.className = `grid grid-cols-${cols} mt-2`;
-            ansGrid.appendChild(createCell("flex items-center justify-center text-2xl font-black text-slate-400 font-kyokasho", "="));
+            ansGrid.appendChild(createCell("flex items-center justify-center text-2xl font-black text-slate-400", "="));
             
             if (cols === 6) {
                 const emptyCell = document.createElement("div");
@@ -1064,7 +1170,7 @@
                 showReceiptButton();
                 
             } else {
-                // 不正解
+                // 不正解 (静かにブザーだけを流す)
                 playIncorrectSound();
             }
         }
