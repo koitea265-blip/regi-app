@@ -25,57 +25,51 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* ==================== 視差ズレを防ぎ、20cm離してサクサク読める1.2倍ズーム ==================== */
-        /* CSSでのビデオ映像の無理な引き伸ばしを抑え、画面の白いかっこ[ ]の位置とカメラの実際の視野を
-           ピクセル単位で1対1に同期させます。枠より小さいサイズでもピタッと一瞬で読み取れるようになります。 */
+        /* ==================== 安定していた 1.8倍 デジタルズーム ==================== */
         #reader video {
             object-fit: cover !important;
             width: 100% !important;
             height: 100% !important;
-            transform: scale(-1.2, 1.2) !important; /* 鏡（左右反転）＆ 自然な1.2倍ズーム */
+            transform: scale(-1.8, 1.8) !important; /* 鏡（左右反転）＆ 1.8倍のズーム */
             transform-origin: center !important;
         }
 
-        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・1.2倍ズーム */
+        /* 背面カメラ（アウトカメラ）に切り替えた時用の、反転なし・1.8倍ズーム */
         .back-camera video {
-            transform: scale(1.2) !important;
+            transform: scale(1.8) !important;
             transform-origin: center !important;
         }
 
         /* ==================== 【二重枠バグ完全排除】ライブラリが生成する枠・マスクの完全無効化 ==================== */
-        #reader {
-            border: none !important;
-        }
-        #reader__scan_region {
-            border: none !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        /* ライブラリが動的・自動生成する境界線や背景、L字パーツ、赤い動的スキャンラインなどを完全に消し去る */
-        #reader__scan_region div,
-        #reader__scan_region span,
-        #reader__scan_region svg {
-            border: none !important;
-            border-width: 0px !important;
-            box-shadow: none !important;
-            background: transparent !important;
-            outline: none !important;
-        }
-        /* html5-qrcodeが強制描画するオーバーレイや四隅の角枠、動的な枠線を徹底排除 */
-        .qrbox-border, 
-        [id$="__border"], 
+        /* ライブラリが動的・自動生成する枠線、半透明グレーのマスク、境界線、影を網羅的に打ち消します */
+        #reader,
+        #reader__scan_region,
+        #reader__scan_region *,
+        .qrbox-border,
+        [id$="__border"],
         [class*="qrbox-border"],
-        #reader__scan_region > div > div,
         div[style*="border-style"],
         div[style*="border-color"],
         div[style*="border-width"],
         div[style*="background-color: rgba(0, 0, 0, 0.48)"],
-        div[style*="background-color:rgba(0, 0, 0, 0.48)"] {
-            display: none !important;
+        div[style*="background-color:rgba(0, 0, 0, 0.48)"],
+        div[style*="background-color: rgba(0,0,0,0.48)"] {
             border: none !important;
             border-width: 0px !important;
             box-shadow: none !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            outline: none !important;
+        }
+
+        /* ライブラリ側の四隅の枠（SVGなど）やスキャン用ガイドパーツを徹底的に排除 */
+        #reader__scan_region svg,
+        #reader__scan_region img,
+        #reader__scan_region span,
+        #reader__scan_region div div {
+            display: none !important;
+            border: none !important;
+            border-width: 0px !important;
             width: 0px !important;
             height: 0px !important;
             opacity: 0 !important;
@@ -85,7 +79,7 @@
         /* ==================== 【おおいマスク＆往復レーザー】自前バーコードスリット枠 ==================== */
         #custom-scan-frame {
             position: absolute; /* 子要素の基準位置 */
-            /* 読み取り枠の外側を綺麗に薄暗くおおうマスク効果 */
+            /* 読み取り枠の外側を薄暗くおおうマスク効果 */
             box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65) !important;
             border-radius: 4px;
             z-index: 20;
@@ -173,10 +167,10 @@
                     <!-- カメラ表示ターゲット用div -->
                     <div id="reader" class="w-full h-full"></div>
                     
-                    <!-- 【自前の高品質バーコード読み取り枠 overlay】二重枠を徹底解消 -->
+                    <!-- 【自前の高品質バーコード読み取り枠 overlay】 -->
                     <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10 overflow-hidden">
-                        <!-- 自作スリット枠のサイズを中央の使いやすい範囲に調整（JSのqrbox比率と完全に同期） -->
-                        <div id="custom-scan-frame" class="absolute w-[70%] max-w-[360px] h-[25%] max-h-[120px] border-0 flex items-center justify-center transition-all duration-300">
+                        <!-- 東西に広がる横長のスリット枠 -->
+                        <div id="custom-scan-frame" class="absolute w-[85%] max-w-[500px] h-[40%] max-h-[250px] border-0 flex items-center justify-center transition-all duration-300">
                             <!-- 四隅の白いかっこ [ ] -->
                             <div class="absolute top-0 left-0 w-8 h-8 border-t-[6px] border-l-[6px] border-white rounded-tl-sm z-20"></div>
                             <div class="absolute top-0 right-0 w-8 h-8 border-t-[6px] border-r-[6px] border-white rounded-tr-sm z-20"></div>
@@ -570,14 +564,15 @@
             synth.triggerAttackRelease("A3", "8n", now + 0.15);
         }
 
-        // -==================== カメラパーミッション＆初期化の修復 ====================
+        // カメラバーコードスキャナーの立ち上げ
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             try {
+                // 事前にブラウザへ明示的にGetUserMediaを要求し、カメラアクセス権を促す
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                     try {
                         const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                        testStream.getTracks().forEach(track => track.stop());
+                        testStream.getTracks().forEach(track => track.stop()); // 権限を確認したらすぐにストリームを終了
                     } catch (permErr) {
                         console.warn("Camera permission request pre-flight failed:", permErr);
                     }
@@ -585,6 +580,7 @@
 
                 const devices = await Html5Qrcode.getCameras();
                 if (devices && devices.length > 0) {
+                    // フロントカメラ(インカメラ)の優先設定
                     const userFacingCamera = devices.find(device => device.label.toLowerCase().includes("front") || device.label.toLowerCase().includes("user"));
                     currentCameraId = userFacingCamera ? userFacingCamera.id : devices[0].id;
                     isFrontCamera = !!userFacingCamera;
@@ -599,7 +595,7 @@
             }
         }
 
-        // ==================== 遠距離(20cm)読取＆枠サイズズレの再計算 ====================
+        // スキャナーの実際の開始
         async function startScanning(cameraId) {
             if (isScannerTransitioning) return;
             isScannerTransitioning = true;
@@ -614,9 +610,11 @@
                     } catch (err) {}
                 }
                 
+                // エラーを避けるためにDOMを一度綺麗にしてからインスタンスを作り直す
                 document.getElementById("reader").innerHTML = "";
                 html5QrcodeScanner = new Html5Qrcode("reader");
                 
+                // 鏡映し判定と背面(アウトカメラ)時のクラス切り替え
                 const readerDiv = document.getElementById("reader");
                 if (isFrontCamera) {
                     readerDiv.classList.remove("back-camera"); 
@@ -624,14 +622,10 @@
                     readerDiv.classList.add("back-camera");    
                 }
 
-                // 【修正：20cm離れた「枠より一回り小さい」バーコードを瞬時に読み取る物理計算】
-                // 枠の見た目比率 w-[85%] max-w-[500px] h-[40%] max-h-[250px] と
-                // ZXing検出エンジン用の認識対象エリア（qrbox）を「1対1」で完全に同期させます。
-                // さらに、全体からこのスリット枠だけをクロップして高感度デコードするため、
-                // バーコードをカメラに密着させて大きく見せる必要がなくなり、
-                // 20cm離した位置から「枠よりかなり小さいサイズ」のまま余裕でピッと読めるようになります。
+                // 【最も安定して読めていた時の本来の設定に復元】
+                // 動的な関数計算に戻すことで、枠のサイズが元の大きな幅（最大500px）になり横に短くなる問題が直ります。
                 const config = {
-                    fps: 24, // フレーム解析間隔を極限まで速めて一瞬の検出を逃さない
+                    fps: 15,
                     formatsToSupport: [
                         Html5QrcodeSupportedFormats.EAN_13,
                         Html5QrcodeSupportedFormats.EAN_8,
@@ -640,20 +634,16 @@
                         Html5QrcodeSupportedFormats.UPC_E
                     ],
                     qrbox: (w, h) => {
-                        // 1.8倍のズーム映像と100%合致する「物理スキャン枠サイズ」をミリ秒単位で再計算
-                        // wの約45%〜55%を解析ボックスに指定することで、画面中央の「かっこ[ ]」にピタッと一致
-                        let scanWidth = Math.floor(w * 0.48);
-                        let scanHeight = Math.floor(h * 0.22);
-                        
-                        // PC内蔵カメラの解像度低下に耐えうる最低解析サイズを保証
-                        scanWidth = Math.max(160, Math.min(320, scanWidth));
-                        scanHeight = Math.max(80, Math.min(140, scanHeight));
-                        
+                        let scanWidth = Math.min(w * 0.85, 500);
+                        let scanHeight = Math.min(scanWidth * 0.5, 250);
+                        scanWidth = Math.max(50, scanWidth);
+                        scanHeight = Math.max(50, scanHeight);
                         return { width: scanWidth, height: scanHeight };
                     }
                 };
 
                 try {
+                    // 最も安定しているシンプルな起動モード（エラーや競合を引き起こすHD指定等を排除）
                     await html5QrcodeScanner.start(
                         cameraId,
                         config,
@@ -710,7 +700,7 @@
             const container = document.getElementById("camera-fallback-msg");
             if (container) {
                 container.classList.remove("hidden");
-                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しね！</p>`;
+                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しんでね！</p>`;
             }
         }
 
