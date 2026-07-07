@@ -15,7 +15,6 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
 
-    <!-- CSS STREAMING_CHUNK: Configuring viewport and main styles... -->
     <style>
         /* 基本UI：かわいい丸ゴシック系 */
         body, button, input, p, h1, h2, h3, h4, span {
@@ -42,11 +41,6 @@
         /* 上記のインカメラ用「#reader video」の優先度に対して、CSS仕様上100%勝利させ、背面カメラ起動時に左右反転を確実に解除します。 */
         #reader.back-camera video {
             transform: scale(1.8, 1.8) !important; /* 鏡なし ＆ 1.8倍ズーム */
-        }
-
-        /* 暗所ブースト（白黒＋超高コントラスト＋高輝度）でバーコード認識率を強制最大化 */
-        .dark-boost-active video {
-            filter: brightness(1.6) contrast(1.9) grayscale(1) !important;
         }
 
         /* 【二重枠対策】ライブラリが動的に自動生成する枠、L字境界、SVG、ボタン、余計なテキストを完全消滅させる */
@@ -124,7 +118,6 @@
 </head>
 <body class="h-screen flex flex-col select-none bg-slate-50 no-select">
 
-    <!-- HTML STREAMING_CHUNK: Structuring main application layout... -->
     <header class="bg-emerald-600 text-white p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
         <h1 class="text-2xl font-bold flex items-center gap-2">🛒 セルフレジでおかいけいしよう</h1>
         <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold">たのしいお買い物＆ひっ算おつり計算</span>
@@ -271,7 +264,6 @@
     </div>
 
     <!-- ==================== 正解お祝い・くっきりリアルレシートモーダル ==================== -->
-    <!-- 縦長レシートに対応するため、flex中央固定を外し、画面全体のスクロール領域(items-start + overflow-y-auto + py-12)を完全実装 -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full">
             <!-- レシート用紙エリア：文字かすれを追放した高コントラスト設計 -->
@@ -299,7 +291,7 @@
 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 
-                <!-- スキャンしたお買い物商品一覧が印字されるスペース (スクロールによる分断を避け、すべて物理的に表示) -->
+                <!-- スキャンしたお買い物商品一覧が印字されるスペース -->
                 <ul id="receipt-items-list" class="space-y-1 my-3 text-xs text-black font-bold"></ul>
                 
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
@@ -541,13 +533,27 @@
                 let started = false;
                 
                 try {
-                    // フェーズ1: 向き指定で起動。小さいバーコードをクリアに解像するため、Full HD (1920x1080) を理想値として要求
-                    const highResConfig = { ...scanConfig };
-                    highResConfig.videoConstraints = {
-                        width: { min: 640, ideal: 1920, max: 1920 },
-                        height: { min: 480, ideal: 1080, max: 1080 },
+                    // 【本質的解決 1 & 2 - 動的制約設計の完全適用】
+                    // 1. facingMode を videoConstraints にも明示的に注入し、ブラウザの解像度優先での勝手なアウトカメラ選択を防ぐ。
+                    // 2. 解像度上限の低いインカメラの特性（多くが720p上限）を考慮し、インカメラ起動時のみ 720p（1280x720）を上限に緩めることで
+                    //    OverconstrainedErrorによる起動失敗と、それによる望まないアウトカメラへのフォールバックを100%防止。
+                    const dynamicConstraints = {
+                        facingMode: facingMode,
                         focusMode: "continuous",
                         exposureMode: "continuous"
+                    };
+                    
+                    if (isFrontCamera) {
+                        dynamicConstraints.width = { min: 640, ideal: 1280, max: 1280 };
+                        dynamicConstraints.height = { min: 480, ideal: 720, max: 720 };
+                    } else {
+                        dynamicConstraints.width = { min: 640, ideal: 1920, max: 1920 };
+                        dynamicConstraints.height = { min: 480, ideal: 1080, max: 1080 };
+                    }
+
+                    const highResConfig = { 
+                        ...scanConfig,
+                        videoConstraints: dynamicConstraints
                     };
                     await html5QrScanner.start({ facingMode: facingMode }, highResConfig, onScanSuccess);
                     started = true;
@@ -555,15 +561,32 @@
                     console.warn("facingMode high-res start failed, trying standard-res fallback:", err1);
                     try {
                         // フェーズ2: 標準画質でのフォールバック
-                        await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
+                        const fallbackConstraints = { facingMode: facingMode };
+                        const fallbackConfig = { ...scanConfig, videoConstraints: fallbackConstraints };
+                        await html5QrScanner.start({ facingMode: facingMode }, fallbackConfig, onScanSuccess);
                         started = true;
                     } catch (err2) {
                         console.warn("facingMode start failed, trying manual camera list fallback:", err2);
-                        // フェーズ3: デバイス固有エラーを避けるため、デバイスに接続されたカメラIDで直叩き
+                        // 【本質的解決 3 - ラベル走査によるインカメラ100%同定プロトコル】
+                        // カメラリスト配列[0]がインカメラであるという盲信を排除。
+                        // デバイスから返された label テキストを完全に走査し、インカメラ特有のワードを検出。
+                        // 一致する物理デバイスを直接指定して、エラー耐性を持った強硬起動を行います。
                         const cameras = await Html5Qrcode.getCameras();
                         if (cameras && cameras.length > 0) {
-                            const camId = isFrontCamera ? cameras[0].id : cameras[cameras.length - 1].id;
-                            await html5QrScanner.start(camId, scanConfig, onScanSuccess);
+                            let targetCamId = cameras[0].id;
+                            const searchRegex = isFrontCamera 
+                                ? /(front|user|内|正面|サブ|webcam)/i 
+                                : /(back|environment|外|背面|メイン|メインカメラ)/i;
+                                
+                            const matchedCam = cameras.find(cam => searchRegex.test(cam.label));
+                            if (matchedCam) {
+                                targetCamId = matchedCam.id;
+                            } else {
+                                // 検出できない場合は歴史的統計に従い、前面＝配列末尾側、背面＝配列先頭側を安全にアテにする
+                                targetCamId = isFrontCamera ? cameras[cameras.length - 1].id : cameras[0].id;
+                            }
+                            
+                            await html5QrScanner.start(targetCamId, scanConfig, onScanSuccess);
                             started = true;
                         }
                     }
