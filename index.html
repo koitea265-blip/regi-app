@@ -27,8 +27,10 @@
         }
 
         /* カメラの左右反転（鏡）かつ1.8倍デジタルズーム表示（デフォルト適用：インカメラ用） */
+        /* 【本質的解決】object-position: center を強制し、プレビューの切り抜き中心を物理光軸に完全同期させます */
         #reader video {
             object-fit: cover !important;
+            object-position: center !important; /* 縦横のズレ・偏りを完全リセット */
             width: 100% !important;
             height: 100% !important;
             transform: scale(-1.8, 1.8) !important; /* 鏡 ＆ 1.8倍拡大 */
@@ -36,8 +38,9 @@
             transition: filter 0.3s ease;
         }
 
-        /* 【本質的解決 - CSS詳細度バグの根絶】 */
+        /* 【本質的解決 - CSS詳細度バグの根絶 ＆ 背面カメラ光軸同期】 */
         #reader.back-camera video {
+            object-position: center !important;
             transform: scale(1.8, 1.8) !important; /* 鏡なし ＆ 1.8倍ズーム */
         }
 
@@ -385,7 +388,7 @@
             { name: "水彩えのぐ (🎨)", price: 684 },
             { name: "虫めがね (🔍)", price: 215 },
             { name: "虫かご (🕸️)", price: 432 },
-            { name: "カラフルなわとび (➰)", price: 294 },
+            { name: "カラフルなわとび (秘)", price: 294 },
             { name: "シャボン玉セット (🫧)", price: 134 },
             { name: "お花のヘアクリップ (🌸)", price: 94 },
             { name: "ぷくぷくシール (🐟)", price: 112 },
@@ -458,7 +461,6 @@
                 const facingMode = isFrontCamera ? "user" : "environment";
                 const formats = window.Html5QrcodeSupportedFormats || (window.Html5Qrcode ? Html5Qrcode.SupportedFormats : null);
                 
-                // 日本の流通商品（本、日用品、お菓子）で使われる規格に厳格に制限
                 const formatsConfig = formats ? [
                     formats.EAN_13,
                     formats.EAN_8,
@@ -466,15 +468,31 @@
                     formats.UPC_E
                 ] : [];
 
-                // 【本質的解決 - 完全なるフルフレーム・オムニスキャンの導入】
-                // 読みこぼし（トランケーション非対応）の原因だった「qrbox」設定を完全抹殺。
-                // デコーダーはカメラの物理センサーが捉えた「100%全域」を走査します。
+                // 【本質的解決 - ズーム係数を加味した100%アライメント同期判定枠の構築】
+                // 「どこでも読めるフルフレーム」は暴発による視差バグ（枠の下で読んでしまう現象）を生んでいました。
+                // プレビュー中央寄せ（object-position）と完全同期した「qrbox」を安全設計で復活させます。
                 const scanConfig = {
-                    fps: 15, // フルフレーム解析において最も安定して高負荷を避ける15fps
+                    fps: 20, 
                     experimentalFeatures: {
                         useBarCodeDetectorIfSupported: true 
                     },
-                    formatsToSupport: formatsConfig
+                    formatsToSupport: formatsConfig,
+                    qrbox: (w, h) => {
+                        // 1.8倍にCSSズームされたプレビューと、画面幅の75%にあるUI白いターゲット枠の真のピクセル比率を逆算。
+                        // これにより、左右のズレは論理的にゼロになります。
+                        const scanWidth = Math.round(w * (0.75 / 1.8)); 
+                        
+                        // 2. 丈の短いバーコード（日用品・お菓子等）に完璧に対応するため、
+                        // 縦方向の判定スリット幅を、UI表示枠（比率0.5）の約3倍に大きく広げます（アスペクト比 1.44 : 1.5 相当）。
+                        // これにより、手ブレや短いバーコードを上下の余白ごと確実に捉えつつ、
+                        // 「画面の枠外（下部）」に置かれた無関係なバーコードに暴発反応することを物理的にシャットアウトします。
+                        const scanHeight = Math.min(Math.round(scanWidth * (1.5 / 1.44)), h - 10); // カメラ解像度 h を絶対に超過させない安全弁付き
+                        
+                        return { 
+                            width: Math.max(scanWidth, 50), 
+                            height: Math.max(scanHeight, 50) 
+                        };
+                    }
                 };
 
                 let started = false;
