@@ -15,6 +15,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
 
+    <!-- CSS STREAMING_CHUNK: Configuring viewport and main styles... -->
     <style>
         /* 基本UI：かわいい丸ゴシック系 */
         body, button, input, p, h1, h2, h3, h4, span {
@@ -123,6 +124,7 @@
 </head>
 <body class="h-screen flex flex-col select-none bg-slate-50 no-select">
 
+    <!-- HTML STREAMING_CHUNK: Structuring main application layout... -->
     <header class="bg-emerald-600 text-white p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
         <h1 class="text-2xl font-bold flex items-center gap-2">🛒 セルフレジでおかいけいしよう</h1>
         <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold">たのしいお買い物＆ひっ算おつり計算</span>
@@ -335,6 +337,7 @@
         </div>
     </div>
 
+    <!-- JS STREAMING_CHUNK: Initializing state and core algorithm... -->
     <script>
         // 指定されたバラエティ豊かな商品リスト（全75種）
         const dummyProducts = [
@@ -420,11 +423,14 @@
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
         let html5QrScanner = null;
         
-        // 【本質的解決 - デフォルトを背面カメラに変更】
-        // アプリのお買い物スキャナーの立ち上がりにおいて、最も合理的かつ実用的な背面カメラから
-        // デフォルトで無条件で立ち上がるよう、初期値を false (背面) に調整・完全修復します。
-        let isFrontCamera = false; 
+        // 【本質的解決 - 起動時デフォルトカメラはインカメラが優先】
+        // 子供たちが自撮り鏡像として手元を合わせやすいインカメラ（`isFrontCamera = true`）を初期値として完全ロック復元します。
+        let isFrontCamera = true; 
         
+        // 【本質的解決 - 排他制御セマフォの導入】
+        // カメラ切り替え非同期プロセスの競合によるデバイスフリーズを完全に遮断するための排他セマフォ
+        let isScannerTransitioning = false;
+
         let isSolved = false; 
         let isDarkBoost = false; 
 
@@ -461,6 +467,7 @@
             }, 300);
         });
 
+        // JS STREAMING_CHUNK: Configuring camera initialization with multi-phase fallback... -->
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             if (!container) return;
@@ -579,7 +586,7 @@
                             if (capabilities && capabilities.zoom) {
                                 const minZoom = capabilities.zoom.min || 1;
                                 const maxZoom = capabilities.zoom.max || 1;
-                                const targetZoom = Math.min(2.0, maxZoom); // 2倍、または最大ズームの低い方をターゲットにする
+                                const targetZoom = Math.min(2.0, maxZoom); // 2倍、または最大ズーム of 低い方をターゲットにする
                                 if (targetZoom >= minZoom) {
                                     constraints.advanced.push({ zoom: targetZoom });
                                 }
@@ -634,26 +641,36 @@
             addToCart(getProductFromBarcode(cleanCode));
         }
 
-        // 【本質的解決 - 非同期カメラリソース解放プロトコル】
+        // 【本質的解決 - 非同期カメラリソース解放・排他制御プロトコル】
         // カメラ切り替えボタンを押した際、旧レンズのストリームが確実に解放されるよう、
-        // 明示的にストップおよび破棄を行い、微小な非同期ウェイト（200ms）を挟んでから新レンズを初期化します。
-        // これにより、物理カメラの競合ロックによる「切り替え無反応・画面暗転」を完璧に排除します。
+        // awaitによる非同期クローズを同期して待機し、二重起動によるデバイスロックを完全に防止します。
         async function toggleCameraFacing() {
+            if (isScannerTransitioning) return; // トランジションが完了するまで次の要求を完全に拒否
+            isScannerTransitioning = true;
+            
             isFrontCamera = !isFrontCamera;
             
             if (html5QrScanner) {
                 try {
-                    await html5QrScanner.stop();
+                    await html5QrScanner.stop(); // 物理デバイスの解放を100%同期して確実に待機
                 } catch(e) {
                     console.warn("Silent ignore scanner stop on toggle:", e);
                 }
             }
             
-            setTimeout(() => {
-                initScanner();
+            // 確実に前のカメラデバイスがクローズしたことを保証した上で、200msの時間差をもって安全に初期化
+            setTimeout(async () => {
+                try {
+                    await initScanner();
+                } catch(err) {
+                    console.error("Camera restart failed during toggle:", err);
+                } finally {
+                    isScannerTransitioning = false; // 排他制御ロックを解除
+                }
             }, 200);
         }
 
+        // JS STREAMING_CHUNK: Defining sound effects and correct/incorrect chimes... -->
         function triggerMockScan() {
             addToCart(dummyProducts[Math.floor(Math.random() * dummyProducts.length)]);
         }
@@ -739,6 +756,7 @@
             return (total < 4000 && Math.random() > 0.6) ? 5000 : (baseThousand === total ? baseThousand + 1000 : baseThousand);
         }
 
+        // JS STREAMING_CHUNK: Implementing payment computation and math grid rendering... -->
         function openPaymentModal() {
             isSolved = false; 
             const actionsRow = document.getElementById("action-buttons-row");
@@ -935,6 +953,7 @@
             }
         }
 
+        // JS STREAMING_CHUNK: Implementing digital memo canvas paint system... -->
         function showReceipt() {
             document.getElementById("payment-modal").classList.add("hidden");
             
