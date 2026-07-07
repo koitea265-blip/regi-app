@@ -26,25 +26,20 @@
             font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
         }
 
-        /* 【本質的解決 - 物理光軸とUIファインダーの絶対中央同期】 */
-        /* ライブラリが動的に生成するコンテナやラッパーによる「上寄せ・左寄せ」の不具合を完全に破壊するため、 */
-        /* ビデオ要素を「絶対配置 + 50%配置 + 50%マイナストランスレート」によって、コンテナの真の幾何学中心に強制ロックします。 */
+        /* 【本質的解決 - CSSレイアウトハックの完全撤廃による座標同調】 */
+        /* 無理やり中央に寄せる absolute や translate は、解析エンジンの座標系を破壊するため全削除しました。 */
+        /* ライブラリのネイティブな配置に委ねることで、視差（パララックス）をゼロにします。 */
         #reader video {
-            position: absolute !important;
-            top: 50% !important;
-            left: 50% !important;
-            object-fit: cover !important;
             width: 100% !important;
-            height: 100% !important;
             /* 常に物理中心（center）を軸として、インカメラ（正面デフォルト）の左右反転のみを等倍で適用します */
-            transform: translate(-50%, -50%) scaleX(-1) !important; 
+            transform: scaleX(-1) !important; 
+            transform-origin: center !important;
             transition: filter 0.3s ease;
-            z-index: 1;
         }
 
-        /* 背面カメラ時の鏡像反転解除（詳細度競合を完全に防ぎ、中央軸ロックを維持） */
+        /* 背面カメラ時の鏡像反転解除 */
         #reader.back-camera video {
-            transform: translate(-50%, -50%) scaleX(1) !important; /* 鏡像反転のみを確実にキャンセル */
+            transform: scaleX(1) !important; /* 鏡像反転のみを確実にキャンセル */
         }
 
         /* 【二重枠対策】ライブラリが動的に自動生成する枠、L字境界、SVG、ボタン、余計なテキストを完全消滅させる */
@@ -138,8 +133,9 @@
             </div>
             
             <div class="relative flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
-                <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center">
-                    <div id="reader" class="w-full h-full relative"></div>
+                <!-- コンテナ自体の高さを明示的に確保し、ライブラリの計算崩れを防ぎます -->
+                <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
+                    <div id="reader" class="w-full h-full flex items-center justify-center relative"></div>
                     
                     <!-- 【UI層：完全自製アライメントファインダー】 -->
                     <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く -->
@@ -393,7 +389,7 @@
             { name: "水彩えのぐ (🎨)", price: 684 },
             { name: "虫めがね (🔍)", price: 215 },
             { name: "虫かご (🕸️)", price: 432 },
-            { name: "カラフルなわとび (秘)", price: 294 },
+            { name: "カラフルなわとび (➰)", price: 294 },
             { name: "シャボン玉セット (🫧)", price: 134 },
             { name: "お花のヘアクリップ (🌸)", price: 94 },
             { name: "ぷくぷくシール (🐟)", price: 112 },
@@ -473,10 +469,7 @@
                     formats.UPC_E
                 ] : [];
 
-                // 【本質的解決 - アスペクト比100%同期 ＆ クロップエラー排除】
-                // 画面上に表示されている「横幅75%」の白いターゲットファインダー枠に100%等倍でシンクロさせます。
-                // お菓子など、丈が極端に短いバーコード（1桁・6桁・6桁など）の上下の手ブレを100%拾い切るため、
-                // 1:1（正方形に近い広い判定の網）を等倍座標上に展開します。
+                // 【本質的解決 - UI表示と解析エンジンの完全な数学的同調】
                 const scanConfig = {
                     fps: 20, 
                     experimentalFeatures: {
@@ -484,8 +477,16 @@
                     },
                     formatsToSupport: formatsConfig,
                     qrbox: (w, h) => {
-                        const scanWidth = Math.round(w * 0.70); 
-                        const scanHeight = Math.min(Math.round(scanWidth * 0.8), h - 10); 
+                        // 1. CSSでの強制ハックをやめたため、映像の横幅(w)とコンテナは完全に一致しています。
+                        // 画面上に描画されている「白いターゲット枠」は、親要素の75%（最大440px）です。
+                        // これと全く同じ横幅を判定領域として切り抜きます。
+                        let scanWidth = Math.round(w * 0.75); 
+                        if (scanWidth > 440) scanWidth = 440;
+                        
+                        // 2. 縦幅は、背の低いお菓子バーコード（トランケーション）の上下のブレを完璧に拾うため、
+                        // 枠の見た目よりもゆとりを持たせ、横幅と同じ長さ（正方形）まで拡張して網を張ります。
+                        // これにより、枠の真ん中にサッと合わせるだけで100%確実に吸い込まれるようにデコードされます。
+                        let scanHeight = Math.min(scanWidth, h - 10); 
                         
                         return { 
                             width: Math.max(scanWidth, 50), 
@@ -554,7 +555,7 @@
                                 advanced: [{ focusMode: "continuous" }]
                             };
                             
-                            // 【本質的ズーム：本物のデジタルズームに全権を委任】
+                            // カメラモジュール自体のデジタルズームを適用し、劣化なくバーコードを大きく捉えます
                             if (capabilities && capabilities.zoom) {
                                 const minZoom = capabilities.zoom.min || 1;
                                 const maxZoom = capabilities.zoom.max || 1;
