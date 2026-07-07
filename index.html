@@ -26,22 +26,25 @@
             font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
         }
 
-        /* カメラ表示（インカメラ：正面デフォルト）の左右鏡像反転 */
-        /* 【本質的解決 - CSSの疑似スケール拡大を全排除】 */
-        /* 映像の1.8倍拡大を排除し、等倍（scaleX: -1 / 1）として描画。プレビューとデコーダの座標系を1:1で完全同期させます */
+        /* 【本質的解決 - 物理光軸とUIファインダーの絶対中央同期】 */
+        /* ライブラリが動的に生成するコンテナやラッパーによる「上寄せ・左寄せ」の不具合を完全に破壊するため、 */
+        /* ビデオ要素を「絶対配置 + 50%配置 + 50%マイナストランスレート」によって、コンテナの真の幾何学中心に強制ロックします。 */
         #reader video {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
             object-fit: cover !important;
-            object-position: center !important; /* カメラレンズ本来の物理中心軸に完全ロック */
             width: 100% !important;
             height: 100% !important;
-            transform: scaleX(-1) !important; /* 正面インカメラ時の鏡像反転のみ適用 */
+            /* 常に物理中心（center）を軸として、インカメラ（正面デフォルト）の左右反転のみを等倍で適用します */
+            transform: translate(-50%, -50%) scaleX(-1) !important; 
             transition: filter 0.3s ease;
+            z-index: 1;
         }
 
-        /* 背面カメラ時の鏡像反転解除（ID詳細度競合を完全防止） */
+        /* 背面カメラ時の鏡像反転解除（詳細度競合を完全に防ぎ、中央軸ロックを維持） */
         #reader.back-camera video {
-            object-position: center !important;
-            transform: scaleX(1) !important; /* 鏡像反転を完全にキャンセル */
+            transform: translate(-50%, -50%) scaleX(1) !important; /* 鏡像反転のみを確実にキャンセル */
         }
 
         /* 【二重枠対策】ライブラリが動的に自動生成する枠、L字境界、SVG、ボタン、余計なテキストを完全消滅させる */
@@ -136,7 +139,7 @@
             
             <div class="relative flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center">
-                    <div id="reader" class="w-full h-full"></div>
+                    <div id="reader" class="w-full h-full relative"></div>
                     
                     <!-- 【UI層：完全自製アライメントファインダー】 -->
                     <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く -->
@@ -471,10 +474,9 @@
                 ] : [];
 
                 // 【本質的解決 - アスペクト比100%同期 ＆ クロップエラー排除】
-                // CSSでの疑似的な拡大（scale(1.8)）を捨て、ビデオ等倍表示（100%アライメント同期）としたため、
-                // qrboxの定義はバグを誘発しない極めてシンプルで安全な「アライメント窓同期型」に再構築できます。
-                // 画面幅の70%に完全にピクセル連動させ、丈の短いバーコード（トランケーション）を取りこぼさないために
-                // 1:1（正方形）に近い高さを持たせることで、手ブレに対しても極限の強さを発揮させます。
+                // 画面上に表示されている「横幅75%」の白いターゲットファインダー枠に100%等倍でシンクロさせます。
+                // お菓子など、丈が極端に短いバーコード（1桁・6桁・6桁など）の上下の手ブレを100%拾い切るため、
+                // 1:1（正方形に近い広い判定の網）を等倍座標上に展開します。
                 const scanConfig = {
                     fps: 20, 
                     experimentalFeatures: {
@@ -482,11 +484,7 @@
                     },
                     formatsToSupport: formatsConfig,
                     qrbox: (w, h) => {
-                        // 画面上に表示されている「横幅75%」の白いターゲットファインダー枠に100%等倍でシンクロさせます。
                         const scanWidth = Math.round(w * 0.70); 
-                        // お菓子など、丈が極端に短いバーコード（1桁・6桁・6桁など）の上下の手ブレを100%拾い切るため、
-                        // スリットを廃止して1:1の「正方形に近い広い判定の網」を等倍座標上に展開します。
-                        // カメラの物理縦幅「h - 10」を超過させてフリーズさせないためのクランプ安全弁を完全完備。
                         const scanHeight = Math.min(Math.round(scanWidth * 0.8), h - 10); 
                         
                         return { 
@@ -557,10 +555,6 @@
                             };
                             
                             // 【本質的ズーム：本物のデジタルズームに全権を委任】
-                            // CSSのボヤける引き伸ばし（scale(1.8)）を撤廃し、カメラハードウェア本来の
-                            // 超高画質な「デジタル・オプティカルズーム」を2.2倍（または上限値）でカメラモジュールに直接適用します。
-                            // これにより、ピントが完璧に合う離れた位置（15cm程度）の極小バーコードが、
-                            // カメラセンサーに「超巨大」として無劣化で捉えられ、瞬時にデコードされます。
                             if (capabilities && capabilities.zoom) {
                                 const minZoom = capabilities.zoom.min || 1;
                                 const maxZoom = capabilities.zoom.max || 1;
@@ -828,7 +822,6 @@
                 if (window.Tone && Tone.start) {
                     Tone.start();
                     const synthChime = new Tone.PolySynth().toDestination();
-                    synthChime.set({ oscillator: { type: "sawtooth" } });
                     const now = Tone.now();
                     synthChime.triggerAttackRelease(["F#2", "G2"], "16n", now);
                     synthChime.triggerAttackRelease(["F#2", "G2"], "6n", now + 0.12);
@@ -888,7 +881,7 @@
         function showReceiptButton() {
             const row = document.getElementById("action-buttons-row");
             const btn = document.getElementById("show-receipt-btn");
-            if (row) row.className = "hidden";
+            if (row) row.classList.add("hidden");
             if (btn) btn.className = "w-full bg-emerald-500 text-white font-black py-4 rounded-xl text-xl shadow-lg hover:bg-emerald-600 animate-pulse";
             
             for(let i=0; i<4; i++) {
