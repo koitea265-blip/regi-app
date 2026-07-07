@@ -407,6 +407,7 @@
         let isScannerTransitioning = false;
         let isSolved = false; 
 
+        // FNV-1a 高精度ハッシュアルゴリズム
         function getProductFromBarcode(barcode) {
             let hash = 2166136261;
             for (let i = 0; i < barcode.length; i++) {
@@ -466,18 +467,14 @@
                 ] : [];
 
                 // 【本質的解決 - 完全なるフルフレーム・オムニスキャンの導入】
-                // 致命的なクラッシュと読みこぼし（トランケーション非対応）の原因だった
-                // 「qrbox（切り抜き指定）」を、プロパティごと完全に跡形もなく削除しました。
-                // これにより、デコーダーはカメラの物理センサーが捉えた「100%全域」を走査します。
-                // 画面（1.8倍ズーム）で見えている領域は、生映像の中心のごく一部に過ぎないため、
-                // 「画面の中のどこに置いても、見切れていても」絶対に読み取り判定がクリティカルヒットします。
+                // 読みこぼし（トランケーション非対応）の原因だった「qrbox」設定を完全抹殺。
+                // デコーダーはカメラの物理センサーが捉えた「100%全域」を走査します。
                 const scanConfig = {
-                    fps: 15, // フルフレーム解析におけるCPUの限界を超えず、かつ爆速感を出せる最適値15fps
+                    fps: 15, // フルフレーム解析において最も安定して高負荷を避ける15fps
                     experimentalFeatures: {
                         useBarCodeDetectorIfSupported: true 
                     },
                     formatsToSupport: formatsConfig
-                    // qrbox は指定しません（完全なフルフレーム解析モードへ移行）
                 };
 
                 let started = false;
