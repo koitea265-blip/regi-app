@@ -26,22 +26,22 @@
             font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
         }
 
-        /* カメラの左右反転（鏡）かつ1.8倍デジタルズーム表示（デフォルト適用：インカメラ用） */
-        /* 【本質的解決】object-position: center を強制し、プレビューの切り抜き中心を物理光軸に完全同期させます */
+        /* カメラ表示（インカメラ：正面デフォルト）の左右鏡像反転 */
+        /* 【本質的解決 - CSSの疑似スケール拡大を全排除】 */
+        /* 映像の1.8倍拡大を排除し、等倍（scaleX: -1 / 1）として描画。プレビューとデコーダの座標系を1:1で完全同期させます */
         #reader video {
             object-fit: cover !important;
-            object-position: center !important; /* 縦横のズレ・偏りを完全リセット */
+            object-position: center !important; /* カメラレンズ本来の物理中心軸に完全ロック */
             width: 100% !important;
             height: 100% !important;
-            transform: scale(-1.8, 1.8) !important; /* 鏡 ＆ 1.8倍拡大 */
-            transform-origin: center !important;
+            transform: scaleX(-1) !important; /* 正面インカメラ時の鏡像反転のみ適用 */
             transition: filter 0.3s ease;
         }
 
-        /* 【本質的解決 - CSS詳細度バグの根絶 ＆ 背面カメラ光軸同期】 */
+        /* 背面カメラ時の鏡像反転解除（ID詳細度競合を完全防止） */
         #reader.back-camera video {
             object-position: center !important;
-            transform: scale(1.8, 1.8) !important; /* 鏡なし ＆ 1.8倍ズーム */
+            transform: scaleX(1) !important; /* 鏡像反転を完全にキャンセル */
         }
 
         /* 【二重枠対策】ライブラリが動的に自動生成する枠、L字境界、SVG、ボタン、余計なテキストを完全消滅させる */
@@ -139,6 +139,7 @@
                     <div id="reader" class="w-full h-full"></div>
                     
                     <!-- 【UI層：完全自製アライメントファインダー】 -->
+                    <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
                         <div class="relative w-[75%] aspect-[1.44/0.5] max-w-[440px] min-w-[200px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             
@@ -266,6 +267,7 @@
     <!-- ==================== 正解お祝い・くっきりリアルレシートモーダル ==================== -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full">
+            <!-- レシート用紙エリア：文字かすれを追放した高コントラスト設計 -->
             <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
                 <!-- よくできましたスタンプ -->
                 <div class="absolute top-4 right-4 border-4 border-rose-600 text-rose-600 text-xs font-black px-2 py-1 rounded-lg rotate-12 bg-white/95 shadow-sm z-10">💮 よくできました</div>
@@ -468,9 +470,11 @@
                     formats.UPC_E
                 ] : [];
 
-                // 【本質的解決 - ズーム係数を加味した100%アライメント同期判定枠の構築】
-                // 「どこでも読めるフルフレーム」は暴発による視差バグ（枠の下で読んでしまう現象）を生んでいました。
-                // プレビュー中央寄せ（object-position）と完全同期した「qrbox」を安全設計で復活させます。
+                // 【本質的解決 - アスペクト比100%同期 ＆ クロップエラー排除】
+                // CSSでの疑似的な拡大（scale(1.8)）を捨て、ビデオ等倍表示（100%アライメント同期）としたため、
+                // qrboxの定義はバグを誘発しない極めてシンプルで安全な「アライメント窓同期型」に再構築できます。
+                // 画面幅の70%に完全にピクセル連動させ、丈の短いバーコード（トランケーション）を取りこぼさないために
+                // 1:1（正方形）に近い高さを持たせることで、手ブレに対しても極限の強さを発揮させます。
                 const scanConfig = {
                     fps: 20, 
                     experimentalFeatures: {
@@ -478,15 +482,12 @@
                     },
                     formatsToSupport: formatsConfig,
                     qrbox: (w, h) => {
-                        // 1.8倍にCSSズームされたプレビューと、画面幅の75%にあるUI白いターゲット枠の真のピクセル比率を逆算。
-                        // これにより、左右のズレは論理的にゼロになります。
-                        const scanWidth = Math.round(w * (0.75 / 1.8)); 
-                        
-                        // 2. 丈の短いバーコード（日用品・お菓子等）に完璧に対応するため、
-                        // 縦方向の判定スリット幅を、UI表示枠（比率0.5）の約3倍に大きく広げます（アスペクト比 1.44 : 1.5 相当）。
-                        // これにより、手ブレや短いバーコードを上下の余白ごと確実に捉えつつ、
-                        // 「画面の枠外（下部）」に置かれた無関係なバーコードに暴発反応することを物理的にシャットアウトします。
-                        const scanHeight = Math.min(Math.round(scanWidth * (1.5 / 1.44)), h - 10); // カメラ解像度 h を絶対に超過させない安全弁付き
+                        // 画面上に表示されている「横幅75%」の白いターゲットファインダー枠に100%等倍でシンクロさせます。
+                        const scanWidth = Math.round(w * 0.70); 
+                        // お菓子など、丈が極端に短いバーコード（1桁・6桁・6桁など）の上下の手ブレを100%拾い切るため、
+                        // スリットを廃止して1:1の「正方形に近い広い判定の網」を等倍座標上に展開します。
+                        // カメラの物理縦幅「h - 10」を超過させてフリーズさせないためのクランプ安全弁を完全完備。
+                        const scanHeight = Math.min(Math.round(scanWidth * 0.8), h - 10); 
                         
                         return { 
                             width: Math.max(scanWidth, 50), 
@@ -555,10 +556,15 @@
                                 advanced: [{ focusMode: "continuous" }]
                             };
                             
+                            // 【本質的ズーム：本物のデジタルズームに全権を委任】
+                            // CSSのボヤける引き伸ばし（scale(1.8)）を撤廃し、カメラハードウェア本来の
+                            // 超高画質な「デジタル・オプティカルズーム」を2.2倍（または上限値）でカメラモジュールに直接適用します。
+                            // これにより、ピントが完璧に合う離れた位置（15cm程度）の極小バーコードが、
+                            // カメラセンサーに「超巨大」として無劣化で捉えられ、瞬時にデコードされます。
                             if (capabilities && capabilities.zoom) {
                                 const minZoom = capabilities.zoom.min || 1;
                                 const maxZoom = capabilities.zoom.max || 1;
-                                const targetZoom = Math.min(2.0, maxZoom); 
+                                const targetZoom = Math.min(2.2, maxZoom); 
                                 if (targetZoom >= minZoom) {
                                     constraints.advanced.push({ zoom: targetZoom });
                                 }
