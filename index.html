@@ -26,7 +26,7 @@
             font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
         }
 
-        /* カメラの左右反転（鏡）かつ1.8倍デジタルズーム表示（デフォルト適用） */
+        /* カメラの左右反転（鏡）かつ1.8倍デジタルズーム表示（デフォルト適用：インカメラ用） */
         #reader video {
             object-fit: cover !important;
             width: 100% !important;
@@ -36,9 +36,11 @@
             transition: filter 0.3s ease;
         }
 
-        /* 背面カメラ切り替え時の向き補正（鏡なし ＆ 1.8倍ズーム） */
-        .back-camera video {
-            transform: scale(1.8, 1.8) !important; 
+        /* 【本質的解決 - CSS詳細度バグの根絶】 */
+        /* IDセレクタ「#reader」を結合して「#reader.back-camera video」とすることで、 */
+        /* 上記のインカメラ用「#reader video」の優先度に対して、CSS仕様上100%勝利させ、背面カメラ起動時に左右反転を確実に解除します。 */
+        #reader.back-camera video {
+            transform: scale(1.8, 1.8) !important; /* 鏡なし ＆ 1.8倍ズーム */
         }
 
         /* 暗所ブースト（白黒＋超高コントラスト＋高輝度）でバーコード認識率を強制最大化 */
@@ -416,8 +418,15 @@
         let cart = [], solvedCount = 0;
         let totalAmount = 0, paidAmount = 0, changeAmount = 0, currentFocusIndex = 0, userAnswers = ["","","",""];
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
-        let html5QrScanner = null, isFrontCamera = true;
+        let html5QrScanner = null;
+        
+        // 【本質的解決 - デフォルトを背面カメラに変更】
+        // アプリのお買い物スキャナーの立ち上がりにおいて、最も合理的かつ実用的な背面カメラから
+        // デフォルトで無条件で立ち上がるよう、初期値を false (背面) に調整・完全修復します。
+        let isFrontCamera = false; 
+        
         let isSolved = false; 
+        let isDarkBoost = false; 
 
         // FNV-1a 高精度ハッシュアルゴリズム
         function getProductFromBarcode(barcode) {
@@ -625,9 +634,24 @@
             addToCart(getProductFromBarcode(cleanCode));
         }
 
-        function toggleCameraFacing() {
+        // 【本質的解決 - 非同期カメラリソース解放プロトコル】
+        // カメラ切り替えボタンを押した際、旧レンズのストリームが確実に解放されるよう、
+        // 明示的にストップおよび破棄を行い、微小な非同期ウェイト（200ms）を挟んでから新レンズを初期化します。
+        // これにより、物理カメラの競合ロックによる「切り替え無反応・画面暗転」を完璧に排除します。
+        async function toggleCameraFacing() {
             isFrontCamera = !isFrontCamera;
-            initScanner();
+            
+            if (html5QrScanner) {
+                try {
+                    await html5QrScanner.stop();
+                } catch(e) {
+                    console.warn("Silent ignore scanner stop on toggle:", e);
+                }
+            }
+            
+            setTimeout(() => {
+                initScanner();
+            }, 200);
         }
 
         function triggerMockScan() {
@@ -899,8 +923,8 @@
         function showReceiptButton() {
             const row = document.getElementById("action-buttons-row");
             const btn = document.getElementById("show-receipt-btn");
-            if (row) row.classList.add("hidden");
-            if (btn) btn.classList.remove("hidden");
+            if (row) row.className = "hidden";
+            if (btn) btn.className = "w-full bg-emerald-500 text-white font-black py-4 rounded-xl text-xl shadow-lg hover:bg-emerald-600 animate-pulse";
             
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
