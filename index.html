@@ -107,25 +107,6 @@
             }
         }
 
-        /* 暗所ブースト時のスキャナーレーザー（暗視風グリーンに変化） */
-        @keyframes laser-sweep-boost {
-            0% { 
-                top: 8%; 
-                opacity: 0.4; 
-                filter: drop-shadow(0 0 1px rgba(16, 185, 129, 0.7));
-            }
-            50% { 
-                top: 92%; 
-                opacity: 1; 
-                filter: drop-shadow(0 0 4px rgba(16, 185, 129, 1)) drop-shadow(0 0 8px rgba(16, 185, 129, 0.8));
-            }
-            100% { 
-                top: 8%; 
-                opacity: 0.4; 
-                filter: drop-shadow(0 0 1px rgba(16, 185, 129, 0.7));
-            }
-        }
-
         .scanning-laser {
             position: absolute;
             left: 0;
@@ -135,11 +116,6 @@
             z-index: 10;
             animation: laser-sweep 2.2s infinite ease-in-out;
             pointer-events: none;
-        }
-
-        .dark-boost-active .scanning-laser {
-            background-color: #10b981 !important;
-            animation: laser-sweep-boost 1.6s infinite ease-in-out; /* 検出サイクルを速めてアライブ感を強化 */
         }
     </style>
 </head>
@@ -158,10 +134,6 @@
                 <h2 class="text-xl font-bold text-gray-700 flex items-center gap-1.5">
                     <span>📸</span> バーコードをスキャンしよう！
                 </h2>
-                <!-- 🌙 くらやみブースト切り替えボタン -->
-                <button id="dark-boost-btn" onclick="toggleDarkBoost()" class="bg-slate-800 hover:bg-slate-900 text-yellow-300 font-bold py-1.5 px-3 rounded-full text-xs flex items-center gap-1 shadow transition">
-                    <span id="dark-boost-icon">🌙</span> <span id="dark-boost-text">くらやみブースト: OFF</span>
-                </button>
             </div>
             
             <div class="relative flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
@@ -446,7 +418,6 @@
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
         let html5QrScanner = null, isFrontCamera = true;
         let isSolved = false; 
-        let isDarkBoost = false; 
 
         // FNV-1a 高精度ハッシュアルゴリズム
         function getProductFromBarcode(barcode) {
@@ -480,27 +451,6 @@
                 initScanner();
             }, 300);
         });
-
-        // 暗所ブースト機能の切り替え
-        function toggleDarkBoost() {
-            isDarkBoost = !isDarkBoost;
-            const container = document.getElementById("scanner-container");
-            const btnText = document.getElementById("dark-boost-text");
-            const btnIcon = document.getElementById("dark-boost-icon");
-            const btn = document.getElementById("dark-boost-btn");
-
-            if (isDarkBoost) {
-                container.classList.add("dark-boost-active");
-                btnText.innerText = "くらやみブースト: ON";
-                btnIcon.innerText = "🌟";
-                btn.className = "bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-1.5 px-3 rounded-full text-xs flex items-center gap-1 shadow transition animate-pulse";
-            } else {
-                container.classList.remove("dark-boost-active");
-                btnText.innerText = "くらやみブースト: OFF";
-                btnIcon.innerText = "🌙";
-                btn.className = "bg-slate-800 hover:bg-slate-900 text-yellow-300 font-bold py-1.5 px-3 rounded-full text-xs flex items-center gap-1 shadow transition";
-            }
-        }
 
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
@@ -541,9 +491,7 @@
                 // 安全弁：グローバル変数がなければライブラリ内からサポートフォーマット定数を探す
                 const formats = window.Html5QrcodeSupportedFormats || (window.Html5Qrcode ? Html5Qrcode.SupportedFormats : null);
                 
-                // 【戦略的最適化 - 日本の流通バーコードに再び特化】
-                // 探索するフォーマットを、日本の流通商品で使われる一般的な規格（EAN-13, EAN-8, UPC）に厳格に制限。
-                // これによりCPU/GPUの毎フレームのデコード計算量が激減し、スキャン速度が劇的に向上します。
+                // 探索するフォーマットを、日本の流通商品で使われる EAN-13, EAN-8, UPC に厳格に制限。
                 const formatsConfig = formats ? [
                     formats.EAN_13,
                     formats.EAN_8,
@@ -558,9 +506,15 @@
                     },
                     formatsToSupport: formatsConfig, // JANに完全に特化した探索空間の制限
                     qrbox: (w, h) => {
-                        // 判定領域（qrbox）はバーコードの縦線を十分に拾えるよう、大きく広く（正方形に近く）確保します。
-                        const scanWidth = Math.max(Math.min(w * 0.85, 600), 280);
-                        const scanHeight = Math.round(scanWidth * 0.85);
+                        // 【本質的解決 - 判定ピクセル密度の極大化】
+                        // 小さいバーコードが読めないのは、スキャン領域（qrbox）が広すぎて、縞模様の線のパターンが
+                        // クロップされた画像全体のピクセルの中に埋もれて潰れてしまう（解像度不足になる）からです。
+                        // 判定領域を、UIで表示されている極細スリット（1.44 : 0.5）に近いサイズにまでギュッと絞り込みます。
+                        // 横幅は画面の 70%、縦幅は「1.44 : 0.5」の比率より少しだけ余裕を持たせた縦横比「約 1.44 : 0.6」にします。
+                        // これにより、デコーダーエンジンに送られる部分画像の解像度密度が物理的に数倍に高まります。
+                        const scanWidth = Math.max(Math.min(w * 0.7, 440), 200);
+                        const scanHeight = Math.round(scanWidth * 0.6 / 1.44); // 縦幅を薄く絞ることで、バーコードパターンを縦に解像させる
+                        
                         return { 
                             width: Math.max(scanWidth, 50), 
                             height: Math.max(scanHeight, 50) 
@@ -571,32 +525,61 @@
                 let started = false;
                 
                 try {
-                    // フェーズ1: 向き指定で起動
-                    await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
+                    // フェーズ1: 向き指定で起動。小さいバーコードをクリアに解像するため、Full HD (1920x1080) を理想値として要求
+                    const highResConfig = { ...scanConfig };
+                    highResConfig.videoConstraints = {
+                        width: { min: 640, ideal: 1920, max: 1920 },
+                        height: { min: 480, ideal: 1080, max: 1080 },
+                        focusMode: "continuous",
+                        exposureMode: "continuous"
+                    };
+                    await html5QrScanner.start({ facingMode: facingMode }, highResConfig, onScanSuccess);
                     started = true;
                 } catch (err1) {
-                    console.warn("facingMode start failed, trying manual camera list fallback:", err1);
-                    // フェーズ2: デバイス固有エラーを避けるため、デバイスに接続されたカメラIDで直叩き
-                    const cameras = await Html5Qrcode.getCameras();
-                    if (cameras && cameras.length > 0) {
-                        const camId = isFrontCamera ? cameras[0].id : cameras[cameras.length - 1].id;
-                        await html5QrScanner.start(camId, scanConfig, onScanSuccess);
+                    console.warn("facingMode high-res start failed, trying standard-res fallback:", err1);
+                    try {
+                        // フェーズ2: 標準画質でのフォールバック
+                        await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
                         started = true;
+                    } catch (err2) {
+                        console.warn("facingMode start failed, trying manual camera list fallback:", err2);
+                        // フェーズ3: デバイス固有エラーを避けるため、デバイスに接続されたカメラIDで直叩き
+                        const cameras = await Html5Qrcode.getCameras();
+                        if (cameras && cameras.length > 0) {
+                            const camId = isFrontCamera ? cameras[0].id : cameras[cameras.length - 1].id;
+                            await html5QrScanner.start(camId, scanConfig, onScanSuccess);
+                            started = true;
+                        }
                     }
                 }
 
                 if (started) {
                     container.classList.add("hidden");
-                    // オートフォーカスの適用
+                    // 起動成功後、オートフォーカスおよび「ハードウェア・デジタルズーム」の適用を試みる
                     try {
                         if (html5QrScanner && typeof html5QrScanner.applyVideoConstraints === 'function') {
-                            await html5QrScanner.applyVideoConstraints({
+                            const capabilities = html5QrScanner.getRunningTrackCapabilities();
+                            const constraints = {
                                 focusMode: "continuous",
                                 advanced: [{ focusMode: "continuous" }]
-                            });
+                            };
+                            
+                            // 物理レンズがピンボケを起こさない最短撮影距離（15cm程度）を保ったまま、
+                            // 小さいバーコードを物理センサーに大きく捉えさせるため、
+                            // ハードウェア側がズームに対応していれば、自動的に「2倍デジタルズーム」をカメラモジュールに強制要求します。
+                            if (capabilities && capabilities.zoom) {
+                                const minZoom = capabilities.zoom.min || 1;
+                                const maxZoom = capabilities.zoom.max || 1;
+                                const targetZoom = Math.min(2.0, maxZoom); // 2倍、または最大ズームの低い方をターゲットにする
+                                if (targetZoom >= minZoom) {
+                                    constraints.advanced.push({ zoom: targetZoom });
+                                }
+                            }
+                            
+                            await html5QrScanner.applyVideoConstraints(constraints);
                         }
                     } catch (e) {
-                        console.warn("Auto focus adjustment skipped:", e);
+                        console.warn("Camera physical optimization skipped:", e);
                     }
                 } else {
                     throw new Error("No camera started.");
