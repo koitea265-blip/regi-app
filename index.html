@@ -464,25 +464,16 @@
                 ] : [];
 
                 const scanConfig = {
-                    fps: 20, 
+                    // 【戦略的最適化 - 全画面フルフレーム解析のための負荷低減】
+                    fps: 10, // qrboxを廃止して全画面を解析するため、CPUの限界を超えないよう10fps（0.1秒ごとの判定）に抑制します。
                     experimentalFeatures: {
                         useBarCodeDetectorIfSupported: true 
                     },
-                    formatsToSupport: formatsConfig,
-                    qrbox: (w, h) => {
-                        // 【本質的解決 - 判定領域の縦軸拡張（トランケーション対応）】
-                        // UIの見た目上の横長スリット（1.44 : 0.5）に厳密に合わせるのをやめました。
-                        // バーの背が低い（1桁 6桁 6桁 等のデザイン）バーコードに対応するため、
-                        // 横幅の解像度密度（41.6%）は維持しつつ、縦幅を横幅と同一（正方形）まで大きく広げます。
-                        // これにより、手ブレや斜めの傾き、背の低いバーコードのすべてを走査線が確実にヒットします。
-                        const scanWidth = Math.round(w * (0.75 / 1.8)); // 画面枠比率(75%)とCSSズーム率(1.8倍)から横幅を同期計算
-                        const scanHeight = scanWidth; // 【変更点】縦幅を横長に絞るのをやめ、正方形の巨大な「網」を展開する
-                        
-                        return { 
-                            width: Math.max(scanWidth, 50), 
-                            height: Math.max(scanHeight, 50) 
-                        };
-                    }
+                    formatsToSupport: formatsConfig
+                    // 【本質的解決 - 判定領域（qrbox）の完全撤廃】
+                    // 丈の短いトランケーションバーコードを確実に読み取るため、ケチな「切り抜き」処理を完全に捨てました。
+                    // 画面に表示されているL字の枠は「ただの飾り」となり、裏側のシステムは
+                    // 手ブレしようが枠を外れようが、カメラが捉えた「全領域」を容赦なく解析してデコードします。
                 };
 
                 let started = false;
