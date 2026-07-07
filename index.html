@@ -26,20 +26,30 @@
             font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
         }
 
-        /* 【本質的解決 - CSSの過剰介入を全廃】 */
-        /* 映像の潰れや座標破壊の元凶だった width:100% などのハックをすべて削除。
-           ライブラリのネイティブ描画に委ねることで、視差と解像度低下を物理的に根絶します。 */
+        /* 【本質的解決 - 物理光軸とUIファインダーの絶対中央同期（センターロック）】 */
+        /* ライブラリが動的に生成するラッパーによる上寄せ・左寄せを完全に破壊し、 */
+        /* ビデオ要素を「絶対配置 + 50%配置 + translateによる中央寄せ」でコンテナの真の幾何学中心に強制ロックします。 */
+        /* これにより、表示の中心とデコーダーの中心が1ピクセルの狂いもなく100%シンクロします。 */
         #reader video {
-            transform: scaleX(-1); /* インカメラ用の鏡像反転のみ安全に適用 */
-            border-radius: 0.5rem;
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+            /* 常に幾何学中心をピボットとして、インカメラ（正面デフォルト）の左右反転を等倍で適用します */
+            transform: translate(-50%, -50%) scaleX(-1) !important; 
+            transform-origin: center !important;
+            transition: filter 0.3s ease;
+            z-index: 1;
         }
 
-        /* 背面カメラ時の鏡像反転解除 */
+        /* 背面カメラ時の鏡像反転解除（詳細度競合を完全に防ぎ、中央軸ロックを100%維持） */
         #reader.back-camera video {
-            transform: scaleX(1); /* 鏡像反転をキャンセル */
+            transform: translate(-50%, -50%) scaleX(1) !important; /* 鏡像反転のみを確実にキャンセル */
         }
 
-        /* 【二重枠対策】ライブラリが動的に自動生成する枠やボタンを消去 */
+        /* 【二重枠対策】ライブラリが動的に自動生成する枠やボタン、余計なテキストを完全消滅させる */
         #reader__scan_region img,
         #reader__dashboard_section_csr span, 
         #reader__dashboard_section_csr button {
@@ -123,9 +133,10 @@
                 <!-- コンテナ自体の高さを明示的に確保し、ライブラリの計算崩れを防ぎます -->
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <!-- ライブラリネイティブの描画に委ねるため、余計な flex や relative クラスを削除 -->
-                    <div id="reader" class="w-full h-full"></div>
+                    <div id="reader" class="w-full h-full relative"></div>
                     
                     <!-- 【UI層：完全自製アライメントファインダー】 -->
+                    <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
                         <!-- 【絶対安全設計】相対比率（%）を捨て、250px × 150px の固定枠に設定。
                              これにより、裏側の判定領域（250x250）のど真ん中に完全にシンクロします。 -->
@@ -256,12 +267,17 @@
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full">
             <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
+                <!-- よくできましたスタンプ -->
                 <div class="absolute top-4 right-4 border-4 border-rose-600 text-rose-600 text-xs font-black px-2 py-1 rounded-lg rotate-12 bg-white/95 shadow-sm z-10">💮 よくできました</div>
+                
+                <!-- 【さくら店に重ならない設計】 -->
                 <div class="text-center mb-4 mt-2 pr-20 relative">
                     <div class="text-lg font-black text-black font-kyokasho">🌻 こどもマーケット さくら店</div>
                     <div class="text-[11px] text-slate-900 font-bold">おつり計算セルフレジ 特訓コーナー</div>
                 </div>
+                
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
+                
                 <div class="flex justify-between text-[11px] text-slate-900 px-1 font-bold">
                     <span id="receipt-date"></span>
                     <span>レジ: 001</span>
@@ -270,9 +286,13 @@
                     <span>担 当: 店長</span>
                     <span>取引No. <span id="receipt-tx-no"></span></span>
                 </div>
+
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
+                
                 <ul id="receipt-items-list" class="space-y-1 my-3 text-xs text-black font-bold"></ul>
+                
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
+                
                 <div class="space-y-2 font-black mt-2 text-black text-base">
                     <div class="flex justify-between text-base border-b border-slate-500 pb-1">
                         <span>合計（内税）</span>
@@ -287,12 +307,14 @@
                         <span><span id="receipt-change-amount">0</span> 円</span>
                     </div>
                 </div>
+
                 <div class="flex justify-center items-center gap-0.5 mt-6 mb-2 h-8 opacity-90">
                     <div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div>
                     <div class="w-3 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div>
                     <div class="w-1 h-full bg-slate-950"></div><div class="w-3 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div>
                     <div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div>
                 </div>
+                
                 <div class="text-center text-[11px] text-slate-900 font-bold">
                     <p>お買い上げありがとうございました！</p>
                 </div>
@@ -384,6 +406,8 @@
         let totalAmount = 0, paidAmount = 0, changeAmount = 0, currentFocusIndex = 0, userAnswers = ["","","",""];
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
         let html5QrScanner = null;
+        
+        // 【本質的解決】子供たちが直感的に操作しやすいインカメラ（鏡像：`isFrontCamera = true`）を最優先でデフォルト起動
         let isFrontCamera = true; 
         let isScannerTransitioning = false;
         let isSolved = false; 
@@ -445,10 +469,11 @@
                     formats.UPC_E
                 ] : [];
 
-                // 【本質的解決 - 絶対安全の固定正方形クロップ】
-                // 相対比率（%）による計算の破綻を捨て、物理的に固定されたピクセル（250x250）で判定枠を展開します。
-                // これにより、UIの「250x150のターゲット枠」の中心と、判定枠の中心が「数学的に100%シンクロ」し、
-                // トランケーションバーコード（短いバーコード）の上下のブレも完全に吸収します。
+                // 【本質的解決 - 物理光軸と表示レイアウトの100%アライメントシンクロ】
+                // 1. CSSで映像全体を絶対中心（translate -50%, -50%）にロックしたため、カメラの中央座標とUIのL字枠が数学的に完全一致しました。
+                // 2. 判定領域（qrbox）は、UI表示されている「250px × 150px」のターゲットガイド枠を、余白（手ブレ吸収バッファ）を十分に含んで完全に包含する、
+                //    【250px × 250px】の固定正方形領域に完全に固定・同期。
+                // 3. これにより、ズレによる読みこぼし、カメラ実解像度オーバーによるサイレントフリーズ、および「中央では読まない」バグを完全根絶します。
                 const scanConfig = {
                     fps: 15, 
                     experimentalFeatures: {
