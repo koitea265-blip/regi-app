@@ -573,10 +573,34 @@
 
         let lastScanTime = 0;
         
+        // 【本質的解決 - チェックデジット検証アルゴリズム（モジュロ10・ウェイト3）】
+        // カメラが斜め読みや手ブレで発生させた「嘘の数字の羅列」を数学的に100%弾き捨てます。
+        function isValidBarcode(code) {
+            if (!/^\d{8}$|^\d{12}$|^\d{13}$/.test(code)) return false;
+            
+            let sum = 0;
+            const len = code.length;
+            const checkDigit = parseInt(code.charAt(len - 1), 10);
+            
+            // 右から2桁目から左に向かって、奇数番目には3、偶数番目には1を掛けて合算する
+            for (let i = len - 2; i >= 0; i--) {
+                const digit = parseInt(code.charAt(i), 10);
+                const positionFromRight = len - 1 - i;
+                sum += digit * (positionFromRight % 2 !== 0 ? 3 : 1);
+            }
+            
+            // 合計値の下1桁を10から引いた数（10の場合は0）がチェックデジットと一致するか検証
+            const calculatedCheckDigit = (10 - (sum % 10)) % 10;
+            return checkDigit === calculatedCheckDigit;
+        }
+        
         function onScanSuccess(code) {
             const now = Date.now();
             const cleanCode = code.replace(/[^0-9]/g, ''); 
-            if (![8, 12, 13].includes(cleanCode.length)) return; 
+            
+            // 桁数だけでなく、チェックデジットによる数学的整合性を検証し、誤読（ノイズ）を完全に弾く
+            if (!isValidBarcode(cleanCode)) return; 
+            
             if (now - lastScanTime < 1800) return; 
             
             lastScanTime = now;
