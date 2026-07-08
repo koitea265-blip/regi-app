@@ -43,17 +43,17 @@
             object-fit: cover !important;
             object-position: center !important;
             /* 【黄金のオフセット調整】
-               ご指定の通り、映像を物理的に「下に90px下げる（translateY(90px)）」ことで、
+               ご指定の通り、映像を物理的に「下に120px下げる（translateY(120px)）」ことで、
                画面上の白いファインダー枠と、カメラ本来のスキャン感度が最も強い『物理中心光軸』を完全同期させました。
                インカメラ（正面デフォルト）用の左右の鏡像反転（scaleX(-1)）も同時に維持します。 */
-            transform: translateY(90px) scaleX(-1) !important; 
+            transform: translateY(120px) scaleX(-1) !important; 
             transform-origin: center !important;
             transition: filter 0.3s ease;
         }
 
-        /* 背面カメラ起動時：鏡像反転のみを確実にキャンセルし、下方へのオフセット（translateY(90px)）と等倍カバー描画を強固に維持する */
+        /* 背面カメラ起動時：鏡像反転のみを確実にキャンセルし、下方へのオフセット（translateY(120px)）と等倍カバー描画を強固に維持する */
         #reader.back-camera video {
-            transform: translateY(90px) scaleX(1) !important; 
+            transform: translateY(120px) scaleX(1) !important; 
         }
 
         /* 【二重枠対策】ライブラリが動的に自動生成する不要なUIボタンや動的生成テキストを排除 */
@@ -478,7 +478,6 @@
                     }
                 }
 
-                // 【本質的解決 - 狂った切り抜き座標計算（qrbox）を完全に抹殺】
                 const scanConfig = {
                     fps: 15, 
                     formatsToSupport: formatsConfig,
@@ -539,7 +538,6 @@
                                 advanced: [{ focusMode: "continuous" }]
                             };
                             
-                            // カメラモジュール自体の物理光学デジタルズームを適用
                             if (capabilities && capabilities.zoom) {
                                 const minZoom = capabilities.zoom.min || 1;
                                 const maxZoom = capabilities.zoom.max || 1;
@@ -849,9 +847,6 @@
         function showReceiptButton() {
             const row = document.getElementById("action-buttons-row");
             const btn = document.getElementById("show-receipt-btn");
-            // 【本質的解決 - 破壊的代入の全廃】
-            // classNameの直接代入によるレイアウト情報の破壊をやめ、状態（hidden）のみを安全に付け外しします。
-            // これにより2回目以降のループでも「flex w-full gap-2」などの構造が完璧に保護されます。
             if (row) row.classList.add("hidden");
             if (btn) btn.classList.remove("hidden");
             
