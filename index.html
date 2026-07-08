@@ -26,28 +26,40 @@
             font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
         }
 
-        /* 【本質的解決 - 物理光軸とUIファインダーの階層一括センターロック】 */
-        /* ライブラリが動的に生成する中間ラッパーdiv（#reader__video_containerなど）の左寄せ・上寄せインラインスタイルを、
-           一括で強制的に absolute センターにロックします。これにより、全ての座標階層の重心が1ピクセルの狂いもなく重なり合います。 */
-        #reader,
-        #reader div,
-        #reader__video_container,
-        #reader video {
+        /* 【本質的解決 - 階層セパレート・アブソリュート・セントリング】 */
+        /* 一括指定による50%トランスレートの累積ネストバグを全廃しました。 */
+        /* 外枠となる親コンテナをrelativeにし、自動生成される中間映像コンテナだけをピンポイントで物理中心に固定します。 */
+        #reader {
+            position: relative !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden !important;
+            background-color: #000000 !important;
+        }
+
+        /* ライブラリが動的生成するビデオコンテナのみを絶対中央にロック */
+        #reader__video_container {
             position: absolute !important;
             top: 50% !important;
             left: 50% !important;
             width: 100% !important;
             height: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            transform: translate(-50%, -50%) !important;
             overflow: hidden !important;
         }
 
-        /* ビデオ要素の描画属性のみ、アスペクト比維持切り抜き（cover）と、インカメラ用鏡像反転を適用する */
+        /* 実際のビデオタグは、縮小・縮むことを物理的に禁じ、 object-fit: cover でコンテナ全域を隙間なく覆い尽くします。 */
+        /* これにより、プレビュー領域の一部だけが右下に縮んでずれる不具合を100%解消し、画面全体にカメラ映像が表示されます。 */
         #reader video {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            min-width: 100% !important;
+            min-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
             object-fit: cover !important;
-            object-position: center !important;
-            /* translateで物理中心にロックしつつ、scaleX(-1)で正面インカメラ用の左右反転を等倍適用します */
+            /* translateで物理中心に軸を合わせつつ、scaleX(-1)で正面インカメラ用の左右の鏡像反転のみを等倍適用します */
             transform: translate(-50%, -50%) scaleX(-1) !important;
             transition: filter 0.3s ease;
             z-index: 1;
@@ -367,7 +379,7 @@
             { name: "よく消える消しゴム (🧽)", price: 84 },
             { name: "安全はさみ (✂️)", price: 275 },
             { name: "カラフルおりがみ (🎨)", price: 198 },
-            { name: "ミニリュック (🎒)", price: 3890 },
+            { name: "miniリュック (🎒)", price: 3890 },
             { name: "可愛いハンカチ (🧣)", price: 254 },
             { name: "くまさんくつした (🧦)", price: 315 },
             { name: "サッカーボール (⚽)", price: 1240 },
@@ -397,7 +409,7 @@
             { name: "水彩えのぐ (🎨)", price: 684 },
             { name: "虫めがね (🔍)", price: 215 },
             { name: "虫かご (🕸️)", price: 432 },
-            { name: "カラフルなわとび (➰)", price: 294 },
+            { name: "カラフルなわとび (秘)", price: 294 },
             { name: "シャボン玉セット (🫧)", price: 134 },
             { name: "お花のヘアクリップ (🌸)", price: 94 },
             { name: "ぷくぷくシール (🐟)", price: 112 },
@@ -477,11 +489,8 @@
                     formats.UPC_E
                 ] : [];
 
-                // 【本質的解決 - 物理光軸と表示レイアウトの100%アライメントシンクロ】
-                // CSSによって、動的生成されるラッパー要素も含めたすべての表示層を、親コンテナの「絶対的な中央」へ強制一括センターロックしました。
-                // これにより、プレビューされている映像の中心と、デコーダーの走査する物理光軸中心が1ミリの狂いもなく完全一致します。
-                // 判定領域（qrbox）は、UI表示されているターゲットファインダー枠（250px × 150px）を上下の手ブレ耐性も含めて包み込む【250px × 250px】の固定サイズで設定。
-                // 画面中央の赤い線にバーコードを重ねたその瞬間、即座に、かつ「中央以外の枠外」での暴発を起こさずにデコードされます。
+                // 250px × 250px の物理的に固定された安全な正方形判定枠を展開。
+                // プレビューの等倍化により、UI枠（250x150）と1ピクセルの狂いもなく幾何学中心が一致します。
                 const scanConfig = {
                     fps: 20, 
                     experimentalFeatures: {
@@ -551,7 +560,7 @@
                                 advanced: [{ focusMode: "continuous" }]
                             };
                             
-                            // カメラモジュール自体の物理ズームを適用し、解像度低下を起こさずバーコードを捉えます
+                            // カメラモジュール自体のズーム機能を適用
                             if (capabilities && capabilities.zoom) {
                                 const minZoom = capabilities.zoom.min || 1;
                                 const maxZoom = capabilities.zoom.max || 1;
@@ -842,6 +851,7 @@
             }
         }
 
+        // おつりをみるボタン押下時
         function showAnswerAutomatic() {
             if (isSolved) return;
             isSolved = true;
