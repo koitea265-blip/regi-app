@@ -43,17 +43,17 @@
             object-fit: cover !important;
             object-position: center !important;
             /* 【黄金のオフセット調整】
-               ご指定の通り、映像を物理的に「下に30px下げる（translateY(30px)）」ことで、
+               ご指定の通り、映像を物理的に「下に90px下げる（translateY(90px)）」ことで、
                画面上の白いファインダー枠と、カメラ本来のスキャン感度が最も強い『物理中心光軸』を完全同期させました。
                インカメラ（正面デフォルト）用の左右の鏡像反転（scaleX(-1)）も同時に維持します。 */
-            transform: translateY(30px) scaleX(-1) !important; 
+            transform: translateY(90px) scaleX(-1) !important; 
             transform-origin: center !important;
             transition: filter 0.3s ease;
         }
 
-        /* 背面カメラ起動時：鏡像反転のみを確実にキャンセルし、下方へのオフセット（translateY(30px)）と等倍カバー描画を強固に維持する */
+        /* 背面カメラ起動時：鏡像反転のみを確実にキャンセルし、下方へのオフセット（translateY(90px)）と等倍カバー描画を強固に維持する */
         #reader.back-camera video {
-            transform: translateY(30px) scaleX(1) !important; 
+            transform: translateY(90px) scaleX(1) !important; 
         }
 
         /* 【二重枠対策】ライブラリが動的に自動生成する不要なUIボタンや動的生成テキストを排除 */
@@ -849,8 +849,11 @@
         function showReceiptButton() {
             const row = document.getElementById("action-buttons-row");
             const btn = document.getElementById("show-receipt-btn");
-            if (row) row.className = "hidden";
-            if (btn) btn.className = "w-full bg-emerald-500 text-white font-black py-4 rounded-xl text-xl shadow-lg hover:bg-emerald-600 animate-pulse";
+            // 【本質的解決 - 破壊的代入の全廃】
+            // classNameの直接代入によるレイアウト情報の破壊をやめ、状態（hidden）のみを安全に付け外しします。
+            // これにより2回目以降のループでも「flex w-full gap-2」などの構造が完璧に保護されます。
+            if (row) row.classList.add("hidden");
+            if (btn) btn.classList.remove("hidden");
             
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
