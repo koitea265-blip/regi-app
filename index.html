@@ -12,22 +12,23 @@
     <!-- Tone.js (バージョン 14.8.49 に固定) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     
-    <!-- Google Fonts -->
+    <!-- Google Fonts 丸ゴシック体を導入 -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
 
     <style>
-        /* 基本UI：かわいい丸ゴシック系 */
+        /* 基本UI：親しみやすく読みやすい丸ゴシック系 */
         body, button, input, p, h1, h2, h3, h4, span {
             font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
         }
 
-        /* 筆算エリア・レシート：正確なゴシック・丸ゴシックを最優先で適用し、かすれを完全防止 */
+        /* 筆算エリア・レシート：文字かすれや解像度バグを防ぐため、端末の標準丸ゴシック・ゴシックを最優先 */
         .font-kyokasho, #calculation-grid .graph-cell, [id^="ans-box-"] {
             font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
         }
 
-        /* 【本質的かつ絶対的解決 - 物理光軸を読み取り枠の大きさ分だけ『下に下げる』補正】 */
-        /* 親コンテナ全体のアスペクト比を破壊せず、100%等倍で映像を隙間なく表示させます */
+        /* 【本質的解決 - 物理座標とUIの絶対同軸】 */
+        /* 無理に位置をずらす translateY などのハックをすべて廃止しました。 */
+        /* ビデオはコンテナの中央に等倍で綺麗に配置（object-fit: cover）され、走査の中心軸が画面中央と完全に一致します。 */
         #reader {
             width: 100% !important;
             height: 100% !important;
@@ -36,27 +37,46 @@
             background-color: #000000 !important;
         }
 
-        /* 実際のビデオタグは、 object-fit: cover によってコンテナ全域を歪みなく満たします */
+        /* ライブラリが動的生成するビデオタグを object-fit: cover でコンテナ全域にフィットさせます */
         #reader video {
             width: 100% !important;
             height: 100% !important;
             object-fit: cover !important;
             object-position: center !important;
-            /* 【黄金のオフセット調整】
-               ご指定の通り、映像を物理的に「下に120px下げる（translateY(120px)）」ことで、
-               画面上の白いファインダー枠と、カメラ本来のスキャン感度が最も強い『物理中心光軸』を完全同期させました。
-               インカメラ（正面デフォルト）用の左右の鏡像反転（scaleX(-1)）も同時に維持します。 */
-            transform: translateY(120px) scaleX(-1) !important; 
+            /* 物理的な移動（translateY）は一切行わず、正面カメラの左右反転（鏡像）のみを等倍適用 */
+            transform: scaleX(-1) !important; 
             transform-origin: center !important;
             transition: filter 0.3s ease;
         }
 
-        /* 背面カメラ起動時：鏡像反転のみを確実にキャンセルし、下方へのオフセット（translateY(120px)）と等倍カバー描画を強固に維持する */
+        /* 背面カメラ起動時：鏡像反転のみを確実にキャンセルし、等倍プレビューを強固に維持 */
         #reader.back-camera video {
-            transform: translateY(120px) scaleX(1) !important; 
+            transform: scaleX(1) !important; 
         }
 
-        /* 【二重枠対策】ライブラリが動的に自動生成する不要なUIボタンや動的生成テキストを排除 */
+        /* 【二重枠・邪魔なマスクの完全抹殺】 */
+        /* html5-qrcodeが qrbox 設定時に動的に強制描画する「不格好でズレたL字角枠」や「黒い半透明マスク（シェード）」を、 */
+        /* CSSの強力な属性・クラス指定で100%完全に非表示（display: none）に封じ込めます。 */
+        .qrbox-border, 
+        [id$="__border"], 
+        [class*="qrbox-border"],
+        #reader__scan_region > div > div,
+        div[style*="border-style"],
+        div[style*="border-color"],
+        div[style*="border-width"],
+        div[style*="background-color: rgba(0, 0, 0, 0.48)"],
+        div[style*="background-color:rgba(0, 0, 0, 0.48)"] {
+            display: none !important;
+            border: none !important;
+            border-width: 0px !important;
+            box-shadow: none !important;
+            width: 0px !important;
+            height: 0px !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+
+        /* 不要な動的生成テキストやボタンも一括非表示 */
         #reader__scan_region img,
         #reader__dashboard_section_csr span, 
         #reader__dashboard_section_csr button,
@@ -131,11 +151,13 @@
 </head>
 <body class="h-screen flex flex-col select-none bg-slate-50 no-select">
 
+    <!-- ヘッダー -->
     <header class="bg-emerald-600 text-white p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
         <h1 class="text-2xl font-bold flex items-center gap-2">🛒 セルフレジでおかいけいしよう</h1>
         <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold">たのしいお買い物＆ひっ算おつり計算</span>
     </header>
 
+    <!-- メインコンテンツ -->
     <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden min-h-0">
         
         <!-- 左：スキャンエリア -->
@@ -149,13 +171,14 @@
             <div class="relative flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <!-- コンテナ自体のサイズを強固に保ち、ライブラリの計算崩れを防ぐ -->
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
-                    <!-- #reader は等倍かつ親に完全追従させ、バグを生む中間要素の絶対座標指定を一切行いません -->
+                    <!-- #reader は等倍かつ親に完全追従させ、バグを生む中間要素の絶対座標指定を排除 -->
                     <div id="reader" class="w-full h-full relative"></div>
                     
                     <!-- 【UI層：完全自製アライメントファインダー】 -->
                     <!-- 外側を半透明のSlate色で暗転させ、中央に完璧に 1.44 : 0.5 のアスペクト窓をくり抜く（見た目専用） -->
+                    <!-- 【絶対安全設計】サイズを 250px × 150px の固定に統一したことで、裏のqrbox判定エリアと完全同一座標にシンクロします -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                        <div class="relative w-[75%] aspect-[1.44/0.5] max-w-[440px] min-w-[200px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
+                        <div class="relative w-[250px] h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             
                             <!-- 白いL字の4隅フレーム -->
                             <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
@@ -225,7 +248,7 @@
             </div>
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
-                <!-- Left: Paint box -->
+                <!-- 左：ひっ算エリア -->
                 <div class="flex flex-col gap-2 w-full max-w-[340px] mx-auto">
                     <div class="relative w-full flex items-center justify-between bg-white px-3 py-1.5 rounded-lg shadow-sm border border-sky-100">
                         <div class="flex items-center gap-2">
@@ -246,7 +269,7 @@
                     </div>
                 </div>
 
-                <!-- Right: Ten-key pad -->
+                <!-- 右：10キー -->
                 <div class="flex-1 flex flex-col justify-center items-center max-w-sm mx-auto w-full">
                     <div class="grid grid-cols-3 gap-2 w-full font-kyokasho">
                         <button onclick="pressKey(7)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">7</button>
@@ -340,6 +363,7 @@
         </div>
     </div>
 
+    <!-- JavaScript ロジック -->
     <script>
         const dummyProducts = [
             { name: "りんご (🍎)", price: 124 },
@@ -427,6 +451,7 @@
         let isScannerTransitioning = false;
         let isSolved = false; 
 
+        // FNV-1a 高精度ハッシュアルゴリズム
         function getProductFromBarcode(barcode) {
             let hash = 2166136261;
             for (let i = 0; i < barcode.length; i++) {
@@ -478,8 +503,13 @@
                     }
                 }
 
+                // 【物理同一化の確約：250px × 150px の完璧なピクセル接着】
+                // 自作のUIターゲットL字枠と完全に同一サイズ（250x150）で判定空間を指定。
+                // これにより、画面のど真ん中に判定の中心点が吸い込まれるようにロックされます。
+                // カメラ映像のフリーズ（CPU過負荷）を引き起こす全画面スキャンを完全に廃止しました。
                 const scanConfig = {
                     fps: 15, 
+                    qrbox: { width: 250, height: 150 },
                     formatsToSupport: formatsConfig,
                     experimentalFeatures: { useBarCodeDetectorIfSupported: true }
                 };
@@ -538,6 +568,7 @@
                                 advanced: [{ focusMode: "continuous" }]
                             };
                             
+                            // カメラモジュール自体の物理ズームを適用（1.5倍にマイルド設定し、最短撮影距離ボケを完全に抑止）
                             if (capabilities && capabilities.zoom) {
                                 const minZoom = capabilities.zoom.min || 1;
                                 const maxZoom = capabilities.zoom.max || 1;
@@ -600,7 +631,6 @@
             
             // 桁数だけでなく、チェックデジットによる数学的整合性を検証し、誤読（ノイズ）を完全に弾く
             if (!isValidBarcode(cleanCode)) return; 
-            
             if (now - lastScanTime < 1800) return; 
             
             lastScanTime = now;
@@ -871,6 +901,8 @@
         function showReceiptButton() {
             const row = document.getElementById("action-buttons-row");
             const btn = document.getElementById("show-receipt-btn");
+            // 【本質的解決 - 破壊的代入の全廃】
+            // classNameの直接代入によるレイアウト情報の破壊を完全に防止
             if (row) row.classList.add("hidden");
             if (btn) btn.classList.remove("hidden");
             
