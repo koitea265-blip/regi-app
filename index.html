@@ -407,8 +407,11 @@
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
         let html5QrScanner = null;
         
-        // 【極めて重要】スマホ起動時にオートフォーカスが作動し、最高精度でスキャンが可能な「背面カメラ」最優先
-        let isFrontCamera = false; 
+        // デバイスがPCかスマホかをユーザーエージェントと横幅から判別
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
+        
+        // PCなら前カメラ（鏡像：左右感覚が合うため）を優先、スマホなら背面カメラ（1Dスキャン精度向上のため）を優先
+        let isFrontCamera = !isMobile; 
         let isScannerTransitioning = false;
         let isSolved = false; 
 
@@ -449,13 +452,12 @@
                     try { await html5QrScanner.stop(); } catch (e) {}
                 }
 
-                // 【バグ回避の極み】不完全なスマホネイティブバーコードAPI（Chrome/Safariの実験用API）を使わせず
-                // 100%信頼できるデコードエンジン(ZXing)で強制処理。これでスマホでの読み取り率が天文学的に跳ね上がります。
+                // 【バグ回避】不完全なスマホネイティブバーコードAPIを使わせず、100%信頼できるデコードエンジン(ZXing)で強制処理。
                 html5QrScanner = new Html5Qrcode("reader", { useBarCodeDetectorIfSupported: false });
                 
                 const facingMode = isFrontCamera ? "user" : "environment";
                 const formats = window.Html5QrcodeSupportedFormats || Html5Qrcode.SupportedFormats;
-                // サポートする形式を、スマホ処理を極限まで軽くするために1Dバーコード（JAN）系に完璧に制限
+                // サポートする形式をJANバーコードに最適化してデコード効率を最大化
                 const formatsConfig = formats ? [formats.EAN_13, formats.EAN_8, formats.UPC_A, formats.UPC_E] : [];
 
                 const readerDiv = document.getElementById("reader");
@@ -475,7 +477,7 @@
                 };
                 
                 try {
-                    // ピュアなfacingMode指定のみでエラーを完全排除
+                    // ピュアなfacingMode指定でエラーを完全排除し、デバイスに応じた初期カメラを立ち上げる
                     await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
                     container.classList.add("hidden");
                 } catch (err1) {
@@ -916,6 +918,19 @@
                 canvas.height = c.offsetHeight; 
             } else {
                 setTimeout(resizeCanvas, 50);
+            }
+        }
+
+        function setPenColor(color) {
+            penColor = color;
+            document.getElementById("btn-pen-red").className = color === '#ef4444' ? "w-6 h-6 rounded-full bg-red-500 border-2 border-white ring-2 ring-red-500" : "w-6 h-6 rounded-full bg-red-500 border-2 border-white";
+            document.getElementById("btn-pen-blue").className = color === '#3b82f6' ? "w-6 h-6 rounded-full bg-blue-500 border-2 border-white ring-2 ring-blue-500" : "w-6 h-6 rounded-full bg-blue-500 border-2 border-white";
+            document.getElementById("btn-pen-black").className = color === '#1e293b' ? "w-6 h-6 rounded-full bg-slate-800 border-2 border-white ring-2 ring-slate-800" : "w-6 h-6 rounded-full bg-slate-800 border-2 border-white";
+        }
+
+        function clearCanvas() {
+            if (ctx && canvas) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
         }
     </script>
