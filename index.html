@@ -12,21 +12,21 @@
     <!-- Tone.js (バージョン 14.8.49) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     
-    <!-- Google Fonts (丸ゴシック体) -->
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
-
-    <style>
-        /* 基本UI：かわいい丸ゴシック系 */
-        body, button, input, p, h1, h2, h3, h4, span {
-            font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
+        /* 筆算の数字は教科書体フォントを適用 */
+        .font-kyokasho {
+            font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* 筆算エリア・レシート：かすれを完全に防止するための美しい丸ゴシック指定 */
-        .font-kyokasho, #calculation-grid .graph-cell, [id^="ans-box-"] {
-            font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
+        /* ==================== 映像の最適化（バグの根絶） ==================== */
+        /* CSSでの強制的な左右反転やズームは、スマホでのバーコード認識を反転させ読み取り不可にするため廃止。
+           等倍かつ自然なフルフレーム表示にし、鏡像処理はライブラリ標準機能に100%委ねます。 */
+        #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
         }
 
-        /* 【バグ解消】映像を無理にズラさず等倍で中央表示（上部の黒帯を完全に根絶） */
+        /* ==================== 【二重枠バグ完全排除】ライブラリが生成する枠・マスクの完全無効化 ==================== */
         #reader {
             width: 100% !important;
             height: 100% !important;
@@ -408,27 +408,142 @@
             { name: "30cmじょうぎ (📏)", price: 134 },
             { name: "カラフルねんど (🎨)", price: 245 },
             { name: "バドミントンシャトル (🏸)", price: 184 }
-        ];
-
-        let cart = [], solvedCount = 0;
-        let totalAmount = 0, paidAmount = 0, changeAmount = 0, currentFocusIndex = 0, userAnswers = ["","","",""];
-        let canvas, ctx, isDrawing = false, penColor = "#ef4444";
-        let html5QrScanner = null;
+        // アプリケーション状態
+        let cart = [];
+        let html5QrcodeScanner = null;
+        let currentCameraId = null;
         
-        // デバイスがPCかスマホかをユーザーエージェントと横幅から判別
+        // デバイス判定: スマホ・タブレット等のモバイル端末を識別
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
+        let isFrontCamera = !isMobile; // スマホは背面(false)、PCは前面(true)をデフォルトに
         
-        // PCなら前カメラ（鏡像：左右感覚が合うため）を優先、スマホなら背面カメラ（1Dスキャン精度向上のため）を優先
-        let isFrontCamera = !isMobile; 
-        let isScannerTransitioning = false;
-        let isSolved = false; 
+        let solvedCount = 0; // 解いた問題数
 
-        // 75種のガチャ要素ハッシュ関数（バーコード文字列から一意に商品を決定）
-        function getProductFromBarcode(barcode) {
-            let hash = 2166136261;
-            for (let i = 0; i < barcode.length; i++) {
-                hash = Math.imul(hash ^ barcode.charCodeAt(i), 16777619);
+        // 非同期競合エラーを防ぐための排他制御（ロックフラグ）
+        let isScannerTransitioning = false;
+        // ブブー（不正解）ブザー
+        function playIncorrectSound() {
+            initAudio();
+            const now = Tone.now();
+            synth.triggerAttackRelease("A3", "8n", now);
+            synth.triggerAttackRelease("A3", "8n", now + 0.15);
+        }
+
+        // -==================== カメラパーミッション＆初期化の修復 ====================
+        async function initScanner() {
+            const container = document.getElementById("camera-fallback-msg");
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    try {
+                        const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                        testStream.getTracks().forEach(track => track.stop());
+                    } catch (permErr) {
+                        console.warn("Camera permission request pre-flight failed:", permErr);
+                    }
+                }
+
+                const devices = await Html5Qrcode.getCameras();
+                if (devices && devices.length > 0) {
+                    // デバイスに応じて、最適な初期カメラ（前か後ろか）を自動選定
+                    let targetCamera = null;
+                    if (isMobile) {
+                        targetCamera = devices.find(device => device.label.toLowerCase().includes("back") || device.label.toLowerCase().includes("environment") || device.label.toLowerCase().includes("背面"));
+                    } else {
+                        targetCamera = devices.find(device => device.label.toLowerCase().includes("front") || device.label.toLowerCase().includes("user") || device.label.toLowerCase().includes("前面"));
+                    }
+                    
+                    if (!targetCamera) targetCamera = devices[0];
+                    
+                    currentCameraId = targetCamera.id;
+                    isFrontCamera = targetCamera.label.toLowerCase().includes("front") || targetCamera.label.toLowerCase().includes("user") || targetCamera.label.toLowerCase().includes("前面") || (!targetCamera.label.toLowerCase().includes("back") && !isMobile);
+                    
+                    startScanning(currentCameraId);
+                } else {
+                    container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラが見つかりません</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しんでね！</p>`;
+                }
+            } catch (err) {
+                console.warn("Camera list fetch failed:", err);
+                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラを起動できませんでした</p><p class="text-xs text-slate-300 mt-2">カメラ許可を確認するか、下のテストスキャンボタンでお買い物しよう！</p>`;
             }
+        }
+
+        // ==================== あらゆる機種で爆速化する解像度＆FPS最適化 ====================
+        async function startScanning(cameraId) {
+            if (isScannerTransitioning) return;
+            isScannerTransitioning = true;
+
+            try {
+                if (html5QrcodeScanner) {
+                    try { await html5QrcodeScanner.stop(); } catch (err) {}
+                    try { html5QrcodeScanner.clear(); } catch (err) {}
+                }
+                
+                document.getElementById("reader").innerHTML = "";
+                
+                // 【超重要】スマホの不安定なネイティブAPIを無効化し、高精度なZXingエンジンを強制稼働
+                html5QrcodeScanner = new Html5Qrcode("reader", { useBarCodeDetectorIfSupported: false });
+                
+                const readerDiv = document.getElementById("reader");
+                if (isFrontCamera) {
+                    readerDiv.classList.remove("back-camera"); 
+                } else {
+                    readerDiv.classList.add("back-camera");    
+                }
+
+                // 【機種別・最適化コンフィグ】
+                // Chromebook等の低スペックCPUでの熱暴走を防ぐため fps を 10 に設定。
+                // 1Dバーコード（JAN規格）にフォーマットを極限まで絞り込むことで、計算量を激減させ爆速化。
+                const config = {
+                    fps: 10,
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E
+                    ],
+                    qrbox: { width: 250, height: 150 },
+                    disableFlip: false // ZXingの反転補正を許可
+                };
+
+                // HD画質(720p)を理想とし、バーコードの線がクッキリ映る映像を要求する
+                const videoConstraints = {
+                    facingMode: isFrontCamera ? "user" : "environment",
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                };
+
+                try {
+                    // 優先的にfacingModeと最適解像度で起動
+                    await html5QrcodeScanner.start(
+                        videoConstraints,
+                        config,
+                        onScanSuccessInternal,
+                        onScanErrorInternal
+                    );
+                    hideFallbackMessage();
+                } catch (err) {
+                    console.warn("Optimal camera launch failed, attempting fallback...", err);
+                    // エラーが出た端末（一部の古いスマホ等）向けのフォールバック起動
+                    try {
+                        await html5QrcodeScanner.start(
+                            cameraId || { facingMode: "environment" },
+                            config,
+                            onScanSuccessInternal,
+                            onScanErrorInternal
+                        );
+                        hideFallbackMessage();
+                    } catch (err2) {
+                        showFallbackError();
+                    }
+                }
+            } finally {
+                isScannerTransitioning = false;
+            }
+        }
+
+        function onScanSuccessInternal(decodedText) {
+            handleScannedBarcode(decodedText);
+        }
             const index = Math.abs(hash) % dummyProducts.length;
             return dummyProducts[index];
         }
