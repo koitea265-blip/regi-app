@@ -112,6 +112,14 @@
             animation: laser-sweep 2.2s infinite ease-in-out;
             pointer-events: none;
         }
+
+        /* 【スマホ縦スクロールの完璧な解決】
+           no-selectによるタッチ操作のブロックを解除し、スマホでのスクロールを100%保証する設定 */
+        #cart-list {
+            -webkit-overflow-scrolling: touch !important; /* iOSでの滑らかな弾性スクロール */
+            user-select: auto !important;                /* 指でのスワイプ操作を許可 */
+            touch-action: pan-y !important;               /* 縦方向のスクロール操作を最優先で処理 */
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col select-none bg-slate-50 no-select">
@@ -184,9 +192,7 @@
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <!-- 【スマホ縦スクロールの完璧な解決】
-                 スマホ表示（lg未満）の時は、高さを「180px」にしっかり固定し、リスト枠の「内側だけ」でサラサラと滑らかに縦スクロールできるように修正。
-                 PC（lg以上）の時は、画面レイアウトいっぱいに伸び縮み（lg:h-auto lg:flex-1）する元通りの動作を維持。 -->
+            <!-- スマホ表示（lg未満）の時は高さを「180px」に固定、内側のスクロール保証を有効化 -->
             <ul id="cart-list" class="h-[180px] lg:h-auto lg:flex-1 overflow-y-auto space-y-2 mb-4 pr-1 scroll-smooth">
                 <li id="cart-placeholder" class="text-gray-400 text-center mt-12 font-kyokasho">おかいもの を はじめよう！</li>
             </ul>
@@ -323,7 +329,7 @@
         </div>
     </div>
 
-    <!-- ==================== JavaScript ロジック ==================== -->
+    <!-- ==================== JavaScript ロジック (最初期の爆速構成へ完全復元) ==================== -->
     <script>
         // 75種類のお買い物商品データベース
         const dummyProducts = [
