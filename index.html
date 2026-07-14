@@ -16,78 +16,62 @@
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
 
     <style>
+        /* 基本UI：かわいい丸ゴシック系 */
         body, button, input, p, h1, h2, h3, h4, span {
             font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
         }
 
+        /* 筆算エリア・レシート：正確なゴシック・丸ゴシックを最優先で適用し、かすれを完全防止 */
         .font-kyokasho, #calculation-grid .graph-cell, [id^="ans-box-"] {
             font-family: 'M PLUS Rounded 1c', "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
         }
 
-        /* 【本質的解決 - 映像の無加工化と完全同調】 */
+        /* 【究極の物理接着】コンテナとビデオのアスペクト比を狂わせない */
         #reader {
-            position: absolute !important;
-            inset: 0 !important;
             width: 100% !important;
             height: 100% !important;
             border: none !important;
-            background: #000 !important;
+            overflow: hidden !important;
+            background-color: #000000 !important;
         }
 
-        #reader > div {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* システムの認識座標を狂わせる「translateY」や「scale」を完全に撤廃。
-           実際のビデオストリームのまま無加工で表示し、インカメラの鏡像（scaleX(-1)）のみを適用する */
+        /* 実際のビデオタグはズラさず、ど真ん中に固定する。これでUIと光軸が完全に一致する */
         #reader video {
             width: 100% !important;
             height: 100% !important;
             object-fit: cover !important;
             object-position: center !important;
-            transform: scaleX(-1) !important; 
+            transform: scaleX(-1) !important; /* インカメラの鏡像反転のみ */
             transform-origin: center !important;
-            transition: filter 0.3s ease;
         }
 
+        /* 背面カメラ起動時は反転を解除 */
         #reader.back-camera video {
             transform: scaleX(1) !important; 
         }
 
-        /* ----------------------------------------------------- */
-        /* 【逆転の発送】映像ではなく「UIファインダー枠」を動かす */
-        /* ----------------------------------------------------- */
-        #ui-finder {
-            /* スマホの時はど真ん中（移動なし）で光軸が合います */
-            transform: translateY(0px);
-            transition: transform 0.3s ease;
-        }
-
-        @media (min-width: 1024px) {
-            #ui-finder {
-                /* PCの時は、映像を下げるのではなく『枠を上に120px』ずらします。
-                   これにより、デコーダーが読み取る生データの物理中心と、ユーザーの狙う枠が完全に一致します */
-                transform: translateY(-120px);
-            }
-        }
-
-        /* 二重枠対策：ライブラリの不要UIや半透明マスクを完全に抹殺 */
-        #reader__scan_region canvas,
+        /* 【二重枠の完全抹殺】ライブラリが自動生成する黒マスクや枠線をCSSで徹底排除 */
         #reader__scan_region img,
         #reader__dashboard_section_csr span, 
         #reader__dashboard_section_csr button,
         #reader__dashboard_section_swaplink {
             display: none !important;
         }
+        
+        div[style*="background-color: rgba(0, 0, 0, 0.48)"],
+        div[style*="background-color:rgba(0, 0, 0, 0.48)"] {
+            display: none !important;
+        }
 
-        #reader div, #reader td, #reader table {
+        #reader div, 
+        #reader td, 
+        #reader table {
             border: none !important;
             box-shadow: none !important;
             background: transparent !important;
-            background-color: transparent !important;
         }
 
+        /* 方眼罫線 */
         .graph-cell {
             position: relative;
             border-right: 1px solid #bae6fd;
@@ -97,16 +81,21 @@
             justify-content: center;
         }
 
-        .no-select { -webkit-touch-callout: none; user-select: none; }
+        .no-select { 
+            -webkit-touch-callout: none; 
+            user-select: none; 
+        }
 
+        /* フラットなリアルレシートのスタイル */
         .receipt-paper {
-            position: relative;
+            position: relative; 
             background: #ffffff;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             border-radius: 8px;
-            border-top: 8px solid #10b981;
+            border-top: 8px solid #10b981; 
         }
 
+        /* 赤い読み取りレーザーの上下ループスイープアニメーション */
         @keyframes laser-sweep {
             0% { top: 8%; opacity: 0.4; filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.7)); }
             50% { top: 92%; opacity: 1; filter: drop-shadow(0 0 4px rgba(239, 68, 68, 1)) drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
@@ -114,9 +103,14 @@
         }
 
         .scanning-laser {
-            position: absolute; left: 0; right: 0; height: 3px;
-            background-color: #ef4444; z-index: 10;
-            animation: laser-sweep 2.2s infinite ease-in-out; pointer-events: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #ef4444;
+            z-index: 10;
+            animation: laser-sweep 2.2s infinite ease-in-out;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -127,32 +121,40 @@
         <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold">たのしいお買い物＆ひっ算おつり計算</span>
     </header>
 
+    <!-- スマホ時は縦スクロール可能、PC時は1画面に固定するレスポンシブ設計 -->
     <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-y-auto lg:overflow-hidden min-h-0">
         
-        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 border border-emerald-100 min-h-0 flex-shrink-0 lg:flex-shrink">
+        <!-- 左：スキャンエリア -->
+        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 border border-emerald-100 min-h-0">
             <div class="flex justify-between items-center mb-2">
                 <h2 class="text-xl font-bold text-gray-700 flex items-center gap-1.5">
                     <span>📸</span> バーコードをスキャンしよう！
                 </h2>
             </div>
             
-            <div class="relative w-full h-[45vh] lg:h-auto lg:flex-1 bg-black rounded-lg overflow-hidden border-2 border-slate-700">
-                <div id="reader" class="absolute inset-0 w-full h-full"></div>
-                
-                <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                    <!-- ここに id="ui-finder" を付与し、PC時はこれを上に120px動かして光軸に合わせます -->
-                    <div id="ui-finder" class="relative w-[75%] aspect-[1.44/0.5] max-w-[440px] min-w-[200px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
-                        <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
-                        <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
-                        <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-sm"></div>
-                        <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-sm"></div>
-                        <div class="scanning-laser"></div>
+            <!-- 【スマホで黒画面になるのを防ぐ】スマホ時は高さを保証し、PC時はフレックスで伸縮 -->
+            <div class="relative w-full h-[45vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
+                <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
+                    <!-- 映像コンテナ -->
+                    <div id="reader" class="w-full h-full relative"></div>
+                    
+                    <!-- 【UI層：完全固定の250x150枠】システムの判定枠とミリ単位で合致させる -->
+                    <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
+                        <div class="relative w-[250px] h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
+                            <!-- 四隅の白い枠 -->
+                            <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
+                            <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
+                            <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-sm"></div>
+                            <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-sm"></div>
+                            <!-- レーザー -->
+                            <div class="scanning-laser"></div>
+                        </div>
                     </div>
-                </div>
-                
-                <div id="camera-fallback-msg" class="absolute inset-0 bg-slate-950/90 text-white flex flex-col items-center justify-center p-6 text-center z-20 pointer-events-none">
-                    <span class="text-4xl mb-3">📷</span>
-                    <p class="font-bold mb-1">カメラを起動しています...</p>
+                    
+                    <div id="camera-fallback-msg" class="absolute inset-0 bg-slate-950/90 text-white flex flex-col items-center justify-center p-6 text-center z-20 pointer-events-none">
+                        <span class="text-4xl mb-3">📷</span>
+                        <p class="font-bold mb-1">カメラを起動しています...</p>
+                    </div>
                 </div>
             </div>
 
@@ -171,12 +173,14 @@
             </div>
         </section>
 
-        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 min-h-0 border border-emerald-100 flex-shrink-0 lg:flex-shrink">
+        <!-- 右：商品カートエリア -->
+        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 min-h-0 border border-emerald-100">
             <h2 class="text-xl font-bold mb-3 text-gray-700 border-b-2 border-gray-100 pb-2 flex items-center gap-1.5">
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <ul id="cart-list" class="flex-1 min-h-[140px] max-h-[200px] lg:max-h-none overflow-y-auto space-y-2 mb-4 pr-1 scroll-smooth">
+            <!-- スマホ時にスクロール可能にするため高さを制限 -->
+            <ul id="cart-list" class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1 scroll-smooth max-h-[200px] lg:max-h-none">
                 <li id="cart-placeholder" class="text-gray-400 text-center mt-16">おかいもの を はじめよう！</li>
             </ul>
 
@@ -196,6 +200,7 @@
         </section>
     </main>
 
+    <!-- おつり計算ひっ算モーダル -->
     <div id="payment-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
         <div class="bg-sky-50 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border-4 border-sky-400">
             <div class="bg-sky-500 text-white p-4 text-center">
@@ -204,6 +209,7 @@
             </div>
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
+                <!-- Left: Paint box -->
                 <div class="flex flex-col gap-2 w-full max-w-[340px] mx-auto">
                     <div class="relative w-full flex items-center justify-between bg-white px-3 py-1.5 rounded-lg shadow-sm border border-sky-100">
                         <div class="flex items-center gap-2">
@@ -224,6 +230,7 @@
                     </div>
                 </div>
 
+                <!-- Right: Ten-key pad -->
                 <div class="flex-1 flex flex-col justify-center items-center max-w-sm mx-auto w-full">
                     <div class="grid grid-cols-3 gap-2 w-full font-kyokasho">
                         <button onclick="pressKey(7)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">7</button>
@@ -255,6 +262,7 @@
         </div>
     </div>
 
+    <!-- ==================== 正解お祝い・くっきりリアルレシートモーダル ==================== -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full">
             <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
@@ -264,6 +272,7 @@
                     <div class="text-[11px] text-slate-900 font-bold">おつり計算セルフレジ 特訓コーナー</div>
                 </div>
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
+                
                 <div class="flex justify-between text-[11px] text-slate-900 px-1 font-bold">
                     <span id="receipt-date"></span>
                     <span>レジ: 001</span>
@@ -272,9 +281,11 @@
                     <span>担 当: 店長</span>
                     <span>取引No. <span id="receipt-tx-no"></span></span>
                 </div>
+
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
                 <ul id="receipt-items-list" class="space-y-1 my-3 text-xs text-black font-bold"></ul>
                 <div class="border-b border-dashed border-slate-500 my-2"></div>
+                
                 <div class="space-y-2 font-black mt-2 text-black text-base">
                     <div class="flex justify-between text-base border-b border-slate-500 pb-1">
                         <span>合計（内税）</span>
@@ -289,6 +300,8 @@
                         <span><span id="receipt-change-amount">0</span> 円</span>
                     </div>
                 </div>
+
+                <!-- ダミーバーコード -->
                 <div class="flex justify-center items-center gap-0.5 mt-6 mb-2 h-8 opacity-90">
                     <div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div>
                     <div class="w-3 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div>
@@ -303,6 +316,7 @@
         </div>
     </div>
 
+    <!-- ==================== JavaScript ロジック ==================== -->
     <script>
         const dummyProducts = [
             { name: "りんご (🍎)", price: 124 },
@@ -390,22 +404,23 @@
         let isScannerTransitioning = false;
         let isSolved = false; 
 
+        // 75種のガチャ要素ハッシュ関数
         function getProductFromBarcode(barcode) {
             let hash = 2166136261;
             for (let i = 0; i < barcode.length; i++) {
                 hash = Math.imul(hash ^ barcode.charCodeAt(i), 16777619);
             }
-            const baseModulo = 75; 
-            const index = Math.abs(hash) % baseModulo;
-            return dummyProducts[index % dummyProducts.length];
+            const index = Math.abs(hash) % dummyProducts.length;
+            return dummyProducts[index];
         }
 
         window.addEventListener("DOMContentLoaded", () => {
-            try { renderCart(); } catch(e) {}
-            try { setupMemoCanvas(); } catch(e) {}
+            renderCart();
+            setupMemoCanvas();
             setTimeout(() => { initScanner(); }, 300);
         });
 
+        // カメラ起動シーケンス
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             if (!container) return;
@@ -428,7 +443,6 @@
 
                 html5QrScanner = new Html5Qrcode("reader", false);
                 const facingMode = isFrontCamera ? "user" : "environment";
-                
                 const formats = window.Html5QrcodeSupportedFormats || Html5Qrcode.SupportedFormats;
                 const formatsConfig = formats ? [formats.EAN_13, formats.EAN_8, formats.UPC_A, formats.UPC_E] : [];
 
@@ -441,8 +455,10 @@
                     }
                 }
 
+                // 【究極の接着】システム側のスキャン判定枠をUIと同じ 250x150 の固定サイズに設定
                 const scanConfig = {
                     fps: 15, 
+                    qrbox: { width: 250, height: 150 }, // ここがUIの中心と完全に合致する
                     formatsToSupport: formatsConfig,
                     experimentalFeatures: { useBarCodeDetectorIfSupported: true }
                 };
@@ -450,6 +466,7 @@
                 let started = false;
                 
                 try {
+                    // 解像度の強要を全廃し、スマホで黒画面になるエラーを100%防止するピュア起動
                     await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
                     started = true;
                 } catch (err1) {
@@ -465,7 +482,9 @@
                             await html5QrScanner.start(targetCamId, scanConfig, onScanSuccess);
                             started = true;
                         }
-                    } catch (err2) {}
+                    } catch (err2) {
+                        console.error(err2);
+                    }
                 }
 
                 if (started) {
@@ -491,8 +510,7 @@
             }
         }
 
-        let lastScanTime = 0;
-        
+        // 【誤読防止モジュロ10（チェックデジット）計算】
         function isValidBarcode(code) {
             if (!/^\d{8}$|^\d{12}$|^\d{13}$/.test(code)) return false;
             let sum = 0;
@@ -507,10 +525,13 @@
             return checkDigit === calculatedCheckDigit;
         }
 
+        let lastScanTime = 0;
+        
         function onScanSuccess(code) {
             const now = Date.now();
             const cleanCode = code.replace(/[^0-9]/g, ''); 
             
+            // 誤読ノイズを数学的に100%弾く
             if (!isValidBarcode(cleanCode)) return; 
             if (now - lastScanTime < 1800) return; 
             
@@ -544,7 +565,7 @@
                 }
             } catch(e) {}
 
-            const scannerContainer = document.getElementById("ui-finder");
+            const scannerContainer = document.getElementById("scanner-container");
             if (scannerContainer) {
                 scannerContainer.classList.add("ring-8", "ring-emerald-400");
                 setTimeout(() => scannerContainer.classList.remove("ring-8", "ring-emerald-400"), 150);
@@ -782,7 +803,7 @@
         function showReceiptButton() {
             const row = document.getElementById("action-buttons-row");
             const btn = document.getElementById("show-receipt-btn");
-            if (row) row.classList.add("hidden");
+            if (row) row.classList.add("hidden"); // classList制御によるレイアウト破壊の防止
             if (btn) btn.classList.remove("hidden");
             
             for(let i=0; i<4; i++) {
