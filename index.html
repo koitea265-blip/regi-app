@@ -41,13 +41,23 @@
             height: 100% !important;
             object-fit: cover !important;
             object-position: center !important;
-            transform: scaleX(-1) !important; /* インカメラの鏡像反転のみ */
+            transform: scaleX(-1) !important; /* スマホ（デフォルト）はインカメラの鏡像反転のみ */
             transform-origin: center !important;
         }
 
         /* 背面カメラ起動時は反転を解除 */
         #reader.back-camera video {
             transform: scaleX(1) !important; 
+        }
+
+        /* 【PC用レスポンシブ】画面が広いPC(1024px以上)の時だけ、垂直方向に120pxシフトさせる */
+        @media (min-width: 1024px) {
+            #reader video {
+                transform: translateY(120px) scaleX(-1) !important;
+            }
+            #reader.back-camera video {
+                transform: translateY(120px) scaleX(1) !important;
+            }
         }
 
         /* 【二重枠の完全抹殺】ライブラリが自動生成する黒マスクや枠線をCSSで徹底排除 */
@@ -118,27 +128,32 @@
 
     <header class="bg-emerald-600 text-white p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
         <h1 class="text-2xl font-bold flex items-center gap-2">🛒 セルフレジでおかいけいしよう</h1>
-        <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold">たのしいお買い物＆ひっ算おつり計算</span>
+        <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold hidden sm:inline">たのしいお買い物＆ひっ算おつり計算</span>
     </header>
 
-    <!-- スマホ時は縦スクロール可能、PC時は1画面に固定するレスポンシブ設計 -->
-    <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-y-auto lg:overflow-hidden min-h-0">
+    <!-- スマホ時は大枠のスクロールをなくし、カート部分だけをスクロールさせる構造 -->
+    <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden min-h-0">
         
         <!-- 左：スキャンエリア -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 border border-emerald-100 min-h-0">
-            <div class="flex justify-between items-center mb-2">
+            <div class="flex justify-between items-center mb-1">
                 <h2 class="text-xl font-bold text-gray-700 flex items-center gap-1.5">
                     <span>📸</span> バーコードをスキャンしよう！
                 </h2>
             </div>
             
+            <!-- ガチャ要素のワクワクする説明テキスト -->
+            <p class="text-[11px] sm:text-xs text-slate-500 mb-2 font-bold leading-tight">
+                💡おうちのバーコードを読むと、内蔵された75種類の商品からランダムに選ばれます。完全な「ガチャ要素」！激レア商品が出るかお楽しみに！
+            </p>
+            
             <!-- 【スマホで黒画面になるのを防ぐ】スマホ時は高さを保証し、PC時はフレックスで伸縮 -->
-            <div class="relative w-full h-[45vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
+            <div class="relative w-full h-[40vh] sm:h-[45vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <!-- 映像コンテナ -->
                     <div id="reader" class="w-full h-full relative"></div>
                     
-                    <!-- 【UI層：完全固定の250x150枠】システムの判定枠とミリ単位で合致させる -->
+                    <!-- 【UI層：完全固定の250x150枠】 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
                         <div class="relative w-[250px] h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             <!-- 四隅の白い枠 -->
@@ -164,10 +179,10 @@
                 </button>
                 <div class="flex gap-2">
                     <button id="toggle-camera-btn" onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-sm rounded-lg">
-                        📷 カメラ切り替え
+                        📷 切り替え
                     </button>
                     <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-3 text-sm rounded-lg">
-                        カートをからにする
+                        カートをからに
                     </button>
                 </div>
             </div>
@@ -179,21 +194,21 @@
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <!-- スマホ時にスクロール可能にするため高さを制限 -->
-            <ul id="cart-list" class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1 scroll-smooth max-h-[200px] lg:max-h-none">
-                <li id="cart-placeholder" class="text-gray-400 text-center mt-16">おかいもの を はじめよう！</li>
+            <!-- 【スマホ対応】商品の数が多くなったら、ここだけがスルスルと縦スクロールします -->
+            <ul id="cart-list" class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1 scroll-smooth max-h-[25vh] lg:max-h-none">
+                <li id="cart-placeholder" class="text-gray-400 text-center mt-12">おかいもの を はじめよう！</li>
             </ul>
 
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-auto">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-lg font-bold text-gray-600">お買い上げ点数:</span>
-                    <span id="total-count" class="text-xl font-bold">0 点</span>
+                    <span class="text-sm sm:text-lg font-bold text-gray-600">お買い上げ点数:</span>
+                    <span id="total-count" class="text-lg sm:text-xl font-bold">0 点</span>
                 </div>
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-lg font-bold text-gray-600">ごうけい金額:</span>
-                    <span class="text-3xl font-black text-rose-600"><span id="total-price">0</span> 円</span>
+                    <span class="text-sm sm:text-lg font-bold text-gray-600">ごうけい金額:</span>
+                    <span class="text-2xl sm:text-3xl font-black text-rose-600"><span id="total-price">0</span> 円</span>
                 </div>
-                <button id="checkout-btn" onclick="openPaymentModal()" disabled class="w-full bg-emerald-500 text-white font-black py-4 rounded-xl text-xl shadow-lg hover:bg-emerald-600 transition disabled:bg-slate-300">
+                <button id="checkout-btn" onclick="openPaymentModal()" disabled class="w-full bg-emerald-500 text-white font-black py-3 sm:py-4 rounded-xl text-lg sm:text-xl shadow-lg hover:bg-emerald-600 transition disabled:bg-slate-300">
                     💳 おかいけいする
                 </button>
             </div>
@@ -205,7 +220,7 @@
         <div class="bg-sky-50 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border-4 border-sky-400">
             <div class="bg-sky-500 text-white p-4 text-center">
                 <h3 class="text-2xl font-bold">おつりを けいさん しよう！</h3>
-                <p id="payment-info" class="text-lg mt-1 font-semibold"></p>
+                <p id="payment-info" class="text-sm sm:text-lg mt-1 font-semibold"></p>
             </div>
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
@@ -404,7 +419,7 @@
         let isScannerTransitioning = false;
         let isSolved = false; 
 
-        // 75種のガチャ要素ハッシュ関数
+        // 75種のガチャ要素ハッシュ関数（同じバーコードからは必ず同じ商品が出る）
         function getProductFromBarcode(barcode) {
             let hash = 2166136261;
             for (let i = 0; i < barcode.length; i++) {
@@ -420,7 +435,7 @@
             setTimeout(() => { initScanner(); }, 300);
         });
 
-        // カメラ起動シーケンス
+        // カメラ起動シーケンス（最も安定していたピュア起動に完全ロールバック）
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             if (!container) return;
@@ -455,57 +470,33 @@
                     }
                 }
 
-                // 【本質的解決】PCとスマホのアスペクト比の違いによる「座標ズレ」を完全に消滅させるため、
-                // システム側のスキャン判定枠（qrbox）の制限を撤廃し、カメラの全領域をフルスキャンさせます。
+                // 【完全な安定化】カメラのハードウェアクラッシュを引き起こす解像度指定やオートフォーカス強制を全撤廃
                 const scanConfig = {
-                    fps: 12, // スマホでの処理落ちを防ぐ安定フレームレート
+                    fps: 10, 
                     formatsToSupport: formatsConfig,
-                    experimentalFeatures: { useBarCodeDetectorIfSupported: true } // iOS/Androidのネイティブ高速判定を有効化
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
                 };
-
-                let started = false;
                 
                 try {
-                    // スマホの過負荷を防ぎつつ、全画面スキャンを爆速化するための軽量解像度を要求
-                    const dynamicConstraints = {
-                        facingMode: facingMode,
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        advanced: [{ focusMode: "continuous" }]
-                    };
-                    
-                    await html5QrScanner.start(dynamicConstraints, scanConfig, onScanSuccess);
-                    started = true;
+                    // ピュアな facingMode 指定のみで起動。余計な制約（Constraints）を一切持たせない
+                    await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
+                    container.classList.add("hidden");
                 } catch (err1) {
-                    try {
-                        // 制約エラーになった場合のピュア起動フォールバック
-                        await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
-                        started = true;
-                    } catch (err2) {
-                        try {
-                            const cameras = await Html5Qrcode.getCameras();
-                            if (cameras && cameras.length > 0) {
-                                let targetCamId = cameras[0].id;
-                                const searchRegex = isFrontCamera ? /(front|user|内|正面)/i : /(back|environment|外|背面)/i;
-                                const matchedCam = cameras.find(cam => searchRegex.test(cam.label));
-                                if (matchedCam) targetCamId = matchedCam.id;
-                                else targetCamId = isFrontCamera ? cameras[cameras.length - 1].id : cameras[0].id;
-                                
-                                await html5QrScanner.start(targetCamId, scanConfig, onScanSuccess);
-                                started = true;
-                            }
-                        } catch (err3) {
-                            console.error(err3);
-                        }
+                    // どうしてもダメな場合のデバイスID直指定フォールバック
+                    const cameras = await Html5Qrcode.getCameras();
+                    if (cameras && cameras.length > 0) {
+                        let targetCamId = cameras[0].id;
+                        const searchRegex = isFrontCamera ? /(front|user|内|正面)/i : /(back|environment|外|背面)/i;
+                        const matchedCam = cameras.find(cam => searchRegex.test(cam.label));
+                        if (matchedCam) targetCamId = matchedCam.id;
+                        else targetCamId = isFrontCamera ? cameras[cameras.length - 1].id : cameras[0].id;
+                        
+                        await html5QrScanner.start(targetCamId, scanConfig, onScanSuccess);
+                        container.classList.add("hidden");
+                    } else {
+                        throw new Error("No camera found.");
                     }
                 }
-
-                if (started) {
-                    container.classList.add("hidden");
-                } else {
-                    throw new Error("No camera started.");
-                }
-
             } catch (err) {
                 showCameraFallback('カメラが起動できませんでした。<br><span class="text-amber-400 font-bold">左下の「⚡ ぴっ！」ボタンで遊べます！</span>');
             }
@@ -595,7 +586,7 @@
             list.innerHTML = "";
             let total = 0;
             if (cart.length === 0) {
-                list.innerHTML = `<li class="text-gray-400 text-center mt-16">おかいもの を はじめよう！</li>`;
+                list.innerHTML = `<li class="text-gray-400 text-center mt-12">おかいもの を はじめよう！</li>`;
             } else {
                 cart.forEach(item => {
                     total += item.price;
@@ -651,6 +642,7 @@
             isSolved = false; 
             const actionsRow = document.getElementById("action-buttons-row");
             const showBtn = document.getElementById("show-receipt-btn");
+            // クラスリストでhiddenを操作し、レイアウト破壊を防ぐ
             if (actionsRow) actionsRow.classList.remove("hidden");
             if (showBtn) showBtn.classList.add("hidden");
 
@@ -701,21 +693,21 @@
             const paidStr = paidAmount.toString().padStart(cols, " ");
             const totalStr = totalAmount.toString().padStart(cols - 1, " ");
 
-            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-24 bg-sky-50/30"></div>`; 
-            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-16 text-3xl font-bold font-kyokasho text-slate-800">${paidStr[i] !== " " ? paidStr[i] : ""}</div>`; 
-            grid.innerHTML += `<div class="graph-cell h-16 text-5xl font-black text-blue-600 font-kyokasho">－</div>`; 
-            for(let i=0; i<cols-1; i++) grid.innerHTML += `<div class="graph-cell h-16 text-3xl font-bold font-kyokasho text-slate-800">${totalStr[i] !== " " ? totalStr[i] : ""}</div>`;
+            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-16 sm:h-24 bg-sky-50/30"></div>`; 
+            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 text-2xl sm:text-3xl font-bold font-kyokasho text-slate-800">${paidStr[i] !== " " ? paidStr[i] : ""}</div>`; 
+            grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 text-3xl sm:text-5xl font-black text-blue-600 font-kyokasho">－</div>`; 
+            for(let i=0; i<cols-1; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 text-2xl sm:text-3xl font-bold font-kyokasho text-slate-800">${totalStr[i] !== " " ? totalStr[i] : ""}</div>`;
             grid.innerHTML += `<div class="col-span-${cols} h-1.5 bg-slate-800 my-1"></div>`; 
-            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-16 bg-sky-50/10"></div>`; 
+            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 bg-sky-50/10"></div>`; 
 
             const ansContainer = document.getElementById("answer-grid-container");
             if (!ansContainer) return;
 
-            ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-2"><div class="flex items-center justify-center text-2xl font-black text-slate-400">=</div></div>`;
+            ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-2"><div class="flex items-center justify-center text-xl sm:text-2xl font-black text-slate-400">=</div></div>`;
             const ansGrid = ansContainer.firstChild;
-            if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-16"></div>`;
+            if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-12 sm:h-16"></div>`;
             
-            for(let i=3; i>=0; i--) ansGrid.innerHTML += `<div onclick="focusDigit(${i})" id="ans-box-${i}" class="m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700 transition"></div>`;
+            for(let i=3; i>=0; i--) ansGrid.innerHTML += `<div onclick="focusDigit(${i})" id="ans-box-${i}" class="m-1 h-12 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-700 transition"></div>`;
             
             userAnswers = ["","","",""]; 
             focusDigit(0);
@@ -725,7 +717,7 @@
             currentFocusIndex = idx;
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
-                if(b) b.className = (i===idx) ? "m-1 h-16 bg-yellow-100 border-4 border-amber-400 rounded-lg flex items-center justify-center text-3xl font-black text-amber-800 scale-105" : "m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700";
+                if(b) b.className = (i===idx) ? "m-1 h-12 sm:h-16 bg-yellow-100 border-4 border-amber-400 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-800 scale-105" : "m-1 h-12 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-700";
             }
         }
 
@@ -805,7 +797,7 @@
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
                 if (b && !userAnswers[i]) {
-                    b.className = "m-1 h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-3xl font-black text-amber-700";
+                    b.className = "m-1 h-12 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-700";
                 }
             }
 
@@ -816,7 +808,7 @@
         function showReceiptButton() {
             const row = document.getElementById("action-buttons-row");
             const btn = document.getElementById("show-receipt-btn");
-            if (row) row.classList.add("hidden"); // classList制御によるレイアウト破壊の防止
+            if (row) row.classList.add("hidden"); // classList制御でレイアウト破壊を防止
             if (btn) btn.classList.remove("hidden");
             
             for(let i=0; i<4; i++) {
