@@ -184,8 +184,10 @@
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <!-- 【スマホ縦スクロールの完璧な解決】スマホ時は最大25%の高さに制限し、はみ出さず内部で確実にスクロール可能に調整 -->
-            <ul id="cart-list" class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1 scroll-smooth max-h-[25vh] lg:max-h-none">
+            <!-- 【スマホ縦スクロールの完璧な解決】
+                 スマホ表示（lg未満）の時は、高さを「180px」にしっかり固定し、リスト枠の「内側だけ」でサラサラと滑らかに縦スクロールできるように修正。
+                 PC（lg以上）の時は、画面レイアウトいっぱいに伸び縮み（lg:h-auto lg:flex-1）する元通りの動作を維持。 -->
+            <ul id="cart-list" class="h-[180px] lg:h-auto lg:flex-1 overflow-y-auto space-y-2 mb-4 pr-1 scroll-smooth">
                 <li id="cart-placeholder" class="text-gray-400 text-center mt-12 font-kyokasho">おかいもの を はじめよう！</li>
             </ul>
 
@@ -585,7 +587,7 @@
             list.innerHTML = "";
             let total = 0;
             if (cart.length === 0) {
-                list.innerHTML = `<li class="text-gray-400 text-center mt-12 font-kyokasho">おかいもの を はじめよう！</li>`;
+                list.innerHTML = `<li id="cart-placeholder" class="text-gray-400 text-center mt-12 font-kyokasho">おかいもの を はじめよう！</li>`;
             } else {
                 cart.forEach(item => {
                     total += item.price;
