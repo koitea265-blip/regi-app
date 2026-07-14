@@ -27,13 +27,18 @@
 
         /* 映像コンテナのベーススタイル */
         #reader {
-            width: 100% !important;
             border: none !important;
             background-color: #000000 !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
         }
 
         #reader video {
             border-radius: 0.5rem;
+            max-width: 100% !important;
+            max-height: 100% !important;
         }
         
         /* 【追加】PCの前カメラ等の直感的な鏡像対応 */
@@ -120,26 +125,26 @@
 </head>
 <body class="h-screen flex flex-col select-none bg-slate-50 no-select">
 
-    <header class="bg-emerald-600 text-white p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
-        <h1 class="text-2xl font-bold flex items-center gap-2">🛒 セルフレジでおかいけいしよう</h1>
+    <header class="bg-emerald-600 text-white p-3 sm:p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
+        <h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2">🛒 セルフレジでおかいけいしよう</h1>
         <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold hidden sm:inline">たのしいお買い物＆ひっ算おつり計算</span>
     </header>
 
-    <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-y-auto lg:overflow-hidden min-h-0">
+    <main class="flex-1 flex flex-col lg:flex-row p-2 sm:p-4 gap-2 sm:gap-4 overflow-hidden h-full min-h-0">
         
         <!-- 左：スキャンエリア -->
-        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 border border-emerald-100 min-h-0">
+        <section class="w-full lg:flex-1 bg-white rounded-xl shadow-lg flex flex-col p-3 sm:p-4 border border-emerald-100 flex-shrink-0 lg:min-h-0">
             <div class="flex justify-between items-center mb-1">
-                <h2 class="text-xl font-bold text-gray-700 flex items-center gap-1.5">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-700 flex items-center gap-1.5">
                     <span>📸</span> バーコードをスキャンしよう！
                 </h2>
             </div>
             
-            <p class="text-[11px] sm:text-xs text-slate-500 mb-2 font-bold leading-tight">
+            <p class="text-[10px] sm:text-xs text-slate-500 mb-2 font-bold leading-tight hidden sm:block">
                 💡おうちのバーコードを読むと、内蔵された75種類の商品からランダムに選ばれます。激レア商品が出るかお楽しみに！
             </p>
             
-            <div class="relative w-full h-[40vh] sm:h-[45vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
+            <div class="relative w-full h-[35vh] sm:h-[40vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <!-- 映像コンテナ -->
                     <div id="reader" class="w-full h-full relative"></div>
@@ -163,38 +168,40 @@
                 </div>
             </div>
 
-            <div class="mt-3 flex flex-wrap gap-2 justify-between items-center">
-                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg shadow active:scale-95 transition">
+            <div class="mt-2 sm:mt-3 flex flex-wrap gap-2 justify-between items-center">
+                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg shadow active:scale-95 transition text-sm sm:text-base">
                     ⚡ ぴっ！(テスト用)
                 </button>
                 <div class="flex gap-2">
-                    <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-sm rounded-lg">
+                    <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm rounded-lg">
                         📷 切り替え
                     </button>
-                    <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-3 text-sm rounded-lg">
-                        カートをからに
+                    <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm rounded-lg">
+                        からに
                     </button>
                 </div>
             </div>
         </section>
 
         <!-- 右：商品カートエリア -->
-        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-4 min-h-0 border border-emerald-100">
-            <h2 class="text-xl font-bold mb-3 text-gray-700 border-b-2 border-gray-100 pb-2 flex items-center gap-1.5">
+        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-3 sm:p-4 min-h-0 border border-emerald-100">
+            <h2 class="text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-gray-700 border-b-2 border-gray-100 pb-1 sm:pb-2 flex items-center gap-1.5 flex-shrink-0">
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <!-- スマホ表示時180px固定・縦スクロール保証 -->
-            <ul id="cart-list" class="h-[180px] lg:h-auto lg:flex-1 overflow-y-auto space-y-2 mb-4 pr-1 scroll-smooth">
-                <li id="cart-placeholder" class="text-gray-400 text-center mt-12 font-kyokasho">おかいもの を はじめよう！</li>
-            </ul>
+            <!-- 【完璧な縦スクロール領域】 -->
+            <div class="flex-1 min-h-0 overflow-y-auto mb-2 sm:mb-4 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
+                <ul id="cart-list" class="space-y-2">
+                    <li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>
+                </ul>
+            </div>
 
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-auto">
-                <div class="flex justify-between items-center mb-3">
+            <div class="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex-shrink-0 mt-auto">
+                <div class="flex justify-between items-center mb-2 sm:mb-3">
                     <span class="text-sm sm:text-lg font-bold text-gray-600">お買い上げ点数:</span>
                     <span id="total-count" class="text-lg sm:text-xl font-bold">0 点</span>
                 </div>
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex justify-between items-center mb-3 sm:mb-4">
                     <span class="text-sm sm:text-lg font-bold text-gray-600">ごうけい金額:</span>
                     <span class="text-2xl sm:text-3xl font-black text-rose-600"><span id="total-price">0</span> 円</span>
                 </div>
@@ -454,7 +461,13 @@
 
                 const config = {
                     fps: 10,
-                    qrbox: { width: 250, height: 150 }
+                    // スマホ画面でもはみ出さず座標が狂わないレスポンシブqrbox設定
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        return {
+                            width: Math.min(viewfinderWidth * 0.8, 250),
+                            height: Math.min(viewfinderHeight * 0.8, 150)
+                        };
+                    }
                 };
 
                 await html5QrcodeScanner.start(
