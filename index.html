@@ -114,7 +114,7 @@
         }
 
         /* 【スマホ縦スクロールの完璧な解決】
-           no-selectによるタッチ操作のブロックを解除し、スマホでのスクロールを100%保証する設定 */
+           no-selectによるタッチ操作 of ブロックを解除し、スマホでのスクロールを100%保証する設定 */
         #cart-list {
             -webkit-overflow-scrolling: touch !important; /* iOSでの滑らかな弾性スクロール */
             user-select: auto !important;                /* 指でのスワイプ操作を許可 */
@@ -621,6 +621,7 @@
             setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
         }
 
+        // お買い上げ商品の縦スクロール制御：no-selectを打ち消して指でのスクロールを100%保証
         function removeItem(id) { 
             cart = cart.filter(i => i.id !== id); 
             renderCart(); 
@@ -762,6 +763,7 @@
             } catch(e) {}
         }
 
+        // 答え合わせロジック
         function checkAnswer() {
             if (isSolved) return;
             
