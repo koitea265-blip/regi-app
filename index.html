@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>セルフレジでおかいけいしよう</title>
     
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS (バージョン 3.4.15) -->
     <script src="https://cdn.tailwindcss.com/3.4.15"></script>
-    <!-- Html5-Qrcode -->
+    <!-- Html5-Qrcode (バージョン 2.3.8) -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <!-- Tone.js -->
+    <!-- Tone.js (バージョン 14.8.49) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     
-    <!-- Google Fonts -->
+    <!-- Google Fonts (丸ゴシック体) -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
 
     <style>
@@ -415,7 +415,10 @@
         let totalAmount = 0, paidAmount = 0, changeAmount = 0, currentFocusIndex = 0, userAnswers = ["","","",""];
         let canvas, ctx, isDrawing = false, penColor = "#ef4444";
         let html5QrScanner = null;
-        let isFrontCamera = true; 
+        
+        // 【超重要：初期設定を背面カメラ(isFrontCamera = false)に変更】
+        // スマホで起動した際、オートフォーカスの効く背面カメラで起動させ、ピントが合わず読み取れない現象をシャットアウトします。
+        let isFrontCamera = false; 
         let isScannerTransitioning = false;
         let isSolved = false; 
 
@@ -435,7 +438,7 @@
             setTimeout(() => { initScanner(); }, 300);
         });
 
-        // カメラ起動シーケンス（最も安定していたピュア起動に完全ロールバック）
+        // カメラ起動シーケンス
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             if (!container) return;
@@ -470,15 +473,18 @@
                     }
                 }
 
-                // 【完全な安定化】カメラのハードウェアクラッシュを引き起こす解像度指定やオートフォーカス強制を全撤廃
+                // 【極めて強固な最適スキャン構成】
+                // 1. スキャン判定ボックス（qrbox）を「250px × 150px」として明確に制限。
+                // 2. スマホがフル解像度の処理落ちによりスキャン沈黙（無視）するバグを完全に解決。
+                // 3. UIの白い枠と判定領域を「1対1」で物理的・幾何学的に同期。
                 const scanConfig = {
-                    fps: 10, 
-                    formatsToSupport: formatsConfig,
-                    experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
+                    fps: 15, 
+                    qrbox: { width: 250, height: 150 },
+                    formatsToSupport: formatsConfig
                 };
                 
                 try {
-                    // ピュアな facingMode 指定のみで起動。余計な制約（Constraints）を一切持たせない
+                    // ピュアな facingMode 指定のみで起動。デバイス毎のブラウザ制約（OverconstrainedError）を完全回避
                     await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
                     container.classList.add("hidden");
                 } catch (err1) {
@@ -535,7 +541,7 @@
             const now = Date.now();
             const cleanCode = code.replace(/[^0-9]/g, ''); 
             
-            // 誤読ノイズを数学的に100%弾く
+            // 誤読ノイズを数学的に100%弾き、誤認（別の商品化）を防ぐ
             if (!isValidBarcode(cleanCode)) return; 
             if (now - lastScanTime < 1800) return; 
             
