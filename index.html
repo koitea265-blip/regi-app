@@ -7,8 +7,8 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 【重要】スキャンのバグを回避する安定版2.3.4 -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.4/html5-qrcode.min.js"></script>
+    <!-- html5-qrcode 安定稼働バージョン -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <!-- Tone.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     
@@ -26,25 +26,15 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* ==================== 映像の最適化 ==================== */
-        #reader video {
-            object-fit: cover !important;
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* 鏡像（ミラー）表示用のクラス */
-        .mirror-video video {
-            transform: scaleX(-1) !important;
-        }
-
-        /* ライブラリが生成する邪魔なマスク枠の完全無効化 */
+        /* 映像コンテナのベーススタイル */
         #reader {
             width: 100% !important;
-            height: 100% !important;
             border: none !important;
-            overflow: hidden !important;
             background-color: #000000 !important;
+        }
+
+        #reader video {
+            border-radius: 0.5rem;
         }
 
         #reader__scan_region img,
@@ -446,18 +436,12 @@
                 
                 document.getElementById("reader").innerHTML = "";
                 
-                // ネイティブバーコード読み取り機能を無効化しZXingを強制使用（エラー防止）
-                html5QrcodeScanner = new Html5Qrcode("reader", { useBarCodeDetectorIfSupported: false });
+                // 一番安定して読み取れていた状態のピュアなインスタンス生成
+                html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 10, // Chromebookやスマホでも熱暴走しない最適化
-                    qrbox: { width: 250, height: 150 }, // 【致命的バグ修正】スキャン走査領域をUIの白い枠と完全一致させ、解析パワーを全集中させる
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E
-                    ]
+                    fps: 10,
+                    qrbox: { width: 250, height: 150 }
                 };
 
                 await html5QrcodeScanner.start(
@@ -466,15 +450,6 @@
                     onScanSuccessInternal,
                     onScanErrorInternal
                 );
-                
-                // 前面カメラ（インカメラ）の場合は映像を鏡のように左右反転させる
-                const devices = await Html5Qrcode.getCameras();
-                const currentDevice = devices.find(d => d.id === cameraId);
-                if (currentDevice && (currentDevice.label.toLowerCase().includes("front") || currentDevice.label.toLowerCase().includes("user"))) {
-                    document.getElementById("reader").classList.add("mirror-video");
-                } else {
-                    document.getElementById("reader").classList.remove("mirror-video");
-                }
                 
                 document.getElementById("camera-fallback-msg").classList.add("hidden");
             } catch (e) {
