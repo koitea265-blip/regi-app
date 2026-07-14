@@ -59,6 +59,15 @@
             display: none !important;
         }
 
+        /* html5-qrcodeが自動生成するスキャン判定枠(qrbox)のボーダーと背景を完全消去 */
+        #reader__scan_region div,
+        #reader__scan_region span,
+        [id$="qrbox-border"] {
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
         #reader div, #reader td, #reader table {
             border: none !important;
             box-shadow: none !important;
@@ -442,6 +451,7 @@
 
                 const config = {
                     fps: 10, // Chromebookやスマホでも熱暴走しない最適化
+                    qrbox: { width: 250, height: 150 }, // 【致命的バグ修正】スキャン走査領域をUIの白い枠と完全一致させ、解析パワーを全集中させる
                     formatsToSupport: [
                         Html5QrcodeSupportedFormats.EAN_13,
                         Html5QrcodeSupportedFormats.EAN_8,
