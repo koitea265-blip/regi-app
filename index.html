@@ -5,28 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>セルフレジでおかいけいしよう</title>
     
-    <!-- Tailwind CSS (バージョン 3.4.15) -->
-    <script src="https://cdn.tailwindcss.com/3.4.15"></script>
-    <!-- 【重要】スキャンのバグを100%回避する、実証済みの「安定版2.3.4」を採用 -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 【重要】スキャンのバグを回避する安定版2.3.4 -->
     <script src="https://unpkg.com/html5-qrcode@2.3.4/html5-qrcode.min.js"></script>
-    <!-- Tone.js (バージョン 14.8.49) -->
+    <!-- Tone.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
+
+    <!-- ここが抜けていたため画面に文字が表示されていました -->
+    <style>
+        body, button, input, p, h1, h2, h3, h4 {
+            font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", sans-serif;
+        }
+
         /* 筆算の数字は教科書体フォントを適用 */
         .font-kyokasho {
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* ==================== 映像の最適化（バグの根絶） ==================== */
-        /* CSSでの強制的な左右反転やズームは、スマホでのバーコード認識を反転させ読み取り不可にするため廃止。
-           等倍かつ自然なフルフレーム表示にし、鏡像処理はライブラリ標準機能に100%委ねます。 */
+        /* ==================== 映像の最適化 ==================== */
         #reader video {
             object-fit: cover !important;
             width: 100% !important;
             height: 100% !important;
         }
 
-        /* ==================== 【二重枠バグ完全排除】ライブラリが生成する枠・マスクの完全無効化 ==================== */
+        /* ライブラリが生成する邪魔なマスク枠の完全無効化 */
         #reader {
             width: 100% !important;
             height: 100% !important;
@@ -35,22 +42,6 @@
             background-color: #000000 !important;
         }
 
-        /* 映像は中央にピッタリ配置。CSSによる歪なシフトは行わず座標の一致を最優先 */
-        #reader video {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            object-position: center !important;
-            transform: scaleX(-1) !important; /* 初期値はインカメラ用の鏡像反転 */
-            transform-origin: center !important;
-        }
-
-        /* 背面カメラ起動時は鏡像反転を完全に解除（1Dバーコードの正常読取に必須） */
-        #reader.back-camera video {
-            transform: scaleX(1) !important; 
-        }
-
-        /* 【二重枠の完全抹殺】ライブラリが動的自動生成する邪魔なマスク枠をCSSで徹底排除 */
         #reader__scan_region img,
         #reader__dashboard_section_csr span, 
         #reader__dashboard_section_csr button,
@@ -63,12 +54,28 @@
             display: none !important;
         }
 
-        #reader div, 
-        #reader td, 
-        #reader table {
+        #reader div, #reader td, #reader table {
             border: none !important;
             box-shadow: none !important;
             background: transparent !important;
+        }
+
+        /* 赤い読み取りレーザーのアニメーション */
+        @keyframes laser-sweep {
+            0% { top: 8%; opacity: 0.4; filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.7)); }
+            50% { top: 92%; opacity: 1; filter: drop-shadow(0 0 4px rgba(239, 68, 68, 1)) drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+            100% { top: 8%; opacity: 0.4; filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.7)); }
+        }
+
+        .scanning-laser {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #ef4444;
+            z-index: 10;
+            animation: laser-sweep 2.2s infinite ease-in-out;
+            pointer-events: none;
         }
 
         /* 方眼罫線 */
@@ -95,30 +102,11 @@
             border-top: 8px solid #10b981; 
         }
 
-        /* 赤い読み取りレーザーの上下ループスイープアニメーション */
-        @keyframes laser-sweep {
-            0% { top: 8%; opacity: 0.4; filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.7)); }
-            50% { top: 92%; opacity: 1; filter: drop-shadow(0 0 4px rgba(239, 68, 68, 1)) drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
-            100% { top: 8%; opacity: 0.4; filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.7)); }
-        }
-
-        .scanning-laser {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background-color: #ef4444;
-            z-index: 10;
-            animation: laser-sweep 2.2s infinite ease-in-out;
-            pointer-events: none;
-        }
-
-        /* 【スマホ縦スクロールの完璧な解決】
-           no-selectによるタッチ操作 of ブロックを解除し、スマホでのスクロールを100%保証する設定 */
+        /* 【重要】スマホ縦スクロールの完璧な解決 */
         #cart-list {
-            -webkit-overflow-scrolling: touch !important; /* iOSでの滑らかな弾性スクロール */
-            user-select: auto !important;                /* 指でのスワイプ操作を許可 */
-            touch-action: pan-y !important;               /* 縦方向のスクロール操作を最優先で処理 */
+            -webkit-overflow-scrolling: touch !important; 
+            user-select: auto !important;                
+            touch-action: pan-y !important;               
         }
     </style>
 </head>
@@ -129,7 +117,6 @@
         <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold hidden sm:inline">たのしいお買い物＆ひっ算おつり計算</span>
     </header>
 
-    <!-- スマホ時はスクロールを許可し、カメラコンテナとカートの押し潰れを完全防止 -->
     <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-y-auto lg:overflow-hidden min-h-0">
         
         <!-- 左：スキャンエリア -->
@@ -140,18 +127,16 @@
                 </h2>
             </div>
             
-            <!-- ガチャ要素のワクワクする説明テキスト -->
             <p class="text-[11px] sm:text-xs text-slate-500 mb-2 font-bold leading-tight">
-                💡おうちのバーコードを読むと、内蔵された75種類の商品からランダムに選ばれます。完全な「ガチャ要素」！激レア商品が出るかお楽しみに！
+                💡おうちのバーコードを読むと、内蔵された75種類の商品からランダムに選ばれます。激レア商品が出るかお楽しみに！
             </p>
             
-            <!-- 【スマホ対応】縦横が潰れないようにスマホ時は40%の高さをキッチリ保証 -->
             <div class="relative w-full h-[40vh] sm:h-[45vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <!-- 映像コンテナ -->
                     <div id="reader" class="w-full h-full relative"></div>
                     
-                    <!-- 【UI層：250x150枠とカメラ光軸を1対1で完全シンクロ】 -->
+                    <!-- 【UI層：250x150枠】 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
                         <div class="relative w-[250px] h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             <!-- 四隅の白い枠 -->
@@ -159,7 +144,6 @@
                             <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
                             <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-sm"></div>
                             <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-sm"></div>
-                            <!-- レーザー -->
                             <div class="scanning-laser"></div>
                         </div>
                     </div>
@@ -176,7 +160,7 @@
                     ⚡ ぴっ！(テスト用)
                 </button>
                 <div class="flex gap-2">
-                    <button id="toggle-camera-btn" onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-sm rounded-lg">
+                    <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-sm rounded-lg">
                         📷 切り替え
                     </button>
                     <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-3 text-sm rounded-lg">
@@ -192,7 +176,7 @@
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <!-- スマホ表示（lg未満）の時は高さを「180px」に固定、内側のスクロール保証を有効化 -->
+            <!-- スマホ表示時180px固定・縦スクロール保証 -->
             <ul id="cart-list" class="h-[180px] lg:h-auto lg:flex-1 overflow-y-auto space-y-2 mb-4 pr-1 scroll-smooth">
                 <li id="cart-placeholder" class="text-gray-400 text-center mt-12 font-kyokasho">おかいもの を はじめよう！</li>
             </ul>
@@ -222,7 +206,6 @@
             </div>
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
-                <!-- Left: Paint box -->
                 <div class="flex flex-col gap-2 w-full max-w-[340px] mx-auto">
                     <div class="relative w-full flex items-center justify-between bg-white px-3 py-1.5 rounded-lg shadow-sm border border-sky-100">
                         <div class="flex items-center gap-2">
@@ -231,7 +214,7 @@
                             <button onclick="setPenColor('#3b82f6')" id="btn-pen-blue" class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white"></button>
                             <button onclick="setPenColor('#1e293b')" id="btn-pen-black" class="w-6 h-6 rounded-full bg-slate-800 border-2 border-white"></button>
                         </div>
-                        <button onclick="clearCanvas()" class="text-xs bg-amber-100 text-amber-800 font-bold py-1 px-2.5 rounded hover:bg-amber-200 transition">🧹 メモ消去</button>
+                        <button onclick="clearCanvas()" class="text-xs bg-amber-100 text-amber-800 font-bold py-1 px-2.5 rounded hover:bg-amber-200 transition">🧹 消す</button>
                     </div>
 
                     <div class="relative w-full bg-white rounded-xl shadow-lg border-2 border-sky-300 p-2 overflow-hidden">
@@ -243,7 +226,6 @@
                     </div>
                 </div>
 
-                <!-- Right: Ten-key pad -->
                 <div class="flex-1 flex flex-col justify-center items-center max-w-sm mx-auto w-full">
                     <div class="grid grid-cols-3 gap-2 w-full font-kyokasho">
                         <button onclick="pressKey(7)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50">7</button>
@@ -260,7 +242,7 @@
                         <button onclick="pressKey('BS')" class="bg-amber-100 p-5 rounded-2xl text-xl font-bold hover:bg-amber-200">⬅とりけす</button>
                     </div>
                     
-                    <div class="mt-5 w-full flex flex-col gap-3" id="payment-actions">
+                    <div class="mt-5 w-full flex flex-col gap-3">
                         <div class="flex gap-2 w-full" id="action-buttons-row">
                             <button onclick="closePaymentModal()" class="flex-1 bg-slate-400 text-white font-bold py-3 rounded-xl hover:bg-slate-500 text-[13px]">やめる</button>
                             <button onclick="showAnswerAutomatic()" class="flex-1 bg-sky-500 text-white font-bold py-3 rounded-xl hover:bg-sky-600 text-[13px]">💡おつりをみる</button>
@@ -275,7 +257,7 @@
         </div>
     </div>
 
-    <!-- ==================== 正解お祝い・くっきりリアルレシートモーダル ==================== -->
+    <!-- 正解お祝い・くっきりリアルレシートモーダル -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full">
             <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
@@ -314,7 +296,6 @@
                     </div>
                 </div>
 
-                <!-- ダミーバーコード -->
                 <div class="flex justify-center items-center gap-0.5 mt-6 mb-2 h-8 opacity-90">
                     <div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div>
                     <div class="w-3 h-full bg-slate-950"></div><div class="w-1 h-full bg-slate-950"></div><div class="w-2 h-full bg-slate-950"></div>
@@ -329,221 +310,80 @@
         </div>
     </div>
 
-    <!-- ==================== JavaScript ロジック (最初期の爆速構成へ完全復元) ==================== -->
+    <!-- JavaScript ロジック -->
     <script>
         // 75種類のお買い物商品データベース
         const dummyProducts = [
-            { name: "りんご (🍎)", price: 124 },
-            { name: "みかん (🍊)", price: 87 },
-            { name: "バナナ (🍌)", price: 158 },
-            { name: "いちご (🍓)", price: 398 },
-            { name: "メロン (🍈)", price: 980 },
-            { name: "すいか (🍉)", price: 1250 },
-            { name: "にんじん (🥕)", price: 93 },
-            { name: "キャベツ (🥬)", price: 148 },
-            { name: "トマト (🍅)", price: 115 },
-            { name: "おにぎり (🍙)", price: 135 },
-            { name: "クロワッサン (🥐)", price: 186 },
-            { name: "食パン (🍞)", price: 218 },
-            { name: "サンドイッチ (🥪)", price: 324 },
-            { name: "うどん (🍜)", price: 412 },
-            { name: "おすし (🍣)", price: 880 },
-            { name: "ショートケーキ (🍰)", price: 453 },
-            { name: "ぷるぷるプリン (🍮)", price: 198 },
-            { name: "バニラアイス (🍨)", price: 162 },
-            { name: "板チョコレート (🍫)", price: 108 },
-            { name: "手作りクッキー (🍪)", price: 216 },
-            { name: "棒キャンディ (🍬)", price: 74 },
-            { name: "ペットボトル緑茶 (🍵)", price: 147 },
-            { name: "おいしい牛乳 (🥛)", price: 205 },
-            { name: "オレンジジュース (🍹)", price: 156 },
-            { name: "冷たいコーラ (🥤)", price: 138 },
-            { name: "クマのぬいぐるみ (🧸)", price: 1480 },
-            { name: "赤いミニカー (🚗)", price: 495 },
-            { name: "トランプ (🃏)", price: 312 },
-            { name: "学習ノート (📓)", price: 118 },
-            { name: "２Ｂえんぴつ (✏️)", price: 63 },
-            { name: "よく消える消しゴム (🧽)", price: 84 },
-            { name: "安全はさみ (✂️)", price: 275 },
-            { name: "カラフルおりがみ (🎨)", price: 198 },
-            { name: "miniリュック (🎒)", price: 3890 },
-            { name: "可愛いハンカチ (🧣)", price: 254 },
-            { name: "くまさんくつした (🧦)", price: 315 },
-            { name: "サッカーボール (⚽)", price: 1240 },
-            { name: "ポテトフライ (🍟)", price: 243 },
-            { name: "チョコドーナツ (🍩)", price: 154 },
-            { name: "チーズバーガー (🍔)", price: 392 },
-            { name: "タコ焼きパック (🐙)", price: 415 },
-            { name: "ビーフカレー (🍛)", price: 624 },
-            { name: "ポテトチップス (🥔)", price: 119 },
-            { name: "フルーツグミ (🍬)", price: 122 },
-            { name: "シュワシュワラムネ (🍾)", price: 98 },
-            { name: "水ようかん (🍡)", price: 132 },
-            { name: "あんこたい焼き (🐟)", price: 165 },
-            { name: "保冷水筒 (🍶)", price: 1890 },
-            { name: "子ども用歯ブラシ (🪥)", price: 112 },
-            { name: "おもしろい絵本 (📖)", price: 836 },
-            { name: "星 of キーホルダー (🔑)", price: 345 },
-            { name: "ポップコーン (🍿)", price: 184 },
-            { name: "ホットドッグ (🌭)", price: 263 },
-            { name: "ピースピザ (🍕)", price: 382 },
-            { name: "メロンパン (🍞)", price: 143 },
-            { name: "シュークリーム (🧁)", price: 152 },
-            { name: "わたがし (☁️)", price: 112 },
-            { name: "フランクフルト (🌭)", price: 194 },
-            { name: "おえかきちょう (🎨)", price: 145 },
-            { name: "12色クレヨン (🖍️)", price: 382 },
-            { name: "水彩えのぐ (🎨)", price: 684 },
-            { name: "虫めがね (🔍)", price: 215 },
-            { name: "虫かご (🕸️)", price: 432 },
-            { name: "カラフルなわとび (➰)", price: 294 },
-            { name: "シャボン玉セット (🫧)", price: 134 },
-            { name: "お花のヘアクリップ (🌸)", price: 94 },
-            { name: "ぷくぷくシール (🐟)", price: 112 },
-            { name: "らいおんバッジ (🦁)", price: 183 },
-            { name: "ねこペンケース (✏️)", price: 594 },
-            { name: "キャラクターかさ (☂️)", price: 783 },
-            { name: "どうぶつハンカチ (🧼)", price: 143 },
-            { name: "じゆうちょう (📒)", price: 123 },
-            { name: "30cmじょうぎ (📏)", price: 134 },
-            { name: "カラフルねんど (🎨)", price: 245 },
+            { name: "りんご (🍎)", price: 124 }, { name: "みかん (🍊)", price: 87 },
+            { name: "バナナ (🍌)", price: 158 }, { name: "いちご (🍓)", price: 398 },
+            { name: "メロン (🍈)", price: 980 }, { name: "すいか (🍉)", price: 1250 },
+            { name: "にんじん (🥕)", price: 93 }, { name: "キャベツ (🥬)", price: 148 },
+            { name: "トマト (🍅)", price: 115 }, { name: "おにぎり (🍙)", price: 135 },
+            { name: "クロワッサン (🥐)", price: 186 }, { name: "食パン (🍞)", price: 218 },
+            { name: "サンドイッチ (🥪)", price: 324 }, { name: "うどん (🍜)", price: 412 },
+            { name: "おすし (🍣)", price: 880 }, { name: "ショートケーキ (🍰)", price: 453 },
+            { name: "ぷるぷるプリン (🍮)", price: 198 }, { name: "バニラアイス (🍨)", price: 162 },
+            { name: "板チョコレート (🍫)", price: 108 }, { name: "手作りクッキー (🍪)", price: 216 },
+            { name: "棒キャンディ (🍬)", price: 74 }, { name: "ペットボトル緑茶 (🍵)", price: 147 },
+            { name: "おいしい牛乳 (🥛)", price: 205 }, { name: "オレンジジュース (🍹)", price: 156 },
+            { name: "冷たいコーラ (🥤)", price: 138 }, { name: "クマのぬいぐるみ (🧸)", price: 1480 },
+            { name: "赤いミニカー (🚗)", price: 495 }, { name: "トランプ (🃏)", price: 312 },
+            { name: "学習ノート (📓)", price: 118 }, { name: "２Ｂえんぴつ (✏️)", price: 63 },
+            { name: "よく消える消しゴム (🧽)", price: 84 }, { name: "安全はさみ (✂️)", price: 275 },
+            { name: "カラフルおりがみ (🎨)", price: 198 }, { name: "miniリュック (🎒)", price: 3890 },
+            { name: "可愛いハンカチ (🧣)", price: 254 }, { name: "くまさんくつした (🧦)", price: 315 },
+            { name: "サッカーボール (⚽)", price: 1240 }, { name: "ポテトフライ (🍟)", price: 243 },
+            { name: "チョコドーナツ (🍩)", price: 154 }, { name: "チーズバーガー (🍔)", price: 392 },
+            { name: "タコ焼きパック (🐙)", price: 415 }, { name: "ビーフカレー (🍛)", price: 624 },
+            { name: "ポテトチップス (🥔)", price: 119 }, { name: "フルーツグミ (🍬)", price: 122 },
+            { name: "シュワシュワラムネ (🍾)", price: 98 }, { name: "水ようかん (🍡)", price: 132 },
+            { name: "あんこたい焼き (🐟)", price: 165 }, { name: "保冷水筒 (🍶)", price: 1890 },
+            { name: "子ども用歯ブラシ (🪥)", price: 112 }, { name: "おもしろい絵本 (📖)", price: 836 },
+            { name: "星のキーホルダー (🔑)", price: 345 }, { name: "ポップコーン (🍿)", price: 184 },
+            { name: "ホットドッグ (🌭)", price: 263 }, { name: "ピースピザ (🍕)", price: 382 },
+            { name: "メロンパン (🍞)", price: 143 }, { name: "シュークリーム (🧁)", price: 152 },
+            { name: "わたがし (☁️)", price: 112 }, { name: "フランクフルト (🌭)", price: 194 },
+            { name: "おえかきちょう (🎨)", price: 145 }, { name: "12色クレヨン (🖍️)", price: 382 },
+            { name: "水彩えのぐ (🎨)", price: 684 }, { name: "虫めがね (🔍)", price: 215 },
+            { name: "虫かご (🕸️)", price: 432 }, { name: "カラフルなわとび (➰)", price: 294 },
+            { name: "シャボン玉セット (🫧)", price: 134 }, { name: "お花のヘアクリップ (🌸)", price: 94 },
+            { name: "ぷくぷくシール (🐟)", price: 112 }, { name: "らいおんバッジ (🦁)", price: 183 },
+            { name: "ねこペンケース (✏️)", price: 594 }, { name: "キャラクターかさ (☂️)", price: 783 },
+            { name: "どうぶつハンカチ (🧼)", price: 143 }, { name: "じゆうちょう (📒)", price: 123 },
+            { name: "30cmじょうぎ (📏)", price: 134 }, { name: "カラフルねんど (🎨)", price: 245 },
             { name: "バドミントンシャトル (🏸)", price: 184 }
+        ];
+
         // アプリケーション状態
         let cart = [];
         let html5QrcodeScanner = null;
         let currentCameraId = null;
         
-        // デバイス判定: スマホ・タブレット等のモバイル端末を識別
+        // デバイス判定: スマホ(背面優先)、PC(前面優先)
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
-        let isFrontCamera = !isMobile; // スマホは背面(false)、PCは前面(true)をデフォルトに
         
-        let solvedCount = 0; // 解いた問題数
-
-        // 非同期競合エラーを防ぐための排他制御（ロックフラグ）
+        let solvedCount = 0; 
         let isScannerTransitioning = false;
-        // ブブー（不正解）ブザー
-        function playIncorrectSound() {
-            initAudio();
-            const now = Tone.now();
-            synth.triggerAttackRelease("A3", "8n", now);
-            synth.triggerAttackRelease("A3", "8n", now + 0.15);
-        }
+        let isSolved = false;
+        let synth = null;
+        let totalAmount = 0, paidAmount = 0, changeAmount = 0;
+        let currentFocusIndex = 0;
+        let userAnswers = ["", "", "", ""];
 
-        // -==================== カメラパーミッション＆初期化の修復 ====================
-        async function initScanner() {
-            const container = document.getElementById("camera-fallback-msg");
-            try {
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    try {
-                        const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                        testStream.getTracks().forEach(track => track.stop());
-                    } catch (permErr) {
-                        console.warn("Camera permission request pre-flight failed:", permErr);
-                    }
-                }
-
-                const devices = await Html5Qrcode.getCameras();
-                if (devices && devices.length > 0) {
-                    // デバイスに応じて、最適な初期カメラ（前か後ろか）を自動選定
-                    let targetCamera = null;
-                    if (isMobile) {
-                        targetCamera = devices.find(device => device.label.toLowerCase().includes("back") || device.label.toLowerCase().includes("environment") || device.label.toLowerCase().includes("背面"));
-                    } else {
-                        targetCamera = devices.find(device => device.label.toLowerCase().includes("front") || device.label.toLowerCase().includes("user") || device.label.toLowerCase().includes("前面"));
-                    }
-                    
-                    if (!targetCamera) targetCamera = devices[0];
-                    
-                    currentCameraId = targetCamera.id;
-                    isFrontCamera = targetCamera.label.toLowerCase().includes("front") || targetCamera.label.toLowerCase().includes("user") || targetCamera.label.toLowerCase().includes("前面") || (!targetCamera.label.toLowerCase().includes("back") && !isMobile);
-                    
-                    startScanning(currentCameraId);
-                } else {
-                    container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラが見つかりません</p><p class="text-xs text-slate-300 mt-2">下のテストボタンを使って楽しんでね！</p>`;
-                }
-            } catch (err) {
-                console.warn("Camera list fetch failed:", err);
-                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラを起動できませんでした</p><p class="text-xs text-slate-300 mt-2">カメラ許可を確認するか、下のテストスキャンボタンでお買い物しよう！</p>`;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({oscillator:{type:"sine"},envelope:{attack:0.005,decay:0.1}}).toDestination();
             }
+            if (Tone.context.state !== 'running') Tone.context.resume();
         }
 
-        // ==================== あらゆる機種で爆速化する解像度＆FPS最適化 ====================
-        async function startScanning(cameraId) {
-            if (isScannerTransitioning) return;
-            isScannerTransitioning = true;
-
-            try {
-                if (html5QrcodeScanner) {
-                    try { await html5QrcodeScanner.stop(); } catch (err) {}
-                    try { html5QrcodeScanner.clear(); } catch (err) {}
-                }
-                
-                document.getElementById("reader").innerHTML = "";
-                
-                // 【超重要】スマホの不安定なネイティブAPIを無効化し、高精度なZXingエンジンを強制稼働
-                html5QrcodeScanner = new Html5Qrcode("reader", { useBarCodeDetectorIfSupported: false });
-                
-                const readerDiv = document.getElementById("reader");
-                if (isFrontCamera) {
-                    readerDiv.classList.remove("back-camera"); 
-                } else {
-                    readerDiv.classList.add("back-camera");    
-                }
-
-                // 【機種別・最適化コンフィグ】
-                // Chromebook等の低スペックCPUでの熱暴走を防ぐため fps を 10 に設定。
-                // 1Dバーコード（JAN規格）にフォーマットを極限まで絞り込むことで、計算量を激減させ爆速化。
-                const config = {
-                    fps: 10,
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E
-                    ],
-                    qrbox: { width: 250, height: 150 },
-                    disableFlip: false // ZXingの反転補正を許可
-                };
-
-                // HD画質(720p)を理想とし、バーコードの線がクッキリ映る映像を要求する
-                const videoConstraints = {
-                    facingMode: isFrontCamera ? "user" : "environment",
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                };
-
-                try {
-                    // 優先的にfacingModeと最適解像度で起動
-                    await html5QrcodeScanner.start(
-                        videoConstraints,
-                        config,
-                        onScanSuccessInternal,
-                        onScanErrorInternal
-                    );
-                    hideFallbackMessage();
-                } catch (err) {
-                    console.warn("Optimal camera launch failed, attempting fallback...", err);
-                    // エラーが出た端末（一部の古いスマホ等）向けのフォールバック起動
-                    try {
-                        await html5QrcodeScanner.start(
-                            cameraId || { facingMode: "environment" },
-                            config,
-                            onScanSuccessInternal,
-                            onScanErrorInternal
-                        );
-                        hideFallbackMessage();
-                    } catch (err2) {
-                        showFallbackError();
-                    }
-                }
-            } finally {
-                isScannerTransitioning = false;
+        // FNV-1a ハッシュでバーコードから商品を一意に決定
+        function getProductFromBarcode(barcode) {
+            let hash = 2166136261; 
+            for (let i = 0; i < barcode.length; i++) {
+                hash ^= barcode.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
             }
-        }
-
-        function onScanSuccessInternal(decodedText) {
-            handleScannedBarcode(decodedText);
-        }
             const index = Math.abs(hash) % dummyProducts.length;
             return dummyProducts[index];
         }
@@ -554,89 +394,74 @@
             setTimeout(() => { initScanner(); }, 300);
         });
 
-        // カメラ起動シーケンス
+        // カメラ初期化とデバイスに応じた自動切り替え
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
-            if (!container) return;
-
             container.classList.remove("hidden");
-            container.innerHTML = `
-                <span class="text-4xl mb-3">📷</span>
-                <p class="font-bold mb-1">カメラを起動しています...</p>
-            `;
-
-            if (!window.Html5Qrcode) {
-                showCameraFallback("ライブラリが読み込めません。テスト用ボタンでお遊びください。");
-                return;
-            }
 
             try {
-                if (html5QrScanner) {
-                    try { await html5QrScanner.stop(); } catch (e) {}
-                }
-
-                // 【バグ回避】不完全なスマホネイティブバーコードAPIを使わせず、100%信頼できるデコードエンジン(ZXing)で強制処理。
-                html5QrScanner = new Html5Qrcode("reader", { useBarCodeDetectorIfSupported: false });
-                
-                const facingMode = isFrontCamera ? "user" : "environment";
-                const formats = window.Html5QrcodeSupportedFormats || Html5Qrcode.SupportedFormats;
-                // サポートする形式をJANバーコードに最適化してデコード効率を最大化
-                const formatsConfig = formats ? [formats.EAN_13, formats.EAN_8, formats.UPC_A, formats.UPC_E] : [];
-
-                const readerDiv = document.getElementById("reader");
-                if (readerDiv) {
-                    if (isFrontCamera) {
-                        readerDiv.classList.remove("back-camera");
+                const devices = await Html5Qrcode.getCameras();
+                if (devices && devices.length > 0) {
+                    let targetCamera = null;
+                    if (isMobile) {
+                        targetCamera = devices.find(d => d.label.toLowerCase().includes("back") || d.label.toLowerCase().includes("environment"));
                     } else {
-                        readerDiv.classList.add("back-camera");
+                        targetCamera = devices.find(d => d.label.toLowerCase().includes("front") || d.label.toLowerCase().includes("user"));
                     }
-                }
-
-                // スキャン枠（250px x 150px）と完全に一致させる設定
-                const scanConfig = {
-                    fps: 15, 
-                    qrbox: { width: 250, height: 150 },
-                    formatsToSupport: formatsConfig
-                };
-                
-                try {
-                    // ピュアなfacingMode指定でエラーを完全排除し、デバイスに応じた初期カメラを立ち上げる
-                    await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
-                    container.classList.add("hidden");
-                } catch (err1) {
-                    // デバイスID直指定フォールバック
-                    const cameras = await Html5Qrcode.getCameras();
-                    if (cameras && cameras.length > 0) {
-                        let targetCamId = cameras[0].id;
-                        const searchRegex = isFrontCamera ? /(front|user|内|正面)/i : /(back|environment|外|背面)/i;
-                        const matchedCam = cameras.find(cam => searchRegex.test(cam.label));
-                        if (matchedCam) targetCamId = matchedCam.id;
-                        else targetCamId = isFrontCamera ? cameras[cameras.length - 1].id : cameras[0].id;
-                        
-                        await html5QrScanner.start(targetCamId, scanConfig, onScanSuccess);
-                        container.classList.add("hidden");
-                    } else {
-                        throw new Error("No camera found.");
-                    }
+                    if (!targetCamera) targetCamera = devices[0];
+                    currentCameraId = targetCamera.id;
+                    startScanning(currentCameraId);
+                } else {
+                    container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラが見つかりません</p>`;
                 }
             } catch (err) {
-                showCameraFallback('カメラが起動できませんでした。<br><span class="text-amber-400 font-bold">左下の「⚡ ぴっ！」ボタンで遊べます！</span>');
+                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラを起動できませんでした</p>`;
             }
         }
 
-        function showCameraFallback(msg) {
-            const container = document.getElementById("camera-fallback-msg");
-            if (container) {
-                container.classList.remove("hidden");
-                container.innerHTML = `
-                    <span class="text-4xl mb-3">⚠️</span>
-                    <p class="font-bold mb-2 text-amber-300">お知らせ</p>
-                    <p class="text-xs text-slate-100 px-6 leading-relaxed text-center">${msg}</p>
-                `;
+        // 超高速・高安定のピュアストリーム起動
+        async function startScanning(cameraId) {
+            if (isScannerTransitioning) return;
+            isScannerTransitioning = true;
+
+            try {
+                if (html5QrcodeScanner) {
+                    try { await html5QrcodeScanner.stop(); } catch(e){}
+                    try { html5QrcodeScanner.clear(); } catch(e){}
+                }
+                
+                document.getElementById("reader").innerHTML = "";
+                
+                // ネイティブバーコード読み取り機能を無効化しZXingを強制使用（エラー防止）
+                html5QrcodeScanner = new Html5Qrcode("reader", { useBarCodeDetectorIfSupported: false });
+
+                const config = {
+                    fps: 10, // Chromebookやスマホでも熱暴走しない最適化
+                    qrbox: { width: 250, height: 150 }, // UIの枠と完全に1対1シンクロ
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E
+                    ]
+                };
+
+                await html5QrcodeScanner.start(
+                    cameraId,
+                    config,
+                    onScanSuccessInternal,
+                    onScanErrorInternal
+                );
+                
+                document.getElementById("camera-fallback-msg").classList.add("hidden");
+            } catch (e) {
+                document.getElementById("camera-fallback-msg").innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p>`;
+            } finally {
+                isScannerTransitioning = false;
             }
         }
 
-        // 【誤読防止：モジュロ10（チェックデジット）計算】斜め読みによるノイズ・誤認識を100%シャットアウト
+        // チェックデジットで斜め読みによる誤読を完全ガード
         function isValidBarcode(code) {
             if (!/^\d{8}$|^\d{12}$|^\d{13}$/.test(code)) return false;
             let sum = 0;
@@ -644,20 +469,17 @@
             const checkDigit = parseInt(code.charAt(len - 1), 10);
             for (let i = len - 2; i >= 0; i--) {
                 const digit = parseInt(code.charAt(i), 10);
-                const positionFromRight = len - 1 - i;
-                sum += digit * (positionFromRight % 2 !== 0 ? 3 : 1);
+                const pos = len - 1 - i;
+                sum += digit * (pos % 2 !== 0 ? 3 : 1);
             }
-            const calculatedCheckDigit = (10 - (sum % 10)) % 10;
-            return checkDigit === calculatedCheckDigit;
+            return checkDigit === ((10 - (sum % 10)) % 10);
         }
 
         let lastScanTime = 0;
-        
-        function onScanSuccess(code) {
+        function onScanSuccessInternal(decodedText) {
             const now = Date.now();
-            const cleanCode = code.replace(/[^0-9]/g, ''); 
+            const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
-            // 誤読ノイズを完全に弾く
             if (!isValidBarcode(cleanCode)) return; 
             if (now - lastScanTime < 1800) return; 
             
@@ -665,18 +487,18 @@
             addToCart(getProductFromBarcode(cleanCode));
         }
 
+        function onScanErrorInternal() {}
+
         async function toggleCameraFacing() {
-            if (isScannerTransitioning) return; 
-            isScannerTransitioning = true;
-            isFrontCamera = !isFrontCamera;
-            
-            if (html5QrScanner) {
-                try { await html5QrScanner.stop(); } catch(e) {}
-            }
-            
-            setTimeout(() => {
-                initScanner().finally(() => { isScannerTransitioning = false; });
-            }, 200);
+            if (isScannerTransitioning) return;
+            try {
+                const devices = await Html5Qrcode.getCameras();
+                if (devices.length > 1) {
+                    const currentIndex = devices.findIndex(d => d.id === currentCameraId);
+                    currentCameraId = devices[(currentIndex + 1) % devices.length].id;
+                    startScanning(currentCameraId);
+                }
+            } catch (e) {}
         }
 
         function triggerMockScan() {
@@ -684,18 +506,12 @@
         }
 
         function addToCart(product) {
-            try {
-                if (window.Tone && Tone.start) {
-                    Tone.start();
-                    new Tone.Synth({oscillator:{type:"sine"},envelope:{attack:0.005,decay:0.1}}).toDestination().triggerAttackRelease("D6", "32n");
-                }
-            } catch(e) {}
+            initAudio();
+            if (synth) synth.triggerAttackRelease("D6", "32n");
 
-            const scannerContainer = document.getElementById("scanner-container");
-            if (scannerContainer) {
-                scannerContainer.classList.add("ring-8", "ring-emerald-400");
-                setTimeout(() => scannerContainer.classList.remove("ring-8", "ring-emerald-400"), 150);
-            }
+            const container = document.getElementById("scanner-container");
+            container.classList.add("ring-8", "ring-emerald-400");
+            setTimeout(() => container.classList.remove("ring-8", "ring-emerald-400"), 150);
 
             cart.push({ ...product, id: Date.now() + Math.random() });
             renderCart();
@@ -703,10 +519,9 @@
 
         function renderCart() {
             const list = document.getElementById("cart-list");
-            if (!list) return;
-
             list.innerHTML = "";
             let total = 0;
+            
             if (cart.length === 0) {
                 list.innerHTML = `<li id="cart-placeholder" class="text-gray-400 text-center mt-12 font-kyokasho">おかいもの を はじめよう！</li>`;
             } else {
@@ -718,97 +533,71 @@
                         <span class="font-bold text-gray-800">${item.name}</span>
                         <div class="flex items-center gap-3">
                             <span class="font-bold text-emerald-700">${item.price} 円</span>
-                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-xs px-2.5 py-1 rounded-lg font-bold hover:bg-rose-200 transition">とりけす</button>
+                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-xs px-2.5 py-1 rounded-lg font-bold hover:bg-rose-200">とりけす</button>
                         </div>
                     `;
                     list.appendChild(li);
                 });
             }
 
-            const tc = document.getElementById("total-count");
-            const tp = document.getElementById("total-price");
-            const btn = document.getElementById("checkout-btn");
-
-            if (tc) tc.innerText = cart.length + " 点";
-            if (tp) tp.innerText = total.toLocaleString();
-            if (btn) btn.disabled = cart.length === 0;
+            document.getElementById("total-count").innerText = cart.length + " 点";
+            document.getElementById("total-price").innerText = total.toLocaleString();
+            document.getElementById("checkout-btn").disabled = cart.length === 0;
 
             setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
         }
 
-        // お買い上げ商品の縦スクロール制御：no-selectを打ち消して指でのスクロールを100%保証
-        function removeItem(id) { 
-            cart = cart.filter(i => i.id !== id); 
-            renderCart(); 
-        }
-        
-        function clearCart() { 
-            cart = []; 
-            renderCart(); 
-        }
+        function removeItem(id) { cart = cart.filter(i => i.id !== id); renderCart(); }
+        function clearCart() { cart = []; renderCart(); }
 
         function getOptimalPayment(total) {
-            const baseThousand = Math.ceil(total / 1000) * 1000;
-            if (solvedCount < 1) return baseThousand === total ? baseThousand + 1000 : baseThousand;
-            
+            const base = Math.ceil(total / 1000) * 1000;
+            if (solvedCount < 1) return base === total ? base + 1000 : base;
             const rand = Math.random();
             if (rand < 0.5) {
                 const hasu = total % 100;
-                if (hasu > 0 && (baseThousand + hasu) > total) {
-                    return baseThousand + hasu;
-                }
+                if (hasu > 0 && (base + hasu) > total) return base + hasu;
             }
-            return (total < 4000 && Math.random() > 0.6) ? 5000 : (baseThousand === total ? baseThousand + 1000 : baseThousand);
+            return (total < 4000 && Math.random() > 0.6) ? 5000 : (base === total ? base + 1000 : base);
         }
 
         function openPaymentModal() {
             isSolved = false; 
-            const actionsRow = document.getElementById("action-buttons-row");
-            const showBtn = document.getElementById("show-receipt-btn");
-            if (actionsRow) actionsRow.classList.remove("hidden");
-            if (showBtn) showBtn.classList.add("hidden");
+            document.getElementById("action-buttons-row").classList.remove("hidden");
+            document.getElementById("show-receipt-btn").classList.add("hidden");
 
             totalAmount = cart.reduce((s, i) => s + i.price, 0);
             paidAmount = getOptimalPayment(totalAmount);
             changeAmount = paidAmount - totalAmount;
             
-            const info = document.getElementById("payment-info");
-            if (info) info.innerText = `ごうけい ${totalAmount} 円。おさいふから ${paidAmount} 円 だしました！`;
-            
+            document.getElementById("payment-info").innerText = `ごうけい ${totalAmount} 円。おさいふから ${paidAmount} 円 だしました！`;
             renderGrid();
-            
             document.getElementById("payment-modal").classList.remove("hidden");
             
-            if (html5QrScanner && typeof html5QrScanner.getState === 'function' && html5QrScanner.getState() === 2) { 
-                try { html5QrScanner.pause(true); } catch(e) {}
+            if (html5QrcodeScanner && html5QrcodeScanner.getState() === 2) { 
+                try { html5QrcodeScanner.pause(true); } catch(e){} 
             }
-
             setTimeout(resizeCanvas, 100);
         }
 
         function closePaymentModal() { 
             document.getElementById("payment-modal").classList.add("hidden"); 
-            
-            if (html5QrScanner && typeof html5QrScanner.getState === 'function' && html5QrScanner.getState() === 3) { 
-                try { html5QrScanner.resume(); } catch(e) {}
+            if (html5QrcodeScanner && html5QrcodeScanner.getState() === 3) { 
+                try { html5QrcodeScanner.resume(); } catch(e){} 
             }
         }
 
         function resetAppAndCloseSuccess() { 
             document.getElementById("success-modal").classList.add("hidden"); 
-            cart = []; 
-            renderCart(); 
-            
-            if (html5QrScanner && typeof html5QrScanner.getState === 'function' && html5QrScanner.getState() === 3) { 
-                try { html5QrScanner.resume(); } catch(e) {}
+            clearCart(); 
+            if (html5QrcodeScanner && html5QrcodeScanner.getState() === 3) { 
+                try { html5QrcodeScanner.resume(); } catch(e){} 
             }
         }
 
         function renderGrid() {
             const cols = paidAmount >= 10000 ? 6 : 5;
             const container = document.getElementById("calculation-grid-container");
-            if (!container) return;
-
             container.innerHTML = `<div id="calculation-grid" class="grid grid-cols-${cols} border-t border-l border-sky-200"></div>`;
             const grid = container.firstChild;
 
@@ -823,8 +612,6 @@
             for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 bg-sky-50/10"></div>`; 
 
             const ansContainer = document.getElementById("answer-grid-container");
-            if (!ansContainer) return;
-
             ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-2"><div class="flex items-center justify-center text-xl sm:text-2xl font-black text-slate-400">=</div></div>`;
             const ansGrid = ansContainer.firstChild;
             if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-12 sm:h-16"></div>`;
@@ -845,43 +632,42 @@
 
         function pressKey(k) {
             if (isSolved) return; 
-            
+            initAudio();
             if(typeof k === 'number') {
                 userAnswers[currentFocusIndex] = k.toString();
-                const b = document.getElementById(`ans-box-${currentFocusIndex}`);
-                if (b) b.innerText = k;
+                document.getElementById(`ans-box-${currentFocusIndex}`).innerText = k;
                 if(currentFocusIndex < 3) focusDigit(currentFocusIndex + 1);
             } else if(k === 'BS') {
                 userAnswers[currentFocusIndex] = ""; 
-                const b = document.getElementById(`ans-box-${currentFocusIndex}`);
-                if (b) b.innerText = "";
+                document.getElementById(`ans-box-${currentFocusIndex}`).innerText = "";
                 if(currentFocusIndex > 0) focusDigit(currentFocusIndex - 1);
             } else if(k === 'C') {
                 userAnswers = ["","","",""]; 
-                for(let i=0; i<4; i++) { 
-                    const b = document.getElementById(`ans-box-${i}`); 
-                    if(b) b.innerText = ""; 
-                } 
+                for(let i=0; i<4; i++) document.getElementById(`ans-box-${i}`).innerText = ""; 
                 focusDigit(0);
             }
         }
 
-        function playIncorrectChime() {
-            try {
-                if (window.Tone && Tone.start) {
-                    Tone.start();
-                    const synthChime = new Tone.PolySynth().toDestination();
-                    const now = Tone.now();
-                    synthChime.triggerAttackRelease(["F#2", "G2"], "16n", now);
-                    synthChime.triggerAttackRelease(["F#2", "G2"], "6n", now + 0.12);
-                }
-            } catch(e) {}
+        function playCorrectChime() {
+            if (synth) {
+                const now = Tone.now();
+                synth.triggerAttackRelease("C5", "8n", now);
+                synth.triggerAttackRelease("E5", "8n", now + 0.1);
+                synth.triggerAttackRelease("G5", "8n", now + 0.2);
+                synth.triggerAttackRelease("C6", "4n", now + 0.3);
+            }
         }
 
-        // 答え合わせロジック
+        function playIncorrectChime() {
+            if (synth) {
+                const now = Tone.now();
+                synth.triggerAttackRelease("A3", "8n", now);
+                synth.triggerAttackRelease("A3", "8n", now + 0.15);
+            }
+        }
+
         function checkAnswer() {
             if (isSolved) return;
-            
             let s = ""; 
             for(let i=3; i>=0; i--) s += userAnswers[i] || (s===""?"":"0");
             
@@ -898,45 +684,29 @@
         function showAnswerAutomatic() {
             if (isSolved) return;
             isSolved = true;
-            
             const strChange = changeAmount.toString();
             userAnswers = ["", "", "", ""];
-            
-            for(let i=0; i<4; i++) {
-                const b = document.getElementById(`ans-box-${i}`);
-                if(b) b.innerText = "";
-            }
-
+            for(let i=0; i<4; i++) document.getElementById(`ans-box-${i}`).innerText = "";
             let strIdx = strChange.length - 1;
             for(let i=0; i<strChange.length; i++) {
                 userAnswers[i] = strChange[strIdx - i];
-                const b = document.getElementById(`ans-box-${i}`);
-                if (b) {
-                    b.innerText = userAnswers[i];
-                }
+                document.getElementById(`ans-box-${i}`).innerText = userAnswers[i];
             }
-            
             currentFocusIndex = -1;
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
-                if (b && !userAnswers[i]) {
-                    b.className = "m-1 h-12 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-700";
-                }
+                if (!userAnswers[i]) b.className = "m-1 h-12 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-700";
             }
-
             playCorrectChime();
             showReceiptButton();
         }
 
         function showReceiptButton() {
-            const row = document.getElementById("action-buttons-row");
-            const btn = document.getElementById("show-receipt-btn");
-            if (row) row.classList.add("hidden"); 
-            if (btn) btn.classList.remove("hidden");
-            
+            document.getElementById("action-buttons-row").classList.add("hidden"); 
+            document.getElementById("show-receipt-btn").classList.remove("hidden");
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
-                if (b && userAnswers[i]) {
+                if (userAnswers[i]) {
                     b.classList.remove("bg-yellow-100", "border-amber-400", "text-amber-800", "bg-amber-50", "text-amber-700", "border-slate-300");
                     b.classList.add("bg-sky-100", "border-4", "border-sky-400", "text-sky-800", "scale-105"); 
                 }
@@ -945,51 +715,24 @@
 
         function showReceipt() {
             document.getElementById("payment-modal").classList.add("hidden");
-            
             const d = new Date(); 
-            const dateEl = document.getElementById("receipt-date");
-            const txEl = document.getElementById("receipt-tx-no");
-            
-            if (dateEl) dateEl.innerText = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-            if (txEl) txEl.innerText = Math.floor(Math.random() * 9000) + 1000;
+            document.getElementById("receipt-date").innerText = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+            document.getElementById("receipt-tx-no").innerText = Math.floor(Math.random() * 9000) + 1000;
             
             const list = document.getElementById("receipt-items-list"); 
-            if (list) {
-                list.innerHTML = "";
-                cart.forEach(i => {
-                    list.innerHTML += `
-                        <div class="flex justify-between text-black font-bold">
-                            <span>${i.name}</span>
-                            <span>${i.price} 円</span>
-                        </div>`;
-                });
-            }
+            list.innerHTML = "";
+            cart.forEach(i => {
+                list.innerHTML += `<div class="flex justify-between text-black font-bold"><span>${i.name}</span><span>${i.price} 円</span></div>`;
+            });
             
-            const rcTotal = document.getElementById("receipt-total-cost");
-            const rcPaid = document.getElementById("receipt-paid-amount");
-            const rcChange = document.getElementById("receipt-change-amount");
-
-            if (rcTotal) rcTotal.innerText = totalAmount.toLocaleString();
-            if (rcPaid) rcPaid.innerText = paidAmount.toLocaleString();
-            if (rcChange) rcChange.innerText = changeAmount.toLocaleString();
+            document.getElementById("receipt-total-cost").innerText = totalAmount.toLocaleString();
+            document.getElementById("receipt-paid-amount").innerText = paidAmount.toLocaleString();
+            document.getElementById("receipt-change-amount").innerText = changeAmount.toLocaleString();
             
             document.getElementById("success-modal").classList.remove("hidden");
         }
 
-        function playCorrectChime() {
-            try {
-                if (window.Tone && Tone.start) {
-                    Tone.start();
-                    const synthChime = new Tone.PolySynth().toDestination();
-                    const now = Tone.now();
-                    synthChime.triggerAttackRelease("C5", "8n", now);
-                    synthChime.triggerAttackRelease("E5", "8n", now + 0.1);
-                    synthChime.triggerAttackRelease("G5", "8n", now + 0.2);
-                    synthChime.triggerAttackRelease("C6", "4n", now + 0.3);
-                }
-            } catch(e) {}
-        }
-
+        let canvas, ctx, isDrawing = false, penColor = '#ef4444';
         function setupMemoCanvas() {
             canvas = document.getElementById("memo-canvas"); 
             if (!canvas) return;
@@ -1008,9 +751,7 @@
             };
             
             canvas.onmousedown = (e) => { 
-                if (!ctx) return;
-                isDrawing = true; 
-                ctx.beginPath(); 
+                isDrawing = true; ctx.beginPath(); 
                 const r = canvas.getBoundingClientRect(); 
                 ctx.moveTo(e.clientX-r.left, e.clientY-r.top); 
             };
@@ -1018,32 +759,20 @@
             window.onmouseup = () => isDrawing = false;
             
             canvas.addEventListener("touchstart", (e) => { 
-                if (!ctx) return;
-                isDrawing = true; 
-                ctx.beginPath(); 
+                isDrawing = true; ctx.beginPath(); 
                 const r = canvas.getBoundingClientRect(); 
                 ctx.moveTo(e.touches[0].clientX-r.left, e.touches[0].clientY-r.top); 
                 e.preventDefault(); 
             }, { passive: false });
-            
-            canvas.addEventListener("touchmove", (e) => { 
-                draw(e); 
-                e.preventDefault(); 
-            }, { passive: false });
-
-            canvas.addEventListener("touchend", () => {
-                isDrawing = false;
-            });
+            canvas.addEventListener("touchmove", (e) => { draw(e); e.preventDefault(); }, { passive: false });
+            canvas.addEventListener("touchend", () => isDrawing = false);
         }
         
         function resizeCanvas() { 
             const c = document.getElementById("canvas-container"); 
-            if (c && canvas && c.offsetWidth > 0 && c.offsetHeight > 0) {
-                canvas.width = c.offsetWidth; 
-                canvas.height = c.offsetHeight; 
-            } else {
-                setTimeout(resizeCanvas, 50);
-            }
+            if (c && canvas && c.offsetWidth > 0) {
+                canvas.width = c.offsetWidth; canvas.height = c.offsetHeight; 
+            } else setTimeout(resizeCanvas, 50);
         }
 
         function setPenColor(color) {
@@ -1053,11 +782,7 @@
             document.getElementById("btn-pen-black").className = color === '#1e293b' ? "w-6 h-6 rounded-full bg-slate-800 border-2 border-white ring-2 ring-slate-800" : "w-6 h-6 rounded-full bg-slate-800 border-2 border-white";
         }
 
-        function clearCanvas() {
-            if (ctx && canvas) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-        }
+        function clearCanvas() { if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height); }
     </script>
 </body>
 </html>
