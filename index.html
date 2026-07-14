@@ -149,6 +149,9 @@
                 </h2>
             </div>
             
+            <!-- 【スマホ対応高さ調整】
+                 スマホの縦画面（lg未満）でカメラエリアが他のパーツに押し潰されて高さ0pxになり、カメラが写らなくなるのを完全にガード！
+                 スマホの時は「h-[45vh]（画面の高さの45%）」を確実に保証し、PC（lg）の時は「lg:h-auto lg:flex-1」で従来通りぴったり伸縮させます。 -->
             <div class="relative h-[45vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <!-- コンテナ自体のサイズを強固に保ち、ライブラリの計算崩れを防ぐ -->
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
@@ -580,10 +583,31 @@
 
         let lastScanTime = 0;
         
+        // 【数学的バリア：モジュロ10・ウェイト3検証アルゴリズム】
+        function isValidBarcode(code) {
+            if (!/^\d{8}$|^\d{12}$|^\d{13}$/.test(code)) return false;
+            
+            let sum = 0;
+            const len = code.length;
+            const checkDigit = parseInt(code.charAt(len - 1), 10);
+            
+            for (let i = len - 2; i >= 0; i--) {
+                const digit = parseInt(code.charAt(i), 10);
+                const positionFromRight = len - 1 - i;
+                sum += digit * (positionFromRight % 2 !== 0 ? 3 : 1);
+            }
+            
+            const calculatedCheckDigit = (10 - (sum % 10)) % 10;
+            return checkDigit === calculatedCheckDigit;
+        }
+        
         function onScanSuccess(code) {
             const now = Date.now();
             const cleanCode = code.replace(/[^0-9]/g, ''); 
-            if (![8, 12, 13].includes(cleanCode.length)) return; 
+            
+            // 手ブレや傾きによる一時的な誤読数値を確実に弾き落とす
+            if (!isValidBarcode(cleanCode)) return; 
+            
             if (now - lastScanTime < 1800) return; 
             
             lastScanTime = now;
@@ -633,7 +657,7 @@
             list.innerHTML = "";
             let total = 0;
             if (cart.length === 0) {
-                list.innerHTML = `<li class="text-gray-400 text-center mt-16 font-semibold">おかいもの を はじめよう！</li>`;
+                list.innerHTML = `<li class="text-gray-400 text-center mt-16">おかいもの を はじめよう！</li>`;
             } else {
                 cart.forEach(item => {
                     total += item.price;
