@@ -15,7 +15,6 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
 
-    <!-- ここが抜けていたため画面に文字が表示されていました -->
     <style>
         body, button, input, p, h1, h2, h3, h4 {
             font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", sans-serif;
@@ -35,6 +34,11 @@
 
         #reader video {
             border-radius: 0.5rem;
+        }
+        
+        /* 【追加】PCの前カメラ等の直感的な鏡像対応 */
+        .mirror-video video {
+            transform: scaleX(-1) !important;
         }
 
         #reader__scan_region img,
@@ -414,6 +418,15 @@
                     }
                     if (!targetCamera) targetCamera = devices[0];
                     currentCameraId = targetCamera.id;
+                    
+                    // 【追加】PC前カメラ等の直感的な鏡像対応
+                    const readerDiv = document.getElementById("reader");
+                    if (targetCamera.label.toLowerCase().includes("front") || targetCamera.label.toLowerCase().includes("user")) {
+                        readerDiv.classList.add("mirror-video");
+                    } else {
+                        readerDiv.classList.remove("mirror-video");
+                    }
+
                     startScanning(currentCameraId);
                 } else {
                     container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラが見つかりません</p>`;
@@ -494,7 +507,16 @@
                 const devices = await Html5Qrcode.getCameras();
                 if (devices.length > 1) {
                     const currentIndex = devices.findIndex(d => d.id === currentCameraId);
-                    currentCameraId = devices[(currentIndex + 1) % devices.length].id;
+                    const nextCamera = devices[(currentIndex + 1) % devices.length];
+                    currentCameraId = nextCamera.id;
+                    
+                    const readerDiv = document.getElementById("reader");
+                    if (nextCamera.label.toLowerCase().includes("front") || nextCamera.label.toLowerCase().includes("user")) {
+                        readerDiv.classList.add("mirror-video");
+                    } else {
+                        readerDiv.classList.remove("mirror-video");
+                    }
+
                     startScanning(currentCameraId);
                 }
             } catch (e) {}
