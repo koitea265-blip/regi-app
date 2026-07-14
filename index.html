@@ -455,35 +455,48 @@
                     }
                 }
 
-                // 【究極の接着】システム側のスキャン判定枠をUIと同じ 250x150 の固定サイズに設定
+                // 【本質的解決】PCとスマホのアスペクト比の違いによる「座標ズレ」を完全に消滅させるため、
+                // システム側のスキャン判定枠（qrbox）の制限を撤廃し、カメラの全領域をフルスキャンさせます。
                 const scanConfig = {
-                    fps: 15, 
-                    qrbox: { width: 250, height: 150 }, // ここがUIの中心と完全に合致する
+                    fps: 12, // スマホでの処理落ちを防ぐ安定フレームレート
                     formatsToSupport: formatsConfig,
-                    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true } // iOS/Androidのネイティブ高速判定を有効化
                 };
 
                 let started = false;
                 
                 try {
-                    // 解像度の強要を全廃し、スマホで黒画面になるエラーを100%防止するピュア起動
-                    await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
+                    // スマホの過負荷を防ぎつつ、全画面スキャンを爆速化するための軽量解像度を要求
+                    const dynamicConstraints = {
+                        facingMode: facingMode,
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        advanced: [{ focusMode: "continuous" }]
+                    };
+                    
+                    await html5QrScanner.start(dynamicConstraints, scanConfig, onScanSuccess);
                     started = true;
                 } catch (err1) {
                     try {
-                        const cameras = await Html5Qrcode.getCameras();
-                        if (cameras && cameras.length > 0) {
-                            let targetCamId = cameras[0].id;
-                            const searchRegex = isFrontCamera ? /(front|user|内|正面)/i : /(back|environment|外|背面)/i;
-                            const matchedCam = cameras.find(cam => searchRegex.test(cam.label));
-                            if (matchedCam) targetCamId = matchedCam.id;
-                            else targetCamId = isFrontCamera ? cameras[cameras.length - 1].id : cameras[0].id;
-                            
-                            await html5QrScanner.start(targetCamId, scanConfig, onScanSuccess);
-                            started = true;
-                        }
+                        // 制約エラーになった場合のピュア起動フォールバック
+                        await html5QrScanner.start({ facingMode: facingMode }, scanConfig, onScanSuccess);
+                        started = true;
                     } catch (err2) {
-                        console.error(err2);
+                        try {
+                            const cameras = await Html5Qrcode.getCameras();
+                            if (cameras && cameras.length > 0) {
+                                let targetCamId = cameras[0].id;
+                                const searchRegex = isFrontCamera ? /(front|user|内|正面)/i : /(back|environment|外|背面)/i;
+                                const matchedCam = cameras.find(cam => searchRegex.test(cam.label));
+                                if (matchedCam) targetCamId = matchedCam.id;
+                                else targetCamId = isFrontCamera ? cameras[cameras.length - 1].id : cameras[0].id;
+                                
+                                await html5QrScanner.start(targetCamId, scanConfig, onScanSuccess);
+                                started = true;
+                            }
+                        } catch (err3) {
+                            console.error(err3);
+                        }
                     }
                 }
 
