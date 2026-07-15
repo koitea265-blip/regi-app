@@ -130,34 +130,28 @@
 
     <header class="bg-emerald-600 text-white p-3 sm:p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
         <h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2">🛒 セルフレジでおかいけいしよう</h1>
-        <div class="flex items-center gap-2">
-            <!-- 累計合格回数をバッジとして表示（やる気アップ） -->
-            <div id="solved-badge" class="bg-amber-400 text-amber-950 font-black px-3 py-1.5 rounded-full text-xs sm:text-sm flex items-center gap-1 shadow">
-                ⭐ できた！: <span id="solved-count-display">0</span> かい
-            </div>
-            <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold hidden md:inline">たのしいお買い物＆ひっ算おつり計算</span>
-        </div>
+        <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold hidden md:inline">たのしいお買い物＆ひっ算おつり計算</span>
     </header>
 
     <main class="flex-1 flex flex-col lg:flex-row p-2 sm:p-4 gap-2 sm:gap-4 overflow-hidden h-full min-h-0">
         
-        <!-- 左：スキャンエリア (スマホ時は高さを抑え、商品リストが見えるように最適化) -->
-        <section class="w-full lg:flex-1 bg-white rounded-xl shadow-lg flex flex-col p-2 sm:p-4 border border-emerald-100 flex-shrink-0 h-[190px] lg:h-full lg:min-h-0">
+        <!-- 左：スキャンエリア (スマホ画面でも潰れないよう高さを十分に確保) -->
+        <section class="w-full lg:flex-1 bg-white rounded-xl shadow-lg flex flex-col p-2 sm:p-4 border border-emerald-100 flex-shrink-0 min-h-[300px] lg:h-full lg:min-h-0">
             <div class="flex justify-between items-center mb-1 flex-shrink-0">
                 <h2 class="text-sm sm:text-lg lg:text-xl font-bold text-gray-700 flex items-center gap-1.5">
                     <span>📸</span> バーコードをスキャンしよう！
                 </h2>
             </div>
             
-            <!-- カメラ映像コンテナ (スマホでは高さを抑えスキャンガイドも連動) -->
-            <div class="relative w-full h-[80px] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border border-slate-700 flex-shrink-0 lg:flex-shrink">
+            <!-- カメラ映像コンテナ (スマホでは高さを200px確保してピントを合わせやすく) -->
+            <div class="relative w-full h-[200px] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border border-slate-700 flex-shrink-0 lg:flex-shrink">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <!-- 映像コンテナ -->
                     <div id="reader" class="w-full h-full relative"></div>
                     
-                    <!-- 【UI層：バーコード用横長・拡大ガイド枠（スマホサイズに合わせてレスポンシブ化）】 -->
+                    <!-- 【UI層：バーコード用横長・拡大ガイド枠（スキャンを狙いやすく調整）】 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                        <div class="relative w-[85%] max-w-[420px] h-[50px] lg:h-[130px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
+                        <div class="relative w-[85%] max-w-[420px] h-[90px] lg:h-[130px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             <!-- 四隅の白い枠 -->
                             <div class="absolute top-0 left-0 w-6 h-6 lg:w-8 lg:h-8 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
                             <div class="absolute top-0 right-0 w-6 h-6 lg:w-8 lg:h-8 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
@@ -175,63 +169,57 @@
             </div>
 
             <!-- スマホ対応・テスト用の確実な固定商品スキャンボタン -->
-            <div class="mt-2 flex flex-wrap gap-1 lg:gap-2 justify-between items-center flex-shrink-0">
-                <div class="flex gap-1">
-                    <button onclick="triggerSpecificMockScan('apple')" class="bg-amber-500 hover:bg-amber-600 text-white font-black py-1.5 sm:py-2.5 px-2.5 sm:px-4 rounded-lg shadow active:scale-95 transition text-[11px] sm:text-sm flex items-center gap-1">
-                        🍎 ぴっ！
-                    </button>
-                    <button onclick="triggerSpecificMockScan('milk')" class="bg-sky-500 hover:bg-sky-600 text-white font-black py-1.5 sm:py-2.5 px-2.5 sm:px-4 rounded-lg shadow active:scale-95 transition text-[11px] sm:text-sm flex items-center gap-1">
-                        🥛 ぴっ！
-                    </button>
-                    <button onclick="triggerSpecificMockScan('car')" class="bg-indigo-500 hover:bg-indigo-600 text-white font-black py-1.5 sm:py-2.5 px-2.5 sm:px-4 rounded-lg shadow active:scale-95 transition text-[11px] sm:text-sm flex items-center gap-1">
-                        🏎️ ぴっ！
-                    </button>
-                </div>
-                <div class="flex gap-1">
-                    <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-1.5 px-2 text-[10px] sm:text-xs rounded-lg">
+            <div class="mt-2 flex flex-wrap gap-2 justify-between items-center flex-shrink-0">
+                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-black py-2 px-4 rounded-lg shadow active:scale-95 transition text-xs sm:text-sm flex items-center gap-1 min-h-[44px]">
+                    ⚡ ぴっ！(テスト用)
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-xs rounded-lg min-h-[44px]">
                         📷 切り替え
                     </button>
-                    <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-1.5 px-2 text-[10px] sm:text-xs rounded-lg">
-                        からに
+                    <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-3 text-xs rounded-lg min-h-[44px]">
+                        からにする
                     </button>
                 </div>
             </div>
         </section>
 
-        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-3 sm:p-4 min-h-0 border border-emerald-100">
-            <h2 class="text-base sm:text-xl font-bold mb-2 sm:mb-3 text-gray-700 border-b-2 border-gray-100 pb-1 sm:pb-2 flex items-center gap-1.5 flex-shrink-0">
+        <!-- 右：商品リスト (お買い上げ商品の表示数を増やすため余白やサイズをコンパクト化) -->
+        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-2.5 sm:p-4 min-h-0 border border-emerald-100">
+            <h2 class="text-sm sm:text-lg font-bold mb-1.5 sm:mb-3 text-gray-700 border-b-2 border-gray-100 pb-1 sm:pb-2 flex items-center gap-1.5 flex-shrink-0">
                 <span>📋</span> おかいあげ商品
             </h2>
             
             <!-- 【完璧な縦スクロール領域】 -->
             <div id="cart-scroll-area" class="flex-1 min-h-0 overflow-y-auto mb-2 sm:mb-4 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
-                <ul id="cart-list" class="space-y-2 pb-4">
-                    <li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>
+                <ul id="cart-list" class="space-y-1.5 pb-2">
+                    <li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-xs sm:text-sm">おかいもの を はじめよう！</li>
                 </ul>
             </div>
 
-            <!-- 合計・購入エリア -->
-            <div class="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex-shrink-0 mt-auto">
-                <div class="flex justify-between items-center mb-1 sm:mb-2">
-                    <span class="text-xs sm:text-base font-bold text-gray-600">お買い上げ点数:</span>
-                    <span id="total-count" class="text-sm sm:text-lg font-bold">0 点</span>
+            <!-- 合計・購入エリア (スマホでの画面占有を減らすためコンパクトに設計) -->
+            <div class="bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200 flex-shrink-0 mt-auto">
+                <div class="flex justify-between items-center mb-0.5 sm:mb-2">
+                    <span class="text-xs sm:text-sm font-bold text-gray-600">お買い上げ点数:</span>
+                    <span id="total-count" class="text-xs sm:text-base font-bold">0 点</span>
                 </div>
-                <div class="flex justify-between items-center mb-2 sm:mb-3">
-                    <span class="text-xs sm:text-base font-bold text-gray-600">ごうけい金額:</span>
-                    <span class="text-xl sm:text-2xl font-black text-rose-600"><span id="total-price">0</span> 円</span>
+                <div class="flex justify-between items-center mb-1.5 sm:mb-3">
+                    <span class="text-xs sm:text-sm font-bold text-gray-600">ごうけい金額:</span>
+                    <span class="text-lg sm:text-2xl font-black text-rose-600"><span id="total-price">0</span> 円</span>
                 </div>
-                <button id="checkout-btn" onclick="openPaymentModal()" disabled class="w-full bg-emerald-500 text-white font-black py-2.5 sm:py-4 rounded-xl text-base sm:text-xl shadow-lg hover:bg-emerald-600 transition disabled:bg-slate-300 min-h-[44px]">
+                <button id="checkout-btn" onclick="openPaymentModal()" disabled class="w-full bg-emerald-500 text-white font-black py-2 sm:py-3.5 rounded-xl text-sm sm:text-lg shadow hover:bg-emerald-600 transition disabled:bg-slate-300 min-h-[44px]">
                     💳 おかいけいする
                 </button>
             </div>
         </section>
     </main>
 
+    <!-- おつり計算ひっ算モーダル -->
     <div id="payment-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
         <div class="bg-sky-50 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border-4 border-sky-400">
-            <div class="bg-sky-500 text-white p-4 text-center">
-                <h3 class="text-2xl font-bold">おつりを けいさん しよう！</h3>
-                <p id="payment-info" class="text-sm sm:text-lg mt-1 font-semibold"></p>
+            <div class="bg-sky-500 text-white p-3 sm:p-4 text-center">
+                <h3 class="text-xl sm:text-2xl font-bold">おつりを けいさん しよう！</h3>
+                <p id="payment-info" class="text-xs sm:text-lg mt-1 font-semibold"></p>
             </div>
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
@@ -257,27 +245,27 @@
 
                 <div class="flex-1 flex flex-col justify-center items-center max-w-sm mx-auto w-full">
                     <div class="grid grid-cols-3 gap-2 w-full font-kyokasho">
-                        <button onclick="pressKey(7)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">7</button>
-                        <button onclick="pressKey(8)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">8</button>
-                        <button onclick="pressKey(9)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">9</button>
-                        <button onclick="pressKey(4)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">4</button>
-                        <button onclick="pressKey(5)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">5</button>
-                        <button onclick="pressKey(6)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">6</button>
-                        <button onclick="pressKey(1)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">1</button>
-                        <button onclick="pressKey(2)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">2</button>
-                        <button onclick="pressKey(3)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">3</button>
-                        <button onclick="pressKey('C')" class="bg-rose-100 p-4 rounded-2xl text-base sm:text-lg font-bold hover:bg-rose-200 min-h-[50px]">ぜんぶ消す</button>
-                        <button onclick="pressKey(0)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">0</button>
-                        <button onclick="pressKey('BS')" class="bg-amber-100 p-4 rounded-2xl text-base sm:text-lg font-bold hover:bg-amber-200 min-h-[50px]">⬅とりけす</button>
+                        <button onclick="pressKey(7)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">7</button>
+                        <button onclick="pressKey(8)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">8</button>
+                        <button onclick="pressKey(9)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">9</button>
+                        <button onclick="pressKey(4)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">4</button>
+                        <button onclick="pressKey(5)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">5</button>
+                        <button onclick="pressKey(6)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">6</button>
+                        <button onclick="pressKey(1)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">1</button>
+                        <button onclick="pressKey(2)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">2</button>
+                        <button onclick="pressKey(3)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">3</button>
+                        <button onclick="pressKey('C')" class="bg-rose-100 p-3 rounded-2xl text-xs sm:text-base font-bold hover:bg-rose-200 min-h-[50px]">ぜんぶ消す</button>
+                        <button onclick="pressKey(0)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">0</button>
+                        <button onclick="pressKey('BS')" class="bg-amber-100 p-3 rounded-2xl text-xs sm:text-base font-bold hover:bg-amber-200 min-h-[50px]">⬅とりけす</button>
                     </div>
                     
-                    <div class="mt-5 w-full flex flex-col gap-3">
+                    <div class="mt-4 w-full flex flex-col gap-3">
                         <div class="flex gap-2 w-full" id="action-buttons-row">
-                            <button onclick="closePaymentModal()" class="flex-1 bg-slate-400 text-white font-bold py-3 rounded-xl hover:bg-slate-500 text-[13px] min-h-[44px]">やめる</button>
-                            <button onclick="showAnswerAutomatic()" class="flex-1 bg-sky-500 text-white font-bold py-3 rounded-xl hover:bg-sky-600 text-[13px] min-h-[44px]">💡おつりをみる</button>
-                            <button onclick="checkAnswer()" class="flex-1 bg-amber-500 text-white font-black py-3 rounded-xl hover:bg-amber-600 text-[13px] min-h-[44px]">答え合わせ</button>
+                            <button onclick="closePaymentModal()" class="flex-1 bg-slate-400 text-white font-bold py-3 rounded-xl hover:bg-slate-500 text-xs sm:text-sm min-h-[44px]">やめる</button>
+                            <button onclick="showAnswerAutomatic()" class="flex-1 bg-sky-500 text-white font-bold py-3 rounded-xl hover:bg-sky-600 text-xs sm:text-sm min-h-[44px]">💡おつりをみる</button>
+                            <button onclick="checkAnswer()" class="flex-1 bg-amber-500 text-white font-black py-3 rounded-xl hover:bg-amber-600 text-xs sm:text-sm min-h-[44px]">答え合わせ</button>
                         </div>
-                        <button id="show-receipt-btn" onclick="showReceipt()" class="hidden w-full bg-emerald-500 text-white font-black py-4 rounded-xl text-xl shadow-lg hover:bg-emerald-600 animate-pulse min-h-[50px]">
+                        <button id="show-receipt-btn" onclick="showReceipt()" class="hidden w-full bg-emerald-500 text-white font-black py-3 rounded-xl text-lg shadow hover:bg-emerald-600 animate-pulse min-h-[50px]">
                             🧾 レシートをみる！
                         </button>
                     </div>
@@ -286,6 +274,7 @@
         </div>
     </div>
 
+    <!-- よくできました！レシートモーダル -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full">
             <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
@@ -371,7 +360,7 @@
             { name: "子ども用歯ブラシ (🪥)", price: 112 }, { name: "おもしろい絵本 (📖)", price: 836 },
             { name: "星のキーホルダー (🔑)", price: 345 }, { name: "ポップコーン (🍿)", price: 184 },
             { name: "ホットドッグ (🌭)", price: 263 }, { name: "ピースピザ (🍕)", price: 382 },
-            { name: "メロンパン (🍞)", price: 143 }, { name: "シュークリーム (🧁)", price: 152 },
+            { name: "メ melonパン (🍞)", price: 143 }, { name: "シュークリーム (🧁)", price: 152 },
             { name: "わたがし (☁️)", price: 112 }, { name: "フランクフルト (🌭)", price: 194 },
             { name: "おえかきちょう (🎨)", price: 145 }, { name: "12色クレヨン (🖍️)", price: 382 },
             { name: "水彩えのぐ (🎨)", price: 684 }, { name: "虫めがね (🔍)", price: 215 },
@@ -384,12 +373,41 @@
             { name: "バドミントンシャトル (🏸)", price: 184 }
         ];
 
+        // 各商品に対して、チェックデジットを計算した確実な一意のバーコードを動的生成
+        function assignBarcodes() {
+            dummyProducts.forEach((item, index) => {
+                const base = "4901234" + index.toString().padStart(5, "0");
+                let sum = 0;
+                for (let i = 0; i < 12; i++) {
+                    const digit = parseInt(base.charAt(i), 10);
+                    sum += digit * (i % 2 === 0 ? 1 : 3);
+                }
+                const checkDigit = (10 - (sum % 10)) % 10;
+                item.barcode = base + checkDigit;
+            });
+        }
+
+        // FNV-1aに準拠した非破壊ハッシュ関数で「本物のバーコード」を75個のダミーに完全固定マップ
+        function getProductFromBarcode(barcode) {
+            // もし事前に設定した内蔵バーコードと完全一致すればそれを返す
+            const exactMatch = dummyProducts.find(p => p.barcode === barcode);
+            if (exactMatch) return exactMatch;
+
+            // ない場合は、任意のバーコードをハッシュ化して75種の商品へ安定マップ
+            let hash = 2166136261;
+            for (let i = 0; i < barcode.length; i++) {
+                hash ^= barcode.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            const index = Math.abs(hash) % dummyProducts.length;
+            return dummyProducts[index];
+        }
+
         // アプリケーション状態
-        let cart = [];
+        let cart = []; // カートは再起動時に空からスタート（localStorageは利用しない）
         let html5QrcodeScanner = null;
         let cameras = [];
         let currentCameraIndex = 0;
-        let solvedCount = 0; 
         
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
         
@@ -407,35 +425,15 @@
             if (Tone.context.state !== 'running') Tone.context.resume();
         }
 
-        function getProductFromBarcode(barcode) {
-            let hash = 2166136261; 
-            for (let i = 0; i < barcode.length; i++) {
-                hash ^= barcode.charCodeAt(i);
-                hash = Math.imul(hash, 16777619);
-            }
-            const index = Math.abs(hash) % dummyProducts.length;
-            return dummyProducts[index];
-        }
-
         window.addEventListener("DOMContentLoaded", () => {
-            // localStorageから永続化データを復元
-            const savedCart = localStorage.getItem("self_reg_cart");
-            if (savedCart) {
-                try { cart = JSON.parse(savedCart); } catch(e) { cart = []; }
-            }
-            
-            const savedSolved = localStorage.getItem("self_reg_solved_count");
-            if (savedSolved) {
-                solvedCount = parseInt(savedSolved, 10) || 0;
-            }
-            
-            document.getElementById("solved-count-display").innerText = solvedCount;
-            
+            assignBarcodes();
+            // 再起動時は空からスタートするのでlocalStorageからの読み出しは行いません。
             renderCart();
             setupMemoCanvas();
             setTimeout(() => { initScanner(); }, 300);
         });
 
+        // カメラの検出と起動
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             container.classList.remove("hidden");
@@ -459,18 +457,9 @@
                     throw new Error("利用可能なカメラが見つかりません");
                 }
             } catch (err) {
-                let errorTitle = "カメラを起動できませんでした";
-                let errorDesc = "カメラを許可するか、下のボタンを使ってね！";
-                
-                const errStr = err.toString();
-                if (err.name === 'NotFoundError' || errStr.includes('Requested device not found')) {
-                    errorTitle = "カメラが見つかりません";
-                    errorDesc = "「ぴっ！」ボタンを押してお買い物してね！";
-                }
-                
                 container.innerHTML = `
                     <div class="flex flex-col items-center justify-center text-center p-2">
-                        <p class="font-bold text-rose-400 text-xs">${errorTitle}</p>
+                        <p class="font-bold text-rose-400 text-xs">「ぴっ！(テスト用)」ボタンを押してお買い物してね！</p>
                     </div>
                 `;
             }
@@ -492,7 +481,7 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 30, // 処理スピードを30回/秒にして超高速化
+                    fps: 30, // 処理を高速化
                     formatsToSupport: [
                         Html5QrcodeSupportedFormats.EAN_13,
                         Html5QrcodeSupportedFormats.EAN_8,
@@ -530,7 +519,7 @@
                 fallbackMsg.classList.remove("hidden");
                 fallbackMsg.innerHTML = `
                     <div class="flex flex-col items-center justify-center text-center p-2">
-                        <p class="font-bold text-rose-400 text-xs">「ぴっ！」ボタンでお買いものしてね！</p>
+                        <p class="font-bold text-rose-400 text-xs">「ぴっ！(テスト用)」ボタンでお買いものしてね！</p>
                     </div>
                 `;
             } finally {
@@ -538,6 +527,7 @@
             }
         }
 
+        // JAN/EANコードのチェックデジット厳格検証
         function isValidBarcode(code) {
             const clean = code.replace(/[^0-9]/g, '');
             if (clean.length !== 8 && clean.length !== 12 && clean.length !== 13) return false;
@@ -556,27 +546,28 @@
         }
 
         let lastScanTime = 0;
-        let isProcessingScan = false; // 二重登録ブロックフラグ
+        let isProcessingScan = false; // 二重読み取り防止
 
         function onScanSuccessInternal(decodedText) {
             const now = Date.now();
             const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
-            // チェックデジットの厳格検査
             if (!isValidBarcode(cleanCode)) return; 
             
-            // ロック処理による二重登録の完全阻止 (2.5秒ロック)
+            // ロック処理による二重登録の完全阻止 (2.5秒)
             if (isProcessingScan) return;
             if (now - lastScanTime < 2500) return; 
             
             isProcessingScan = true;
             lastScanTime = now;
             
-            addToCart(getProductFromBarcode(cleanCode));
+            // 決定論的ハッシュを適用し、同じバーコード＝同一の商品として呼び出し
+            const product = getProductFromBarcode(cleanCode);
+            if (product) {
+                addToCart(product);
+            }
             
-            setTimeout(() => {
-                isProcessingScan = false;
-            }, 2500);
+            setTimeout(() => { isProcessingScan = false; }, 2500);
         }
 
         function onScanErrorInternal() {}
@@ -587,26 +578,23 @@
             await startScanning(cameras[currentCameraIndex].id);
         }
 
-        function triggerSpecificMockScan(itemType) {
-            let testBarcode = "4901234567890"; // デフォルト: りんご
-            
-            if (itemType === 'milk') {
-                testBarcode = "4901301236545"; // ぎゅうにゅう
-            } else if (itemType === 'car') {
-                testBarcode = "4902201435216"; // ミニカー
-            }
-            
-            // 二重防止
+        // テスト用のランダム「ぴっ！」ボタン (同じバーコードなら必ず同じ商品に)
+        function triggerMockScan() {
             const now = Date.now();
             if (isProcessingScan) return;
-            if (now - lastScanTime < 1000) return; // 手動テストは1秒ガード
+            if (now - lastScanTime < 800) return; 
             
             isProcessingScan = true;
             lastScanTime = now;
             
-            addToCart(getProductFromBarcode(testBarcode));
+            // 75種類からランダムに商品を選んで、その商品の一意のバーコードを元に安定スキャンをシミュレート
+            const product = dummyProducts[Math.floor(Math.random() * dummyProducts.length)];
+            const cleanCode = product.barcode;
+            const resolvedProduct = getProductFromBarcode(cleanCode);
             
-            setTimeout(() => { isProcessingScan = false; }, 1000);
+            addToCart(resolvedProduct);
+            
+            setTimeout(() => { isProcessingScan = false; }, 800);
         }
 
         function addToCart(product) {
@@ -618,10 +606,6 @@
             setTimeout(() => container.classList.remove("ring-4", "ring-emerald-400"), 150);
 
             cart.push({ ...product, id: Date.now() + Math.random() });
-            
-            // 永続化
-            localStorage.setItem("self_reg_cart", JSON.stringify(cart));
-            
             renderCart();
         }
 
@@ -631,17 +615,17 @@
             let total = 0;
             
             if (cart.length === 0) {
-                list.innerHTML = `<li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>`;
+                list.innerHTML = `<li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-xs sm:text-sm">おかいもの を はじめよう！</li>`;
             } else {
                 cart.forEach(item => {
                     total += item.price;
                     const li = document.createElement("li");
-                    li.className = "flex justify-between items-center bg-emerald-50 p-2 sm:p-3 rounded-xl border border-emerald-100 shadow-sm";
+                    li.className = "flex justify-between items-center bg-emerald-50 p-2 sm:p-2.5 rounded-xl border border-emerald-100 shadow-sm";
                     li.innerHTML = `
                         <span class="font-bold text-gray-800 text-xs sm:text-sm">${item.name}</span>
                         <div class="flex items-center gap-2 sm:gap-3">
-                            <span class="font-bold text-emerald-700 font-kyokasho text-sm sm:text-lg">${item.price} 円</span>
-                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs px-2 py-1.5 sm:py-2 rounded-lg font-bold hover:bg-rose-200 min-h-[35px] sm:min-h-[44px]">とりけす</button>
+                            <span class="font-bold text-emerald-700 font-kyokasho text-xs sm:text-base">${item.price} 円</span>
+                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs px-2 py-1 rounded-lg font-bold hover:bg-rose-200 min-h-[35px]">とりけす</button>
                         </div>
                     `;
                     list.appendChild(li);
@@ -652,7 +636,7 @@
             document.getElementById("total-price").innerText = total.toLocaleString();
             document.getElementById("checkout-btn").disabled = cart.length === 0;
 
-            // 新しい商品が追加された時に、常にカートのスクロール領域を一番下までスクロールして自動表示する
+            // スクロール領域を自動的に最下部へ移動
             setTimeout(() => { 
                 const scrollArea = document.getElementById("cart-scroll-area");
                 if (scrollArea) {
@@ -663,19 +647,17 @@
 
         function removeItem(id) { 
             cart = cart.filter(i => i.id !== id); 
-            localStorage.setItem("self_reg_cart", JSON.stringify(cart));
             renderCart(); 
         }
         
         function clearCart() { 
             cart = []; 
-            localStorage.removeItem("self_reg_cart");
             renderCart(); 
         }
 
+        // おつり計算用の出題価格設定
         function getOptimalPayment(total) {
             const base = Math.ceil(total / 1000) * 1000;
-            if (solvedCount < 1) return base === total ? base + 1000 : base;
             const rand = Math.random();
             if (rand < 0.5) {
                 const hasu = total % 100;
@@ -729,19 +711,19 @@
             const paidStr = paidAmount.toString().padStart(cols, " ");
             const totalStr = totalAmount.toString().padStart(cols - 1, " ");
 
-            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-14 sm:h-20 bg-sky-50/30"></div>`; 
-            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 text-2xl sm:text-3xl font-bold font-kyokasho text-slate-800">${paidStr[i] !== " " ? paidStr[i] : ""}</div>`; 
-            grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 text-3xl sm:text-5xl font-black text-blue-600 font-kyokasho">－</div>`; 
-            for(let i=0; i<cols-1; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 text-2xl sm:text-3xl font-bold font-kyokasho text-slate-800">${totalStr[i] !== " " ? totalStr[i] : ""}</div>`;
-            grid.innerHTML += `<div class="col-span-${cols} h-1.5 bg-slate-800 my-1"></div>`; 
-            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 bg-sky-50/10"></div>`; 
+            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-20 bg-sky-50/30"></div>`; 
+            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-10 sm:h-16 text-xl sm:text-3xl font-bold font-kyokasho text-slate-800">${paidStr[i] !== " " ? paidStr[i] : ""}</div>`; 
+            grid.innerHTML += `<div class="graph-cell h-10 sm:h-16 text-2xl sm:text-5xl font-black text-blue-600 font-kyokasho">－</div>`; 
+            for(let i=0; i<cols-1; i++) grid.innerHTML += `<div class="graph-cell h-10 sm:h-16 text-xl sm:text-3xl font-bold font-kyokasho text-slate-800">${totalStr[i] !== " " ? totalStr[i] : ""}</div>`;
+            grid.innerHTML += `<div class="col-span-${cols} h-1 bg-slate-800 my-1"></div>`; 
+            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-10 sm:h-16 bg-sky-50/10"></div>`; 
 
             const ansContainer = document.getElementById("answer-grid-container");
-            ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-2"><div class="flex items-center justify-center text-xl sm:text-2xl font-black text-slate-400">=</div></div>`;
+            ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-2"><div class="flex items-center justify-center text-lg sm:text-2xl font-black text-slate-400">=</div></div>`;
             const ansGrid = ansContainer.firstChild;
-            if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-12 sm:h-16"></div>`;
+            if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-10 sm:h-16"></div>`;
             
-            for(let i=3; i>=0; i--) ansGrid.innerHTML += `<div onclick="focusDigit(${i})" id="ans-box-${i}" class="m-1 h-12 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-700 transition cursor-pointer"></div>`;
+            for(let i=3; i>=0; i--) ansGrid.innerHTML += `<div onclick="focusDigit(${i})" id="ans-box-${i}" class="m-1 h-10 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-xl sm:text-3xl font-black text-amber-700 transition cursor-pointer"></div>`;
             
             userAnswers = ["","","",""]; 
             focusDigit(0);
@@ -751,7 +733,7 @@
             currentFocusIndex = idx;
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
-                if(b) b.className = (i===idx) ? "m-1 h-12 sm:h-16 bg-yellow-100 border-4 border-amber-400 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-800 scale-105" : "m-1 h-12 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-700";
+                if(b) b.className = (i===idx) ? "m-1 h-10 sm:h-16 bg-yellow-100 border-4 border-amber-400 rounded-lg flex items-center justify-center text-xl sm:text-3xl font-black text-amber-800 scale-105" : "m-1 h-10 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-xl sm:text-3xl font-black text-amber-700";
             }
         }
 
@@ -805,11 +787,6 @@
             if(parseInt(s || "0") === changeAmount) {
                 isSolved = true;
                 playCorrectChime();
-                
-                solvedCount++; 
-                localStorage.setItem("self_reg_solved_count", solvedCount);
-                document.getElementById("solved-count-display").innerText = solvedCount;
-
                 startConfetti(); 
                 showReceiptButton();
             } else {
@@ -831,7 +808,7 @@
             currentFocusIndex = -1;
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
-                if (!userAnswers[i]) b.className = "m-1 h-12 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-amber-700";
+                if (!userAnswers[i]) b.className = "m-1 h-10 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-xl sm:text-3xl font-black text-amber-700";
             }
             playCorrectChime();
             showReceiptButton();
