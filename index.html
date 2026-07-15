@@ -24,6 +24,7 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
+        /* 映像コンテナ */
         #reader {
             border: none !important;
             background-color: #000000 !important;
@@ -35,11 +36,11 @@
             height: 100%;
         }
 
+        /* 【重要修正】スマホでの座標ズレを防ぐため、object-fit: coverと強制幅を削除し、自然なアスペクト比を維持 */
         #reader video {
             border-radius: 0.5rem;
-            object-fit: cover;
-            width: 100% !important;
-            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
         }
         
         .mirror-video video {
@@ -373,22 +374,22 @@
         let currentFocusIndex = 0;
         let userAnswers = ["", "", "", ""];
         
-        // 【誤読防止バッファ】
-        let scanBuffer = [];
-
-        function initAudio() {
-            if (!synth) {
-                synth = new Tone.Synth({oscillator:{type:"sine"},envelope:{attack:0.005,decay:0.1}}).toDestination();
-            }
-            if (Tone.context.state !== 'running') Tone.context.resume();
-        }
-
+        // FNV-1a ハッシュでバーコードから商品を一意に決定
         function getProductFromBarcode(barcode) {
             let hash = 2166136261; 
             for (let i = 0; i < barcode.length; i++) {
                 hash ^= barcode.charCodeAt(i);
                 hash = Math.imul(hash, 16777619);
             }
+            
+            // 【特別演出】書籍のバーコード(97, 19から始まる)を読んだときは、本や文房具を出す魔法
+            if (barcode.startsWith("97") || barcode.startsWith("19")) {
+                const bookItems = dummyProducts.filter(p => p.name.includes("絵本") || p.name.includes("ノート") || p.name.includes("えんぴつ") || p.name.includes("じゆうちょう") || p.name.includes("じょうぎ"));
+                if (bookItems.length > 0) {
+                    return bookItems[Math.abs(hash) % bookItems.length];
+                }
+            }
+            
             const index = Math.abs(hash) % dummyProducts.length;
             return dummyProducts[index];
         }
@@ -446,11 +447,14 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 15, // 安定性と速度のベストバランス
+                    fps: 15,
+                    // 本のバーコード(EAN-13形式)だけを集中して探すように設定し、迷いをなくす
+                    formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ],
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         return {
-                            width: Math.min(viewfinderWidth * 0.9, 300),
-                            height: Math.min(viewfinderHeight * 0.7, 160)
+                            // 書籍バーコードは横長で2段並んでいるため、横に広く、縦を狭くして「1段だけ」を狙いやすくする
+                            width: Math.min(viewfinderWidth * 0.95, 350),
+                            height: Math.min(viewfinderHeight * 0.6, 110)
                         };
                     }
                 };
@@ -503,12 +507,12 @@
 
             // 本物の商品(isValid=true)であれば1発で合格。
             // ピントボケによる誤読や、自作バーコード(isValid=false)の場合は、
-            // 「3回連続で全く同じ数字としてカメラが認識した時のみ」通す救済措置
+            // 「2回連続で全く同じ数字としてカメラが認識した時のみ」通す救済措置に緩和
             if (!isValid) {
                 scanBuffer.push(cleanCode);
-                if (scanBuffer.length > 3) scanBuffer.shift(); // 過去3件を保持
+                if (scanBuffer.length > 2) scanBuffer.shift(); // 過去2件を保持
                 
-                const allSame = scanBuffer.length === 3 && scanBuffer.every(c => c === cleanCode);
+                const allSame = scanBuffer.length === 2 && scanBuffer.every(c => c === cleanCode);
                 if (!allSame) return; // 誤読ならここで安全に破棄される
             }
             
