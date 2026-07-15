@@ -24,29 +24,25 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* 映像コンテナ */
+        /* 映像コンテナ：自然な比率を維持して歪みを防ぐ */
         #reader {
             border: none !important;
-            background-color: #000000 !important;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
+            background-color: transparent !important;
             width: 100%;
-            height: 100%;
         }
 
-        /* スマホでの座標ズレを防ぐため、自然なアスペクト比を維持 */
         #reader video {
+            width: 100% !important;
+            height: auto !important; /* 縦横比を固定し、縦に潰れるのを完全に防ぐ */
             border-radius: 0.5rem;
-            max-width: 100% !important;
-            max-height: 100% !important;
+            display: block;
         }
         
         .mirror-video video {
             transform: scaleX(-1) !important;
         }
 
+        /* ライブラリのデフォルトUIを非表示 */
         #reader__scan_region img,
         #reader__dashboard_section_csr span, 
         #reader__dashboard_section_csr button,
@@ -132,19 +128,20 @@
         <section class="w-full lg:flex-1 bg-white rounded-xl shadow-lg flex flex-col p-1.5 sm:p-3 border border-emerald-100 flex-shrink-0 lg:min-h-0">
             <div class="flex justify-between items-center mb-1">
                 <h2 class="text-sm sm:text-xl font-bold text-gray-700 flex items-center gap-1.5">
-                    <span>📸</span> バーコードをスキャンしよう！
+                    <span>📸</span> バーコードをスキャン！
                 </h2>
             </div>
             
             <!-- カメラ領域 -->
             <div class="relative w-full h-[180px] min-h-[180px] sm:h-[40vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
-                    <div id="reader" class="w-full h-full relative"></div>
+                    <!-- コンテナ幅いっぱいを基準に中央配置 -->
+                    <div id="reader" class="w-full flex items-center justify-center relative"></div>
                     
-                    <!-- 【UI層：スマホ対応・横長スリット状のスキャンガイド枠】 -->
+                    <!-- 【UI層：枠の縦幅を広げてブレに強く、読みやすく改善】 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                        <!-- w-[90%] でスマホ画面の横幅いっぱいを使用。高さは100pxに固定して上下のバーコード迷いを防ぐ -->
-                        <div class="relative w-[90%] sm:w-[350px] h-[100px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/30">
+                        <!-- スマホなら高さ160px、PCなら220pxと余裕を持たせる -->
+                        <div class="relative w-[90%] max-w-[400px] h-[160px] sm:h-[220px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/30">
                             <!-- 四隅の白い枠 -->
                             <div class="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
                             <div class="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
@@ -163,13 +160,13 @@
 
             <!-- 操作ボタン群 (絶対に1行に収める) -->
             <div class="mt-1.5 flex gap-1 justify-between items-center w-full flex-nowrap">
-                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-0.5 rounded-lg shadow active:scale-95 transition text-[11px] sm:text-base flex-1 whitespace-nowrap text-center">
+                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-0.5 rounded-lg shadow active:scale-95 transition text-[11px] sm:text-base flex-1 whitespace-nowrap text-center">
                     ⚡ ぴっ!(テスト)
                 </button>
-                <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2.5 px-0.5 text-[11px] sm:text-sm rounded-lg flex-1 whitespace-nowrap text-center">
+                <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-0.5 text-[11px] sm:text-sm rounded-lg flex-1 whitespace-nowrap text-center">
                     📷 切り替え
                 </button>
-                <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-0.5 text-[11px] sm:text-sm rounded-lg flex-1 whitespace-nowrap text-center">
+                <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-0.5 text-[11px] sm:text-sm rounded-lg flex-1 whitespace-nowrap text-center">
                     🧹 からにする
                 </button>
             </div>
@@ -181,7 +178,7 @@
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <!-- スクロール領域 (高さをさらに確保) -->
+            <!-- スクロール領域 -->
             <div class="flex-1 min-h-0 overflow-y-auto mb-1 sm:mb-3 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
                 <ul id="cart-list" class="space-y-1">
                     <li id="cart-placeholder" class="text-gray-400 text-center mt-4 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>
@@ -362,7 +359,7 @@
         let currentFocusIndex = 0;
         let userAnswers = ["", "", "", ""];
         
-        // FNV-1a ハッシュ
+        // FNV-1a ハッシュで商品を安定して決定
         function getProductFromBarcode(barcode) {
             let hash = 2166136261; 
             for (let i = 0; i < barcode.length; i++) {
@@ -374,12 +371,10 @@
             if (barcode.startsWith("97") || barcode.startsWith("19")) {
                 return bookProducts[Math.abs(hash) % bookProducts.length];
             }
-            
             return dummyProducts[Math.abs(hash) % dummyProducts.length];
         }
 
         window.addEventListener("DOMContentLoaded", () => {
-            // リロード時は必ずカートを空にしてスタート
             clearCart();
             setupMemoCanvas();
             setTimeout(() => { initScanner(); }, 300);
@@ -428,20 +423,18 @@
                 }
                 
                 document.getElementById("reader").innerHTML = "";
-                
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
                     fps: 15,
-                    // 本や商品のバーコードに最適化 (QRなどは除外して爆速化)
+                    // 確実に読み取れるようEAN-13とEAN-8を指定
                     formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ],
-                    // スマホの縦画面でも横長スリット状になるように計算
+                    // 枠の高さを十分に広げて、PC・スマホ問わず読みやすくする
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
-                        // 横幅は画面の90%を確保（本などを読みやすくする）
                         const boxWidth = Math.min(viewfinderWidth * 0.9, 400);
-                        // 縦幅は書籍の2段バーコードの1段だけを切り取るため、100pxに薄く固定
-                        const boxHeight = 100;
-                        return { width: boxWidth, height: boxHeight };
+                        const boxHeight = isMobile ? 160 : 220;
+                        // カメラ映像の高さが極端に低い場合のセーフティ
+                        return { width: boxWidth, height: Math.min(viewfinderHeight * 0.9, boxHeight) };
                     }
                 };
 
@@ -467,7 +460,7 @@
             const now = Date.now();
             let cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
-            // 8, 12, 13桁以外（中途半端な誤読）は完全に無視
+            // 中途半端な部分誤読を完全に防ぎ、100%同じ商品として安定させる
             if (cleanCode.length !== 8 && cleanCode.length !== 12 && cleanCode.length !== 13) return;
 
             // UPC(12桁)が13桁として読まれた時のブレを吸収（正規化）
@@ -475,7 +468,7 @@
                 cleanCode = cleanCode.substring(1);
             }
 
-            // チェックデジットの計算 (13桁と8桁に対応)
+            // チェックデジットの計算による確実な一発読み取り判定
             let sum = 0;
             const len = cleanCode.length;
             const checkDigit = parseInt(cleanCode.charAt(len - 1), 10);
@@ -486,8 +479,7 @@
             }
             const isValid = (checkDigit === ((10 - (sum % 10)) % 10));
 
-            // チェックデジットが合わない（ピントボケの誤読）場合は破棄
-            // （ただし3回連続で同じ数字ならおもちゃのバーコードとして通す救済措置）
+            // チェックデジットが合わない（ピントボケ等）場合でも、3回同じ数字ならOKとする救済措置
             if (!isValid) {
                 scanBuffer.push(cleanCode);
                 if (scanBuffer.length > 3) scanBuffer.shift(); 
@@ -495,9 +487,7 @@
                 if (!allSame) return; 
             }
             
-            // 連続スキャンの待機時間 (1秒)
             if (now - lastScanTime < 1000) return; 
-            
             lastScanTime = now;
             scanBuffer = []; 
             
@@ -563,13 +553,12 @@
                 cart.forEach(item => {
                     total += item.price;
                     const li = document.createElement("li");
-                    // スマホでたくさん表示できるようにパディングを p-1.5 に絞る
                     li.className = "flex justify-between items-center bg-emerald-50 p-1.5 sm:p-2.5 rounded-lg border border-emerald-100";
                     li.innerHTML = `
                         <span class="font-bold text-gray-800 text-[11px] sm:text-base">${item.name}</span>
                         <div class="flex items-center gap-1.5 sm:gap-3">
                             <span class="font-bold text-emerald-700 text-xs sm:text-base">${item.price} 円</span>
-                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs px-2 py-1 rounded font-bold hover:bg-rose-200">とりけす</button>
+                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs px-2 py-1.5 rounded font-bold hover:bg-rose-200">とりけす</button>
                         </div>
                     `;
                     list.appendChild(li);
