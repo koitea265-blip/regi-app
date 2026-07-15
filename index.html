@@ -474,9 +474,9 @@
                 document.getElementById("reader").innerHTML = "";
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
-                // 【重要】カメラ読み取り速度を極限まで上げる設定
+                // 【重要】どんなカメラでも確実に起動し、かつ高速に読み取る設定
                 const config = {
-                    fps: 30, // スキャン頻度を最高速度(30)に引き上げ、タイムラグをなくす
+                    fps: 20, // 30だとChromebookで処理落ちする可能性があるため、高速かつ安定の20に調整
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         return {
                             width: Math.min(viewfinderWidth * 0.85, 350),
@@ -485,11 +485,11 @@
                     },
                     // formatsToSupport はあえて指定せず、どんなバーコードも弾かずに確実に拾うようにする
                     disableFlip: true, // 1次元バーコードには不要な「反転検知」を切り、CPUリソースを高速化に全振りする
-                    // 解像度を適切に指定し、ぼやけを防ぎピントを合いやすくする
+                    // 解像度の「最低制限(min)」を完全に解除し、どんな性能のカメラでも必ず起動するように修復
                     videoConstraints: { 
                         deviceId: { exact: cameraId },
-                        width: { ideal: 1280, min: 640 },
-                        height: { ideal: 720, min: 480 }
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
                     }
                 };
 
