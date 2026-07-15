@@ -140,9 +140,9 @@
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <div id="reader" class="w-full h-full relative"></div>
                     
-                    <!-- 【UI層：スキャンガイド枠】スマホ用に少しコンパクト化 -->
+                    <!-- 【UI層：スキャンガイド枠】スキャンしやすく枠を拡大 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                        <div class="relative w-[220px] h-[120px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
+                        <div class="relative w-[260px] h-[140px] sm:w-[300px] sm:h-[160px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             <!-- 四隅の白い枠 -->
                             <div class="absolute top-0 left-0 w-5 h-5 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
                             <div class="absolute top-0 right-0 w-5 h-5 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
@@ -444,14 +444,12 @@
                 
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
-                // 【完璧な設定】解像度の強制（videoConstraints）はせず、自動で動かす。
-                // これによりChromebookなどの低解像度カメラでもエラーにならずに起動する。
                 const config = {
-                    fps: 10,
+                    fps: 15,
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         return {
-                            width: Math.min(viewfinderWidth * 0.8, 250),
-                            height: Math.min(viewfinderHeight * 0.5, 120)
+                            width: Math.min(viewfinderWidth * 0.9, 300),
+                            height: Math.min(viewfinderHeight * 0.7, 160)
                         };
                     }
                 };
@@ -474,18 +472,27 @@
         let lastScanTime = 0;
         function onScanSuccessInternal(decodedText) {
             const now = Date.now();
-            const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
+            let cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
-            // 全く読まなくなるバグを完全解消：どんな規格でも8桁以上の数字があれば合格として受け入れる（優しく緩い仕様）
             if (cleanCode.length < 8) return; 
-            if (now - lastScanTime < 1500) return; // 1.5秒間のデバウンスで重複読み込み防止
+
+            // UPC-A(12桁)がEAN-13(13桁)として読まれた時の「先頭の0」のブレを吸収して正規化
+            if (cleanCode.length === 13 && cleanCode.startsWith('0')) {
+                cleanCode = cleanCode.substring(1);
+            }
+
+            // 一般的な商品バーコード（JAN/EAN/UPC）の桁数（8, 12, 13桁）以外は、
+            // ピントぼけによる「切り取り誤読」の可能性が高いため無視する。
+            // これにより「同じ商品なのに別商品に化ける」現象を完全に防ぐ。
+            if (cleanCode.length !== 8 && cleanCode.length !== 12 && cleanCode.length !== 13) {
+                return;
+            }
+            
+            if (now - lastScanTime < 1500) return; // 1.5秒間のデバウンス
             
             lastScanTime = now;
-
-            // Chromebook等の解析のブレ（先頭に0がつく等）を吸収し、常に固定の商品を出すため、
-            // 変化しないお尻の8桁を基準にしてハッシュ化します。
-            const targetCode = cleanCode.length > 8 ? cleanCode.slice(-8) : cleanCode;
-            addToCart(getProductFromBarcode(targetCode));
+            // 読み取った文字列全体を使ってハッシュ化することで、商品を確実に一意にする
+            addToCart(getProductFromBarcode(cleanCode));
         }
 
         function onScanErrorInternal() {}
