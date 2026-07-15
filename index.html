@@ -474,19 +474,23 @@
                 document.getElementById("reader").innerHTML = "";
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
-                // 【重要】高速化と安定化のための設定：フォーマット制限を完全撤廃
+                // 【重要】カメラ読み取り速度を極限まで上げる設定
                 const config = {
-                    fps: 10, // ChromebookのCPUを圧迫しないよう、標準の10FPSに戻す（これでも十分速い）
+                    fps: 30, // スキャン頻度を最高速度(30)に引き上げ、タイムラグをなくす
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         return {
                             width: Math.min(viewfinderWidth * 0.85, 350),
                             height: Math.min(viewfinderHeight * 0.5, 120)
                         };
                     },
-                    // formatsToSupport は指定せず、すべてのバーコードを許可する（全く読まなくなるバグの解決）
-                    disableFlip: false,
-                    // 解像度の強制をやめ、デバイスのネイティブ解像度を尊重する
-                    videoConstraints: { deviceId: { exact: cameraId } }
+                    // formatsToSupport はあえて指定せず、どんなバーコードも弾かずに確実に拾うようにする
+                    disableFlip: true, // 1次元バーコードには不要な「反転検知」を切り、CPUリソースを高速化に全振りする
+                    // 解像度を適切に指定し、ぼやけを防ぎピントを合いやすくする
+                    videoConstraints: { 
+                        deviceId: { exact: cameraId },
+                        width: { ideal: 1280, min: 640 },
+                        height: { ideal: 720, min: 480 }
+                    }
                 };
 
                 await html5QrcodeScanner.start(cameraId, config, onScanSuccessInternal, onScanErrorInternal);
@@ -524,9 +528,9 @@
             // 8桁未満はゴミデータとして無視（唯一の緩いガード）
             if (cleanCode.length < 8) return; 
             
-            // 連続スキャン防止 (1.5秒ロック)
+            // 連続スキャン防止 (サクサク読めるように1秒ロックに短縮)
             if (isProcessingScan) return;
-            if (now - lastScanTime < 1500) return; 
+            if (now - lastScanTime < 1000) return; 
             
             isProcessingScan = true;
             lastScanTime = now;
@@ -536,7 +540,7 @@
                 addToCart(product);
             }
             
-            setTimeout(() => { isProcessingScan = false; }, 1500);
+            setTimeout(() => { isProcessingScan = false; }, 1000);
         }
 
         function onScanErrorInternal() {}
