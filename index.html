@@ -135,7 +135,7 @@
 
     <main class="flex-1 flex flex-col lg:flex-row p-2 sm:p-4 gap-2 sm:gap-4 overflow-hidden h-full min-h-0">
         
-        <!-- 左：スキャンエリア (スマホ画面でも潰れないよう高さを十分に確保) -->
+        <!-- 左：スキャンエリア (スマホ・Chromebookの両方で潰れないよう十分に高さを確保) -->
         <section class="w-full lg:flex-1 bg-white rounded-xl shadow-lg flex flex-col p-2 sm:p-4 border border-emerald-100 flex-shrink-0 min-h-[300px] lg:h-full lg:min-h-0">
             <div class="flex justify-between items-center mb-1 flex-shrink-0">
                 <h2 class="text-sm sm:text-lg lg:text-xl font-bold text-gray-700 flex items-center gap-1.5">
@@ -143,7 +143,7 @@
                 </h2>
             </div>
             
-            <!-- カメラ映像コンテナ (スマホでは高さを200px確保してピントを合わせやすく) -->
+            <!-- カメラ映像コンテナ (ピントを合わせやすいよう、縦方向を適度に広く確保) -->
             <div class="relative w-full h-[200px] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border border-slate-700 flex-shrink-0 lg:flex-shrink">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <!-- 映像コンテナ -->
@@ -184,7 +184,7 @@
             </div>
         </section>
 
-        <!-- 右：商品リスト (お買い上げ商品の表示数を増やすため余白やサイズをコンパクト化) -->
+        <!-- 右：商品リスト (お買い上げ商品をちょうど綺麗に6つ並べるための適度な高さ設計) -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-2.5 sm:p-4 min-h-0 border border-emerald-100">
             <h2 class="text-sm sm:text-lg font-bold mb-1.5 sm:mb-3 text-gray-700 border-b-2 border-gray-100 pb-1 sm:pb-2 flex items-center gap-1.5 flex-shrink-0">
                 <span>📋</span> おかいあげ商品
@@ -532,13 +532,19 @@
             }
         }
 
-        // JAN/EANコードのチェックデジット厳格検証
+        // JAN/EANコードのチェックデジット厳格検証 & 日本国コードの検証
         function isValidBarcode(code) {
             const clean = code.replace(/[^0-9]/g, '');
             // Chromebookなどで、ピントボケによる中途半端な部分読み取り（桁抜け）をここで完全にガード
             // 日本のJANコード、主要なバーコード規格である 8桁, 12桁, 13桁のみを厳格に許可
             if (clean.length !== 8 && clean.length !== 12 && clean.length !== 13) return false;
             
+            // 日本の国コード（49 または 45）で始まることを強制（誤読ノイズの99%をここで瞬時に破棄）
+            // 13桁または8桁の場合は、先頭が "49" または "45" であることを要求します
+            if ((clean.length === 13 || clean.length === 8) && !clean.startsWith("49") && !clean.startsWith("45")) {
+                return false;
+            }
+
             let sum = 0;
             const len = clean.length;
             const checkDigit = parseInt(clean.charAt(len - 1), 10);
@@ -629,7 +635,7 @@
                     total += item.price;
                     const li = document.createElement("li");
                     // 1つずつの高さを抑えるために余白(p-1 sm:p-1.5)とサイズを非常にコンパクトに設計
-                    li.className = "flex justify-between items-center bg-emerald-50 p-1 sm:p-1.5 rounded-lg border border-emerald-100 shadow-sm text-xs sm:text-sm my-0.5";
+                    li.className = "flex justify-between items-center bg-emerald-50 p-1.5 sm:p-2.5 rounded-lg border border-emerald-100 shadow-sm text-xs sm:text-sm my-0.5";
                     li.innerHTML = `
                         <span class="font-bold text-gray-800 text-[11px] sm:text-xs leading-none">${item.name}</span>
                         <div class="flex items-center gap-1.5 sm:gap-2">
