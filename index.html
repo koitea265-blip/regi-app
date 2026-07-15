@@ -141,7 +141,8 @@
             </div>
             
             <p class="text-[10px] sm:text-xs text-slate-500 mb-2 font-bold leading-tight hidden sm:block">
-                💡おうちのバーコードを読むと、内蔵された75種類の商品からランダムに選ばれます。激レア商品が出るかお楽しみに！
+                💡おうちのバーコードを読むと、内蔵された75種類の商品からランダムに選ばれます。激レア商品が出るかお楽しみに！<br>
+                <span class="text-rose-500">※ピントが合わない時は「切り替え」ボタンを押すか、カメラを少し離してみてね。</span>
             </p>
             
             <div class="relative w-full h-[35vh] sm:h-[40vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
@@ -149,9 +150,9 @@
                     <!-- 映像コンテナ -->
                     <div id="reader" class="w-full h-full relative"></div>
                     
-                    <!-- 【UI層：250x150枠】 -->
+                    <!-- 【UI層：バーコード用横長枠】 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                        <div class="relative w-[250px] h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
+                        <div class="relative w-[90%] max-w-[400px] h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             <!-- 四隅の白い枠 -->
                             <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
                             <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
@@ -460,13 +461,26 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 10,
-                    // スマホ画面でもはみ出さず座標が狂わないレスポンシブqrbox設定
+                    fps: 30, // 認識頻度を上げて精度を向上
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.EAN_13, // 一般的なJANコード(13桁)
+                        Html5QrcodeSupportedFormats.EAN_8,  // 短縮JANコード(8桁)
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39
+                    ],
+                    // スマホ画面でもはみ出さず、バーコードに合わせた横長のレスポンシブqrbox設定
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         return {
-                            width: Math.min(viewfinderWidth * 0.8, 250),
-                            height: Math.min(viewfinderHeight * 0.8, 150)
+                            width: Math.min(viewfinderWidth * 0.9, 400),
+                            height: 150
                         };
+                    },
+                    // スマホのオートフォーカスを促す
+                    videoConstraints: {
+                        focusMode: "continuous",
+                        advanced: [{ focusMode: "continuous" }]
                     }
                 };
 
