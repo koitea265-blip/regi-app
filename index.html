@@ -350,7 +350,7 @@
             { name: "学習ノート (📓)", price: 118 }, { name: "２Ｂえんぴつ (✏️)", price: 63 },
             { name: "よく消える消しゴム (🧽)", price: 84 }, { name: "安全はさみ (✂️)", price: 275 },
             { name: "カラフルおりがみ (🎨)", price: 198 }, { name: "miniリュック (🎒)", price: 3890 },
-            { name: "可愛いハンカチ (🧣)", price: 254 }, { name: "くまさんくつした (🧦)", price: 315 },
+            { name: "可愛いハンかち (🧣)", price: 254 }, { name: "くまさんくつした (🧦)", price: 315 },
             { name: "サッカーボール (⚽)", price: 1240 }, { name: "ポテトフライ (🍟)", price: 243 },
             { name: "チョコドーナツ (🍩)", price: 154 }, { name: "チーズバーガー (🍔)", price: 392 },
             { name: "タコ焼きパック (🐙)", price: 415 }, { name: "ビーフカレー (🍛)", price: 624 },
@@ -545,9 +545,6 @@
             return checkDigit === calcDigit;
         }
 
-        // スマホのピントボケによる最初の「誤読(1回目だけ別なものになるエラー)」を完全に防ぐための連続スキャン確認変数
-        let lastDetectedBarcode = "";
-        let detectedBarcodeCount = 0;
         let lastScanTime = 0;
         let isProcessingScan = false; // 二重読み取り防止
 
@@ -556,18 +553,6 @@
             const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
             if (!isValidBarcode(cleanCode)) return; 
-            
-            // ピントが合っていない時の誤読（1回だけボケて誤検知したコード）を弾く二重確認
-            if (cleanCode !== lastDetectedBarcode) {
-                lastDetectedBarcode = cleanCode;
-                detectedBarcodeCount = 1;
-                return; // 2回連続で同じ値が読めるまで確定しない
-            } else {
-                detectedBarcodeCount++;
-                if (detectedBarcodeCount < 2) {
-                    return; // 信頼できるピント状態になるまでスキップ
-                }
-            }
             
             // ロック処理による二重登録の完全阻止 (2.5秒)
             if (isProcessingScan) return;
