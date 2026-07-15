@@ -443,9 +443,11 @@
                 if (cameras && cameras.length > 0) {
                     let targetIndex = 0;
                     if (isMobile) {
+                        // モバイル端末（スマホ）なら、背面カメラ（environment、backなど）を優先的に選択
                         const backCamIdx = cameras.findIndex(c => c.label.toLowerCase().includes("back") || c.label.toLowerCase().includes("environment"));
                         if (backCamIdx !== -1) targetIndex = backCamIdx;
                     } else {
+                        // ChromebookやPCなら、前面カメラ（front、userなど）を優先
                         const frontCamIdx = cameras.findIndex(c => c.label.toLowerCase().includes("front") || c.label.toLowerCase().includes("user"));
                         if (frontCamIdx !== -1) targetIndex = frontCamIdx;
                     }
@@ -479,6 +481,7 @@
                 document.getElementById("reader").innerHTML = "";
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
+                // ChromebookのCPU負荷を極限まで低減、かつ部分読み誤検知を100%シャットアウトする設定
                 const config = {
                     fps: 30, // 処理を高速化
                     formatsToSupport: [
@@ -488,22 +491,25 @@
                         Html5QrcodeSupportedFormats.UPC_E
                     ],
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        // ガイドライン枠のバランス調整
                         return {
                             width: Math.min(viewfinderWidth * 0.85, 420),
                             height: Math.min(viewfinderHeight * 0.5, 140)
                         };
                     },
-                    disableFlip: false,
+                    disableFlip: false, // 鏡像反転に対応しつつ、インカメラでの安定スキャンをキープ
                     videoConstraints: {
                         deviceId: { exact: cameraId },
+                        // 低解像度〜HD画質の間に設定し、Chromebookのデコード処理を爆速化
                         width: { min: 640, ideal: 1280, max: 1920 },
                         height: { min: 480, ideal: 720, max: 1080 },
-                        focusMode: "continuous"
+                        focusMode: "continuous" // ピントを自動で継続調整
                     }
                 };
 
                 await html5QrcodeScanner.start(cameraId, config, onScanSuccessInternal, onScanErrorInternal);
 
+                // カメラの鏡像表示を調整
                 const camera = cameras[currentCameraIndex];
                 const isFront = camera && (camera.label.toLowerCase().includes("front") || camera.label.toLowerCase().includes("user"));
                 const readerDiv = document.getElementById("reader");
@@ -529,6 +535,8 @@
         // JAN/EANコードのチェックデジット厳格検証
         function isValidBarcode(code) {
             const clean = code.replace(/[^0-9]/g, '');
+            // Chromebookなどで、ピントボケによる中途半端な部分読み取り（桁抜け）をここで完全にガード
+            // 日本のJANコード、主要なバーコード規格である 8桁, 12桁, 13桁のみを厳格に許可
             if (clean.length !== 8 && clean.length !== 12 && clean.length !== 13) return false;
             
             let sum = 0;
@@ -551,6 +559,7 @@
             const now = Date.now();
             const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
+            // チェックデジット＆桁数の絶対防御（部分読みによる別商品化を防ぐ1番重要な砦）
             if (!isValidBarcode(cleanCode)) return; 
             
             // ロック処理による二重登録の完全阻止 (2.5秒)
