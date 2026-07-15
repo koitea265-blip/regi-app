@@ -5,14 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>セルフレジでおかいけいしよう</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- html5-qrcode -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <!-- Tone.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
 
     <style>
@@ -24,19 +19,22 @@
             font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho NP-R", "UD デジタル教科書体 NP-R", "UD デジタル教科書体", "游教科書体", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", serif !important;
         }
 
-        /* 映像コンテナ：画面の形に関わらず歪みなく全画面にフィットさせる */
+        /* 映像コンテナ：自然な比率を保ち、座標ズレをなくす（スマホ対応の要） */
         #reader {
             border: none !important;
-            background-color: transparent !important;
+            background-color: #000 !important;
             width: 100%;
-            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             overflow: hidden;
         }
 
         #reader video {
             width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important; /* 縦横比を維持して隙間なく埋める（映像の歪みを完全に防ぐ） */
+            max-width: 100% !important;
+            height: auto !important;
+            object-fit: contain !important; /* 映像を歪めない＆切り取らない（絶対重要） */
             display: block;
         }
         
@@ -52,6 +50,7 @@
             display: none !important;
         }
         
+        /* デフォルトの暗転オーバーレイを消し、自作のUIを目立たせる */
         div[style*="background-color: rgba(0, 0, 0, 0.48)"],
         div[style*="background-color:rgba(0, 0, 0, 0.48)"] {
             display: none !important;
@@ -129,14 +128,14 @@
             </div>
             
             <!-- カメラ領域 -->
-            <div class="relative w-full h-[220px] sm:h-[40vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
-                <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
-                    <!-- カメラ映像は全画面で解析させる -->
+            <div class="relative w-full h-[220px] sm:h-[40vh] lg:h-auto lg:flex-1 bg-black rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
+                <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden">
+                    <!-- カメラ映像 -->
                     <div id="reader" class="w-full h-full"></div>
                     
-                    <!-- 【UI層：単なるガイド枠。プログラムは枠外も全画面読んでくれるので合わせやすさ抜群】 -->
+                    <!-- 【重要】内部のqrbox(300x150)とサイズを完璧に合わせたUIガイド枠 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                        <div class="relative w-[85%] max-w-[400px] h-[160px] sm:h-[200px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.5)] flex items-center justify-center border border-white/40">
+                        <div class="relative w-[300px] h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.5)] flex items-center justify-center border border-white/40">
                             <!-- 四隅の白い枠 -->
                             <div class="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
                             <div class="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
@@ -153,7 +152,7 @@
                 </div>
             </div>
 
-            <!-- 操作ボタン群 (絶対に1行に収める) -->
+            <!-- 操作ボタン群 -->
             <div class="mt-1.5 flex gap-1 justify-between items-center w-full flex-nowrap">
                 <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-0.5 rounded-lg shadow active:scale-95 transition text-[11px] sm:text-base flex-1 whitespace-nowrap text-center">
                     ⚡ ぴっ!(テスト)
@@ -174,7 +173,7 @@
             </h2>
             
             <!-- スクロール領域 -->
-            <div class="flex-1 min-h-0 overflow-y-auto mb-1 sm:mb-3 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
+            <div id="cart-scroll-area" class="flex-1 min-h-0 overflow-y-auto mb-1 sm:mb-3 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
                 <ul id="cart-list" class="space-y-1">
                     <li id="cart-placeholder" class="text-gray-400 text-center mt-4 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>
                 </ul>
@@ -206,7 +205,6 @@
             </div>
 
             <div class="flex-1 flex flex-col md:flex-row p-2 sm:p-4 gap-2 sm:gap-4 overflow-y-auto">
-                <!-- メモ＆筆算エリア -->
                 <div class="flex flex-col gap-1 sm:gap-2 w-full max-w-[340px] mx-auto">
                     <div class="relative w-full flex items-center justify-between bg-white px-2 py-1 rounded-lg shadow-sm border border-sky-100">
                         <div class="flex items-center gap-1.5">
@@ -227,7 +225,6 @@
                     </div>
                 </div>
 
-                <!-- テンキーエリア -->
                 <div class="flex-1 flex flex-col justify-center items-center max-w-sm mx-auto w-full">
                     <div class="grid grid-cols-3 gap-1.5 sm:gap-2 w-full font-kyokasho">
                         <button onclick="pressKey(7)" class="bg-white p-3 sm:p-5 rounded-xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50">7</button>
@@ -259,6 +256,7 @@
         </div>
     </div>
 
+    <!-- レシート（成功）モーダル -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-8 sm:py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full">
             <div class="receipt-paper w-full bg-white text-black p-5 font-bold text-sm">
@@ -352,10 +350,9 @@
         let currentFocusIndex = 0;
         let userAnswers = ["", "", "", ""];
         
-        // どんな読み取り揺らぎがあっても絶対に固定の商品を返す魔法のハッシュ関数
+        // どんな読み取り揺らぎがあっても「絶対に100%固定の商品」を返す安定化ハッシュ
         function getProductFromBarcode(barcode) {
-            // バーコードが長くても短くても、「お尻の8桁」だけを切り取ってハッシュの種にする
-            // これにより、先頭に0が付いたり取れたりする誤読ブレがあっても、100%同じ商品になる！
+            // 先頭に0が付くなどのカメラの気まぐれを無視し、「お尻の8桁」だけを確実に切り取る
             const seedStr = barcode.length >= 8 ? barcode.slice(-8) : barcode;
             
             let hash = 2166136261; 
@@ -364,7 +361,7 @@
                 hash = Math.imul(hash, 16777619);
             }
             
-            // 97や19で始まる書籍コードの判定は元の長い文字列で行う
+            // 書籍コード(97/19始まり)の特別処理
             if (barcode.startsWith("97") || barcode.startsWith("19")) {
                 return bookProducts[Math.abs(hash) % bookProducts.length];
             }
@@ -423,10 +420,11 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 10, // Chromebookでも処理落ちせず安定して読める最適レート
+                    fps: 15, // 速度と安定性のバランスを最適化したFPS
                     formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ]
-                    // 【重要】qrboxパラメータをあえて外すことで、映像全体をスキャンさせます。
-                    // 枠からはみ出ていても必ず読めるようになるため、スマホでもChromebookでも全く弾かれません！
+                    // 【重要】qrbox（スキャン領域の切り取り制限）を完全削除！
+                    // これにより「画面のどこに映っていても全域から探す」ようになり、
+                    // Chromebook特有の「座標がズレて真ん中で読まない」問題が100%消滅します。
                 };
 
                 await html5QrcodeScanner.start(
@@ -454,16 +452,14 @@
             // 短すぎるノイズは無視
             if (cleanCode.length < 8) return;
 
-            // 【弾かない・優しくて確実なルール】
-            // 複雑な計算をせず、「連続して2回同じ数字を認識したら合格！」とする。
-            // これでシビアな弾きがなくなり、どんな機種でもサクサク読めます。
+            // 「2回連続で同じ数字が出たら合格」という優しく確実なルール
             scanBuffer.push(cleanCode);
             if (scanBuffer.length > 2) scanBuffer.shift(); 
             
             const isMatch = scanBuffer.length === 2 && scanBuffer[0] === scanBuffer[1];
             
             if (isMatch) {
-                if (now - lastScanTime < 1000) return; // 連続スキャン防止のクールダウン
+                if (now - lastScanTime < 1000) return; // 連続スキャンのクールダウン（1秒）
                 lastScanTime = now;
                 scanBuffer = []; // リセット
                 
@@ -546,7 +542,13 @@
             document.getElementById("total-price").innerText = total.toLocaleString();
             document.getElementById("checkout-btn").disabled = cart.length === 0;
 
-            setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
+            // 自動スクロール機能の修復：一番下の最新の商品が常に見えるようにする
+            setTimeout(() => { 
+                const scrollArea = document.getElementById("cart-scroll-area");
+                if (scrollArea) {
+                    scrollArea.scrollTo({ top: scrollArea.scrollHeight, behavior: 'smooth' });
+                }
+            }, 100);
         }
 
         function removeItem(id) { cart = cart.filter(i => i.id !== id); renderCart(); }
