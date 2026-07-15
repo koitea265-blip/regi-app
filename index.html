@@ -135,12 +135,12 @@
                 </h2>
             </div>
             
-            <!-- カメラ領域：スマホで高さを少し抑え、下のリストにスペースを譲る -->
+            <!-- カメラ領域 -->
             <div class="relative w-full h-[170px] min-h-[170px] sm:h-[40vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
                 <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <div id="reader" class="w-full h-full relative"></div>
                     
-                    <!-- 【UI層：スキャンガイド枠】スキャンしやすく枠を拡大 -->
+                    <!-- 【UI層：スキャンガイド枠】 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
                         <div class="relative w-[260px] h-[140px] sm:w-[300px] sm:h-[160px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             <!-- 四隅の白い枠 -->
@@ -159,7 +159,7 @@
                 </div>
             </div>
 
-            <!-- 操作ボタン群：絶対に1行に収めるための横並びフレックス設計 -->
+            <!-- 操作ボタン群 -->
             <div class="mt-2 flex gap-1.5 justify-between items-center w-full">
                 <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-1 rounded-lg shadow active:scale-95 transition text-[11px] sm:text-base flex-1 whitespace-nowrap text-center">
                     ⚡ ぴっ!(テスト)
@@ -179,7 +179,7 @@
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <!-- スクロール領域：高さがたっぷり確保される -->
+            <!-- スクロール領域 -->
             <div class="flex-1 min-h-0 overflow-y-auto mb-1.5 sm:mb-4 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
                 <ul id="cart-list" class="space-y-1.5">
                     <li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>
@@ -318,8 +318,8 @@
         </div>
     </div>
 
+    <!-- JavaScript ロジック -->
     <script>
-        // 75種類のお買い物商品データベース
         const dummyProducts = [
             { name: "りんご (🍎)", price: 124 }, { name: "みかん (🍊)", price: 87 },
             { name: "バナナ (🍌)", price: 158 }, { name: "いちご (🍓)", price: 398 },
@@ -361,10 +361,9 @@
             { name: "バドミントンシャトル (🏸)", price: 184 }
         ];
 
-        let cart = []; // 再起動・リロード時は常に空からスタート
+        let cart = []; 
         let html5QrcodeScanner = null;
         let currentCameraId = null;
-        
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
         
         let isScannerTransitioning = false;
@@ -373,6 +372,9 @@
         let totalAmount = 0, paidAmount = 0, changeAmount = 0;
         let currentFocusIndex = 0;
         let userAnswers = ["", "", "", ""];
+        
+        // 【誤読防止バッファ】
+        let scanBuffer = [];
 
         function initAudio() {
             if (!synth) {
@@ -381,7 +383,6 @@
             if (Tone.context.state !== 'running') Tone.context.resume();
         }
 
-        // FNV-1a風ハッシュ：バーコードから一意の商品を割り出す（何回かざしても100%同じ商品になる）
         function getProductFromBarcode(barcode) {
             let hash = 2166136261; 
             for (let i = 0; i < barcode.length; i++) {
@@ -445,7 +446,7 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 15,
+                    fps: 15, // 安定性と速度のベストバランス
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         return {
                             width: Math.min(viewfinderWidth * 0.9, 300),
@@ -470,6 +471,7 @@
         }
 
         let lastScanTime = 0;
+        
         function onScanSuccessInternal(decodedText) {
             const now = Date.now();
             let cleanCode = decodedText.replace(/[^0-9]/g, ''); 
@@ -483,15 +485,39 @@
 
             // 一般的な商品バーコード（JAN/EAN/UPC）の桁数（8, 12, 13桁）以外は、
             // ピントぼけによる「切り取り誤読」の可能性が高いため無視する。
-            // これにより「同じ商品なのに別商品に化ける」現象を完全に防ぐ。
             if (cleanCode.length !== 8 && cleanCode.length !== 12 && cleanCode.length !== 13) {
                 return;
             }
+
+            // 【ハイブリッド検証ロジック】
+            // JAN規格のチェックデジット計算を行い、誤読を識別する
+            let sum = 0;
+            const len = cleanCode.length;
+            const checkDigit = parseInt(cleanCode.charAt(len - 1), 10);
+            for (let i = len - 2; i >= 0; i--) {
+                const digit = parseInt(cleanCode.charAt(i), 10);
+                const pos = len - 1 - i;
+                sum += digit * (pos % 2 !== 0 ? 3 : 1);
+            }
+            const isValid = (checkDigit === ((10 - (sum % 10)) % 10));
+
+            // 本物の商品(isValid=true)であれば1発で合格。
+            // ピントボケによる誤読や、自作バーコード(isValid=false)の場合は、
+            // 「3回連続で全く同じ数字としてカメラが認識した時のみ」通す救済措置
+            if (!isValid) {
+                scanBuffer.push(cleanCode);
+                if (scanBuffer.length > 3) scanBuffer.shift(); // 過去3件を保持
+                
+                const allSame = scanBuffer.length === 3 && scanBuffer.every(c => c === cleanCode);
+                if (!allSame) return; // 誤読ならここで安全に破棄される
+            }
             
-            if (now - lastScanTime < 1500) return; // 1.5秒間のデバウンス
+            // 連続スキャンの防振フィルター (1.8秒間は次のスキャンをロック)
+            if (now - lastScanTime < 1800) return; 
             
             lastScanTime = now;
-            // 読み取った文字列全体を使ってハッシュ化することで、商品を確実に一意にする
+            scanBuffer = []; // 通過したらバッファをリセット
+            
             addToCart(getProductFromBarcode(cleanCode));
         }
 
@@ -548,7 +574,6 @@
                 cart.forEach(item => {
                     total += item.price;
                     const li = document.createElement("li");
-                    // スマホ画面でリストがなるべく多く入るようにパディングを調整(p-2)
                     li.className = "flex justify-between items-center bg-emerald-50 p-2 sm:p-3 rounded-lg border border-emerald-100 mb-1.5";
                     li.innerHTML = `
                         <span class="font-bold text-gray-800 text-xs sm:text-base">${item.name}</span>
@@ -610,7 +635,7 @@
 
         function resetAppAndCloseSuccess() { 
             document.getElementById("success-modal").classList.add("hidden"); 
-            clearCart(); // 次のお買い物へ移行する際はカートを空にする
+            clearCart(); 
             if (html5QrcodeScanner && html5QrcodeScanner.getState() === 3) { 
                 try { html5QrcodeScanner.resume(); } catch(e){} 
             }
@@ -808,7 +833,6 @@
 
         function clearCanvas() { if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
-        // 紙吹雪（パーティクル）エフェクト
         let confettiLoop;
         function startConfetti() {
             const cvs = document.getElementById('confetti-canvas');
