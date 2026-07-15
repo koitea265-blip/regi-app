@@ -391,7 +391,9 @@
                     currentCameraId = targetCamera.id;
                     
                     const readerDiv = document.getElementById("reader");
-                    if (targetCamera.label.toLowerCase().includes("front") || targetCamera.label.toLowerCase().includes("user")) {
+                    // 「背面(back/environment)」という名前が入っていなければ、インカメラ（鏡）とみなす
+                    const isBackCamera = targetCamera.label.toLowerCase().includes("back") || targetCamera.label.toLowerCase().includes("environment");
+                    if (!isBackCamera) {
                         readerDiv.classList.add("mirror-video");
                     } else {
                         readerDiv.classList.remove("mirror-video");
@@ -479,7 +481,9 @@
                     currentCameraId = nextCamera.id;
                     
                     const readerDiv = document.getElementById("reader");
-                    if (nextCamera.label.toLowerCase().includes("front") || nextCamera.label.toLowerCase().includes("user")) {
+                    // 「背面(back/environment)」という名前が入っていなければ、インカメラ（鏡）とみなす
+                    const isBackCamera = nextCamera.label.toLowerCase().includes("back") || nextCamera.label.toLowerCase().includes("environment");
+                    if (!isBackCamera) {
                         readerDiv.classList.add("mirror-video");
                     } else {
                         readerDiv.classList.remove("mirror-video");
