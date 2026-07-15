@@ -360,7 +360,7 @@
             { name: "子ども用歯ブラシ (🪥)", price: 112 }, { name: "おもしろい絵本 (📖)", price: 836 },
             { name: "星のキーホルダー (🔑)", price: 345 }, { name: "ポップコーン (🍿)", price: 184 },
             { name: "ホットドッグ (🌭)", price: 263 }, { name: "ピースピザ (🍕)", price: 382 },
-            { name: "メ melonパン (🍞)", price: 143 }, { name: "シュークリーム (🧁)", price: 152 },
+            { name: "メロンパン (🍞)", price: 143 }, { name: "シュークリーム (🧁)", price: 152 },
             { name: "わたがし (☁️)", price: 112 }, { name: "フランクフルト (🌭)", price: 194 },
             { name: "おえかきちょう (🎨)", price: 145 }, { name: "12色クレヨン (🖍️)", price: 382 },
             { name: "水彩えのぐ (🎨)", price: 684 }, { name: "虫めがね (🔍)", price: 215 },
@@ -545,6 +545,9 @@
             return checkDigit === calcDigit;
         }
 
+        // スマホのピントボケによる最初の「誤読(1回目だけ別なものになるエラー)」を完全に防ぐための連続スキャン確認変数
+        let lastDetectedBarcode = "";
+        let detectedBarcodeCount = 0;
         let lastScanTime = 0;
         let isProcessingScan = false; // 二重読み取り防止
 
@@ -553,6 +556,18 @@
             const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
             if (!isValidBarcode(cleanCode)) return; 
+            
+            // ピントが合っていない時の誤読（1回だけボケて誤検知したコード）を弾く二重確認
+            if (cleanCode !== lastDetectedBarcode) {
+                lastDetectedBarcode = cleanCode;
+                detectedBarcodeCount = 1;
+                return; // 2回連続で同じ値が読めるまで確定しない
+            } else {
+                detectedBarcodeCount++;
+                if (detectedBarcodeCount < 2) {
+                    return; // 信頼できるピント状態になるまでスキップ
+                }
+            }
             
             // ロック処理による二重登録の完全阻止 (2.5秒)
             if (isProcessingScan) return;
@@ -620,12 +635,13 @@
                 cart.forEach(item => {
                     total += item.price;
                     const li = document.createElement("li");
-                    li.className = "flex justify-between items-center bg-emerald-50 p-2 sm:p-2.5 rounded-xl border border-emerald-100 shadow-sm";
+                    // 1つずつの高さを抑えるために余白(p-1 sm:p-1.5)とサイズを非常にコンパクトに設計
+                    li.className = "flex justify-between items-center bg-emerald-50 p-1 sm:p-1.5 rounded-lg border border-emerald-100 shadow-sm text-xs sm:text-sm my-0.5";
                     li.innerHTML = `
-                        <span class="font-bold text-gray-800 text-xs sm:text-sm">${item.name}</span>
-                        <div class="flex items-center gap-2 sm:gap-3">
-                            <span class="font-bold text-emerald-700 font-kyokasho text-xs sm:text-base">${item.price} 円</span>
-                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs px-2 py-1 rounded-lg font-bold hover:bg-rose-200 min-h-[35px]">とりけす</button>
+                        <span class="font-bold text-gray-800 text-[11px] sm:text-xs leading-none">${item.name}</span>
+                        <div class="flex items-center gap-1.5 sm:gap-2">
+                            <span class="font-bold text-emerald-700 font-kyokasho text-xs sm:text-sm leading-none">${item.price} 円</span>
+                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs px-1.5 py-0.5 rounded font-bold hover:bg-rose-200 min-h-[28px] flex items-center justify-center">とりけす</button>
                         </div>
                     `;
                     list.appendChild(li);
