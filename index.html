@@ -44,7 +44,6 @@
             object-fit: cover;
         }
         
-        /* PCの前カメラ等の直感的な鏡像対応 */
         .mirror-video video {
             transform: scaleX(-1) !important;
         }
@@ -61,7 +60,6 @@
             display: none !important;
         }
 
-        /* html5-qrcodeが自動生成するスキャン判定枠(qrbox)のボーダーと背景を完全消去 */
         #reader__scan_region div,
         #reader__scan_region span,
         [id$="qrbox-border"] {
@@ -76,7 +74,6 @@
             background: transparent !important;
         }
 
-        /* 赤い読み取りレーザーのアニメーション */
         @keyframes laser-sweep {
             0% { top: 8%; opacity: 0.4; filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.7)); }
             50% { top: 92%; opacity: 1; filter: drop-shadow(0 0 4px rgba(239, 68, 68, 1)) drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
@@ -94,7 +91,6 @@
             pointer-events: none;
         }
 
-        /* 方眼罫線 */
         .graph-cell {
             position: relative;
             border-right: 1px solid #bae6fd;
@@ -109,7 +105,6 @@
             user-select: none; 
         }
 
-        /* フラットなリアルレシートのスタイル */
         .receipt-paper {
             position: relative; 
             background: #ffffff;
@@ -118,7 +113,7 @@
             border-top: 8px solid #10b981; 
         }
 
-        /* スマホ縦スクロールの解決 */
+        /* 縦スクロールの完璧な解決 */
         #cart-list {
             -webkit-overflow-scrolling: touch !important; 
             user-select: auto !important;                
@@ -126,88 +121,87 @@
         }
     </style>
 </head>
-<body class="h-screen flex flex-col select-none bg-slate-50 no-select overflow-hidden">
+
+<body class="h-screen flex flex-col select-none bg-slate-50 no-select">
 
     <header class="bg-emerald-600 text-white p-3 sm:p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
         <h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2">🛒 セルフレジでおかいけいしよう</h1>
-        <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold hidden md:inline">たのしいお買い物＆ひっ算おつり計算</span>
+        <span class="bg-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold hidden sm:inline">たのしいお買い物＆ひっ算おつり計算</span>
     </header>
 
     <main class="flex-1 flex flex-col lg:flex-row p-2 sm:p-4 gap-2 sm:gap-4 overflow-hidden h-full min-h-0">
         
-        <!-- 左：スキャンエリア (スマホ・Chromebookの両方で潰れないよう十分に高さを確保) -->
-        <section class="w-full lg:flex-1 bg-white rounded-xl shadow-lg flex flex-col p-2 sm:p-4 border border-emerald-100 flex-shrink-0 min-h-[300px] lg:h-full lg:min-h-0">
+        <!-- 左：スキャンエリア -->
+        <section class="w-full lg:flex-1 bg-white rounded-xl shadow-lg flex flex-col p-3 sm:p-4 border border-emerald-100 flex-shrink-0 min-h-[300px] lg:h-full lg:min-h-0">
             <div class="flex justify-between items-center mb-1 flex-shrink-0">
-                <h2 class="text-sm sm:text-lg lg:text-xl font-bold text-gray-700 flex items-center gap-1.5">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-700 flex items-center gap-1.5">
                     <span>📸</span> バーコードをスキャンしよう！
                 </h2>
             </div>
             
-            <!-- カメラ映像コンテナ (ピントを合わせやすいよう、縦方向を適度に広く確保) -->
-            <div class="relative w-full h-[200px] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border border-slate-700 flex-shrink-0 lg:flex-shrink">
-                <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
+            <!-- カメラコンテナ: スマホでも潰れない高さを確保 -->
+            <div class="relative w-full h-[200px] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700 flex-shrink-0 lg:flex-shrink">
+                <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black transition-all duration-150">
                     <!-- 映像コンテナ -->
                     <div id="reader" class="w-full h-full relative"></div>
                     
-                    <!-- 【UI層：バーコード用横長・拡大ガイド枠（スキャンを狙いやすく調整）】 -->
+                    <!-- 【UI層：広めのスキャン枠】 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                        <div class="relative w-[85%] max-w-[420px] h-[90px] lg:h-[130px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
+                        <div class="relative w-[85%] max-w-[350px] h-[100px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             <!-- 四隅の白い枠 -->
-                            <div class="absolute top-0 left-0 w-6 h-6 lg:w-8 lg:h-8 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
-                            <div class="absolute top-0 right-0 w-6 h-6 lg:w-8 lg:h-8 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
-                            <div class="absolute bottom-0 left-0 w-6 h-6 lg:w-8 lg:h-8 border-b-4 border-l-4 border-white rounded-bl-sm"></div>
-                            <div class="absolute bottom-0 right-0 w-6 h-6 lg:w-8 lg:h-8 border-b-4 border-r-4 border-white rounded-br-sm"></div>
+                            <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
+                            <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
+                            <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-sm"></div>
+                            <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-sm"></div>
                             <div class="scanning-laser"></div>
                         </div>
                     </div>
                     
-                    <div id="camera-fallback-msg" class="absolute inset-0 bg-slate-950/90 text-white flex flex-col items-center justify-center p-3 text-center z-20 pointer-events-none text-xs sm:text-sm">
-                        <span class="text-xl lg:text-3xl mb-1">📷</span>
-                        <p class="font-bold">カメラを起動しています...</p>
+                    <div id="camera-fallback-msg" class="absolute inset-0 bg-slate-950/90 text-white flex flex-col items-center justify-center p-6 text-center z-20 pointer-events-none">
+                        <span class="text-4xl mb-3">📷</span>
+                        <p class="font-bold mb-1">カメラを起動しています...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- スマホ対応・テスト用の確実な固定商品スキャンボタン -->
-            <div class="mt-2 flex flex-wrap gap-2 justify-between items-center flex-shrink-0">
-                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-black py-2 px-4 rounded-lg shadow active:scale-95 transition text-xs sm:text-sm flex items-center gap-1 min-h-[44px]">
+            <div class="mt-3 flex flex-wrap gap-2 justify-between items-center flex-shrink-0">
+                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-lg shadow active:scale-95 transition text-sm sm:text-base min-h-[44px]">
                     ⚡ ぴっ！(テスト用)
                 </button>
                 <div class="flex gap-2">
-                    <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-xs rounded-lg min-h-[44px]">
+                    <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-xs sm:text-sm rounded-lg min-h-[44px]">
                         📷 切り替え
                     </button>
-                    <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-3 text-xs rounded-lg min-h-[44px]">
-                        からにする
+                    <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-3 text-xs sm:text-sm rounded-lg min-h-[44px]">
+                        🧹 からにする
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- 右：商品リスト (お買い上げ商品をちょうど綺麗に6つ並べるための適度な高さ設計) -->
-        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-2.5 sm:p-4 min-h-0 border border-emerald-100">
-            <h2 class="text-sm sm:text-lg font-bold mb-1.5 sm:mb-3 text-gray-700 border-b-2 border-gray-100 pb-1 sm:pb-2 flex items-center gap-1.5 flex-shrink-0">
+        <!-- 右：商品カートエリア -->
+        <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-3 sm:p-4 min-h-0 border border-emerald-100">
+            <h2 class="text-lg sm:text-xl font-bold mb-2 text-gray-700 border-b-2 border-gray-100 pb-1 sm:pb-2 flex items-center gap-1.5 flex-shrink-0">
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <!-- 【完璧な縦スクロール領域】 -->
-            <div id="cart-scroll-area" class="flex-1 min-h-0 overflow-y-auto mb-2 sm:mb-4 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
+            <!-- スクロール領域: 高さは詰めすぎず、画面に6個程度入るベストなバランス -->
+            <div id="cart-scroll-area" class="flex-1 min-h-0 overflow-y-auto mb-3 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
                 <ul id="cart-list" class="space-y-1.5 pb-2">
-                    <li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-xs sm:text-sm">おかいもの を はじめよう！</li>
+                    <li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>
                 </ul>
             </div>
 
-            <!-- 合計・購入エリア (スマホでの画面占有を減らすためコンパクトに設計) -->
-            <div class="bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200 flex-shrink-0 mt-auto">
-                <div class="flex justify-between items-center mb-0.5 sm:mb-2">
-                    <span class="text-xs sm:text-sm font-bold text-gray-600">お買い上げ点数:</span>
-                    <span id="total-count" class="text-xs sm:text-base font-bold">0 点</span>
+            <div class="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex-shrink-0 mt-auto">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm sm:text-lg font-bold text-gray-600">お買い上げ点数:</span>
+                    <span id="total-count" class="text-lg sm:text-xl font-bold">0 点</span>
                 </div>
-                <div class="flex justify-between items-center mb-1.5 sm:mb-3">
-                    <span class="text-xs sm:text-sm font-bold text-gray-600">ごうけい金額:</span>
-                    <span class="text-lg sm:text-2xl font-black text-rose-600"><span id="total-price">0</span> 円</span>
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm sm:text-lg font-bold text-gray-600">ごうけい金額:</span>
+                    <span class="text-2xl sm:text-3xl font-black text-rose-600"><span id="total-price">0</span> 円</span>
                 </div>
-                <button id="checkout-btn" onclick="openPaymentModal()" disabled class="w-full bg-emerald-500 text-white font-black py-2 sm:py-3.5 rounded-xl text-sm sm:text-lg shadow hover:bg-emerald-600 transition disabled:bg-slate-300 min-h-[44px]">
+                <button id="checkout-btn" onclick="openPaymentModal()" disabled class="w-full bg-emerald-500 text-white font-black py-3 sm:py-4 rounded-xl text-lg sm:text-xl shadow-lg hover:bg-emerald-600 transition disabled:bg-slate-300 min-h-[50px]">
                     💳 おかいけいする
                 </button>
             </div>
@@ -217,9 +211,9 @@
     <!-- おつり計算ひっ算モーダル -->
     <div id="payment-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
         <div class="bg-sky-50 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border-4 border-sky-400">
-            <div class="bg-sky-500 text-white p-3 sm:p-4 text-center">
-                <h3 class="text-xl sm:text-2xl font-bold">おつりを けいさん しよう！</h3>
-                <p id="payment-info" class="text-xs sm:text-lg mt-1 font-semibold"></p>
+            <div class="bg-sky-500 text-white p-4 text-center">
+                <h3 class="text-2xl font-bold">おつりを けいさん しよう！</h3>
+                <p id="payment-info" class="text-sm sm:text-lg mt-1 font-semibold"></p>
             </div>
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
@@ -245,27 +239,27 @@
 
                 <div class="flex-1 flex flex-col justify-center items-center max-w-sm mx-auto w-full">
                     <div class="grid grid-cols-3 gap-2 w-full font-kyokasho">
-                        <button onclick="pressKey(7)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">7</button>
-                        <button onclick="pressKey(8)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">8</button>
-                        <button onclick="pressKey(9)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">9</button>
-                        <button onclick="pressKey(4)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">4</button>
-                        <button onclick="pressKey(5)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">5</button>
-                        <button onclick="pressKey(6)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">6</button>
-                        <button onclick="pressKey(1)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">1</button>
-                        <button onclick="pressKey(2)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">2</button>
-                        <button onclick="pressKey(3)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">3</button>
-                        <button onclick="pressKey('C')" class="bg-rose-100 p-3 rounded-2xl text-xs sm:text-base font-bold hover:bg-rose-200 min-h-[50px]">ぜんぶ消す</button>
-                        <button onclick="pressKey(0)" class="bg-white p-3 sm:p-5 rounded-2xl shadow border-2 text-xl sm:text-3xl font-black hover:bg-slate-50 min-h-[50px]">0</button>
-                        <button onclick="pressKey('BS')" class="bg-amber-100 p-3 rounded-2xl text-xs sm:text-base font-bold hover:bg-amber-200 min-h-[50px]">⬅とりけす</button>
+                        <button onclick="pressKey(7)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">7</button>
+                        <button onclick="pressKey(8)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">8</button>
+                        <button onclick="pressKey(9)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">9</button>
+                        <button onclick="pressKey(4)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">4</button>
+                        <button onclick="pressKey(5)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">5</button>
+                        <button onclick="pressKey(6)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">6</button>
+                        <button onclick="pressKey(1)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">1</button>
+                        <button onclick="pressKey(2)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">2</button>
+                        <button onclick="pressKey(3)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">3</button>
+                        <button onclick="pressKey('C')" class="bg-rose-100 p-5 rounded-2xl text-xl font-bold hover:bg-rose-200 min-h-[50px]">ぜんぶ消す</button>
+                        <button onclick="pressKey(0)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">0</button>
+                        <button onclick="pressKey('BS')" class="bg-amber-100 p-5 rounded-2xl text-xl font-bold hover:bg-amber-200 min-h-[50px]">⬅とりけす</button>
                     </div>
                     
-                    <div class="mt-4 w-full flex flex-col gap-3">
+                    <div class="mt-5 w-full flex flex-col gap-3">
                         <div class="flex gap-2 w-full" id="action-buttons-row">
-                            <button onclick="closePaymentModal()" class="flex-1 bg-slate-400 text-white font-bold py-3 rounded-xl hover:bg-slate-500 text-xs sm:text-sm min-h-[44px]">やめる</button>
-                            <button onclick="showAnswerAutomatic()" class="flex-1 bg-sky-500 text-white font-bold py-3 rounded-xl hover:bg-sky-600 text-xs sm:text-sm min-h-[44px]">💡おつりをみる</button>
-                            <button onclick="checkAnswer()" class="flex-1 bg-amber-500 text-white font-black py-3 rounded-xl hover:bg-amber-600 text-xs sm:text-sm min-h-[44px]">答え合わせ</button>
+                            <button onclick="closePaymentModal()" class="flex-1 bg-slate-400 text-white font-bold py-3 rounded-xl hover:bg-slate-500 text-[13px] min-h-[44px]">やめる</button>
+                            <button onclick="showAnswerAutomatic()" class="flex-1 bg-sky-500 text-white font-bold py-3 rounded-xl hover:bg-sky-600 text-[13px] min-h-[44px]">💡おつりをみる</button>
+                            <button onclick="checkAnswer()" class="flex-1 bg-amber-500 text-white font-black py-3 rounded-xl hover:bg-amber-600 text-[13px] min-h-[44px]">答え合わせ</button>
                         </div>
-                        <button id="show-receipt-btn" onclick="showReceipt()" class="hidden w-full bg-emerald-500 text-white font-black py-3 rounded-xl text-lg shadow hover:bg-emerald-600 animate-pulse min-h-[50px]">
+                        <button id="show-receipt-btn" onclick="showReceipt()" class="hidden w-full bg-emerald-500 text-white font-black py-4 rounded-xl text-xl shadow-lg hover:bg-emerald-600 animate-pulse min-h-[50px]">
                             🧾 レシートをみる！
                         </button>
                     </div>
@@ -274,7 +268,7 @@
         </div>
     </div>
 
-    <!-- よくできました！レシートモーダル -->
+    <!-- 正解お祝い・くっきりリアルレシートモーダル -->
     <div id="success-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 overflow-y-auto flex justify-center items-start py-12 px-4">
         <div class="flex flex-col items-center max-w-sm w-full">
             <div class="receipt-paper w-full bg-white text-black p-6 font-bold text-sm">
@@ -372,38 +366,42 @@
             { name: "カラフルねんど (🎨)", price: 245 }, { name: "バドミントンシャトル (🏸)", price: 184 }
         ];
 
-        // 各商品に対して、チェックデジットを計算した確実な一意のバーコードを動的生成
-        function assignBarcodes() {
-            dummyProducts.forEach((item, index) => {
-                const base = "4901234" + index.toString().padStart(5, "0");
-                let sum = 0;
-                for (let i = 0; i < 12; i++) {
-                    const digit = parseInt(base.charAt(i), 10);
-                    sum += digit * (i % 2 === 0 ? 1 : 3);
-                }
-                const checkDigit = (10 - (sum % 10)) % 10;
-                item.barcode = base + checkDigit;
-            });
-        }
+        // 各商品に対してダミーバーコードを一応割り当てておく
+        dummyProducts.forEach((item, index) => {
+            const base = "4901234" + index.toString().padStart(5, "0");
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                sum += parseInt(base.charAt(i), 10) * (i % 2 === 0 ? 1 : 3);
+            }
+            item.barcode = base + ((10 - (sum % 10)) % 10);
+        });
 
-        // FNV-1aに準拠した非破壊ハッシュ関数で「本物のバーコード」を75個のダミーに完全固定マップ
+        // 完全に安定したハッシュ関数：フォーマットの揺らぎを吸収する魔法
         function getProductFromBarcode(barcode) {
-            // もし事前に設定した内蔵バーコードと完全一致すればそれを返す
-            const exactMatch = dummyProducts.find(p => p.barcode === barcode);
-            if (exactMatch) return exactMatch;
+            // スキャンされた数字だけを抽出
+            let cleanCode = barcode.replace(/[^0-9]/g, '');
+            
+            // 【重要】先頭に0がついたり消えたりするライブラリの気まぐれを吸収するため、
+            // 「絶対に変化しない後ろ側」だけをハッシュ計算に使う
+            let stableKey = cleanCode;
+            if (cleanCode.length > 8) {
+                // 12桁以上ある場合は、後ろから12桁だけを切り出してキーにする
+                stableKey = cleanCode.slice(-12);
+            }
 
-            // ない場合は、任意のバーコードをハッシュ化して75種の商品へ安定マップ
+            // FNV-1aハッシュアルゴリズム
             let hash = 2166136261;
-            for (let i = 0; i < barcode.length; i++) {
-                hash ^= barcode.charCodeAt(i);
+            for (let i = 0; i < stableKey.length; i++) {
+                hash ^= stableKey.charCodeAt(i);
                 hash = Math.imul(hash, 16777619);
             }
+            
             const index = Math.abs(hash) % dummyProducts.length;
             return dummyProducts[index];
         }
 
         // アプリケーション状態
-        let cart = []; // カートは再起動時に空からスタート（localStorageは利用しない）
+        let cart = []; // 再起動時は空からスタート
         let html5QrcodeScanner = null;
         let cameras = [];
         let currentCameraIndex = 0;
@@ -425,29 +423,23 @@
         }
 
         window.addEventListener("DOMContentLoaded", () => {
-            assignBarcodes();
-            // 再起動時は空からスタートするのでlocalStorageからの読み出しは行いません。
             renderCart();
             setupMemoCanvas();
             setTimeout(() => { initScanner(); }, 300);
         });
 
-        // カメラの検出と起動
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             container.classList.remove("hidden");
-            container.innerHTML = `<span class="text-xl lg:text-3xl mb-1">📷</span><p class="font-bold">カメラを起動しています...</p>`;
 
             try {
                 cameras = await Html5Qrcode.getCameras();
                 if (cameras && cameras.length > 0) {
                     let targetIndex = 0;
                     if (isMobile) {
-                        // モバイル端末（スマホ）なら、背面カメラ（environment、backなど）を優先的に選択
                         const backCamIdx = cameras.findIndex(c => c.label.toLowerCase().includes("back") || c.label.toLowerCase().includes("environment"));
                         if (backCamIdx !== -1) targetIndex = backCamIdx;
                     } else {
-                        // ChromebookやPCなら、前面カメラ（front、userなど）を優先
                         const frontCamIdx = cameras.findIndex(c => c.label.toLowerCase().includes("front") || c.label.toLowerCase().includes("user"));
                         if (frontCamIdx !== -1) targetIndex = frontCamIdx;
                     }
@@ -460,7 +452,8 @@
             } catch (err) {
                 container.innerHTML = `
                     <div class="flex flex-col items-center justify-center text-center p-2">
-                        <p class="font-bold text-rose-400 text-xs">「ぴっ！(テスト用)」ボタンを押してお買い物してね！</p>
+                        <p class="font-bold text-rose-400 text-sm">カメラが見つかりません</p>
+                        <p class="text-xs mt-1">「ぴっ！(テスト用)」ボタンであそんでね</p>
                     </div>
                 `;
             }
@@ -481,32 +474,23 @@
                 document.getElementById("reader").innerHTML = "";
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
-                // ChromebookのCPU負荷を極限まで低減、かつ部分読み誤検知を100%シャットアウトする設定
+                // 【重要】高速化と安定化のための設定：フォーマット制限を完全撤廃
                 const config = {
-                    fps: 30, // 処理を高速化
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.EAN_13
-                    ],
+                    fps: 10, // ChromebookのCPUを圧迫しないよう、標準の10FPSに戻す（これでも十分速い）
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
-                        // ガイドライン枠のバランス調整
                         return {
-                            width: Math.min(viewfinderWidth * 0.85, 420),
-                            height: Math.min(viewfinderHeight * 0.5, 140)
+                            width: Math.min(viewfinderWidth * 0.85, 350),
+                            height: Math.min(viewfinderHeight * 0.5, 120)
                         };
                     },
-                    disableFlip: false, // 鏡像反転に対応しつつ、インカメラでの安定スキャンをキープ
-                    videoConstraints: {
-                        deviceId: { exact: cameraId },
-                        // 低解像度〜HD画質の間に設定し、Chromebookのデコード処理を爆速化
-                        width: { min: 640, ideal: 1280, max: 1920 },
-                        height: { min: 480, ideal: 720, max: 1080 },
-                        focusMode: "continuous" // ピントを自動で継続調整
-                    }
+                    // formatsToSupport は指定せず、すべてのバーコードを許可する（全く読まなくなるバグの解決）
+                    disableFlip: false,
+                    // 解像度の強制をやめ、デバイスのネイティブ解像度を尊重する
+                    videoConstraints: { deviceId: { exact: cameraId } }
                 };
 
                 await html5QrcodeScanner.start(cameraId, config, onScanSuccessInternal, onScanErrorInternal);
 
-                // カメラの鏡像表示を調整
                 const camera = cameras[currentCameraIndex];
                 const isFront = camera && (camera.label.toLowerCase().includes("front") || camera.label.toLowerCase().includes("user"));
                 const readerDiv = document.getElementById("reader");
@@ -521,7 +505,8 @@
                 fallbackMsg.classList.remove("hidden");
                 fallbackMsg.innerHTML = `
                     <div class="flex flex-col items-center justify-center text-center p-2">
-                        <p class="font-bold text-rose-400 text-xs">「ぴっ！(テスト用)」ボタンでお買いものしてね！</p>
+                        <p class="font-bold text-rose-400 text-sm">カメラの起動に失敗しました</p>
+                        <p class="text-xs mt-1">「ぴっ！(テスト用)」ボタンであそんでね</p>
                     </div>
                 `;
             } finally {
@@ -529,49 +514,29 @@
             }
         }
 
-        // 13桁のバーコード（EAN-13）に特化したチェックデジット厳格検証
-        function isValidBarcode(code) {
-            const clean = code.replace(/[^0-9]/g, '');
-            // 13桁でなければ即座に破棄（部分読み取りによる桁ズレを完全シャットアウト）
-            if (clean.length !== 13) return false;
-
-            let sum = 0;
-            const len = clean.length;
-            const checkDigit = parseInt(clean.charAt(len - 1), 10);
-            
-            for (let i = len - 2; i >= 0; i--) {
-                const digit = parseInt(clean.charAt(i), 10);
-                const pos = len - 1 - i;
-                sum += digit * (pos % 2 !== 0 ? 3 : 1);
-            }
-            const calcDigit = (10 - (sum % 10)) % 10;
-            return checkDigit === calcDigit;
-        }
-
         let lastScanTime = 0;
-        let isProcessingScan = false; // 二重読み取り防止
+        let isProcessingScan = false; 
 
         function onScanSuccessInternal(decodedText) {
             const now = Date.now();
             const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
-            // 13桁検証の絶対防御
-            if (!isValidBarcode(cleanCode)) return; 
+            // 8桁未満はゴミデータとして無視（唯一の緩いガード）
+            if (cleanCode.length < 8) return; 
             
-            // ロック処理による二重登録の完全阻止 (2.5秒)
+            // 連続スキャン防止 (1.5秒ロック)
             if (isProcessingScan) return;
-            if (now - lastScanTime < 2500) return; 
+            if (now - lastScanTime < 1500) return; 
             
             isProcessingScan = true;
             lastScanTime = now;
             
-            // 決定論的ハッシュを適用し、同じバーコード＝同一の商品として呼び出し
             const product = getProductFromBarcode(cleanCode);
             if (product) {
                 addToCart(product);
             }
             
-            setTimeout(() => { isProcessingScan = false; }, 2500);
+            setTimeout(() => { isProcessingScan = false; }, 1500);
         }
 
         function onScanErrorInternal() {}
@@ -582,7 +547,6 @@
             await startScanning(cameras[currentCameraIndex].id);
         }
 
-        // テスト用のランダム「ぴっ！」ボタン (同じバーコードなら必ず同じ商品に)
         function triggerMockScan() {
             const now = Date.now();
             if (isProcessingScan) return;
@@ -591,10 +555,9 @@
             isProcessingScan = true;
             lastScanTime = now;
             
-            // 75種類からランダムに商品を選んで、その商品の一意のバーコードを元に安定スキャンをシミュレート
+            // テストボタンはランダムな商品を選び、そのバーコードを読み込んだことにする
             const product = dummyProducts[Math.floor(Math.random() * dummyProducts.length)];
-            const cleanCode = product.barcode;
-            const resolvedProduct = getProductFromBarcode(cleanCode);
+            const resolvedProduct = getProductFromBarcode(product.barcode);
             
             addToCart(resolvedProduct);
             
@@ -619,18 +582,18 @@
             let total = 0;
             
             if (cart.length === 0) {
-                list.innerHTML = `<li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-xs sm:text-sm">おかいもの を はじめよう！</li>`;
+                list.innerHTML = `<li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>`;
             } else {
                 cart.forEach(item => {
                     total += item.price;
                     const li = document.createElement("li");
-                    // 1つずつの高さをちょうどよく（上下に適度な余白 p-2.5）調整して、画面内にちょうど6つ並ぶ設計
-                    li.className = "flex justify-between items-center bg-emerald-50 p-2.5 sm:p-3 rounded-lg border border-emerald-100 shadow-sm text-xs sm:text-sm my-0.5";
+                    // 高さは「ちょうど6個並ぶ適度なサイズ（p-2.5 sm:p-3）」
+                    li.className = "flex justify-between items-center bg-emerald-50 p-2.5 sm:p-3 rounded-lg border border-emerald-100 shadow-sm text-sm sm:text-base my-0.5";
                     li.innerHTML = `
-                        <span class="font-bold text-gray-800 text-[11px] sm:text-xs leading-none">${item.name}</span>
-                        <div class="flex items-center gap-1.5 sm:gap-2">
-                            <span class="font-bold text-emerald-700 font-kyokasho text-xs sm:text-sm leading-none">${item.price} 円</span>
-                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs px-2.5 py-1.5 rounded-lg font-bold hover:bg-rose-200 min-h-[36px] flex items-center justify-center">とりけす</button>
+                        <span class="font-bold text-gray-800 leading-none">${item.name}</span>
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <span class="font-bold text-emerald-700 font-kyokasho text-sm sm:text-base leading-none">${item.price} 円</span>
+                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-xs sm:text-sm px-2.5 py-1.5 rounded-lg font-bold hover:bg-rose-200 min-h-[40px] flex items-center justify-center">とりけす</button>
                         </div>
                     `;
                     list.appendChild(li);
@@ -641,26 +604,16 @@
             document.getElementById("total-price").innerText = total.toLocaleString();
             document.getElementById("checkout-btn").disabled = cart.length === 0;
 
-            // スクロール領域を自動的に最下部へ移動
+            // スクロール領域を自動的に最下部へ
             setTimeout(() => { 
                 const scrollArea = document.getElementById("cart-scroll-area");
-                if (scrollArea) {
-                    scrollArea.scrollTop = scrollArea.scrollHeight;
-                }
+                if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
             }, 80);
         }
 
-        function removeItem(id) { 
-            cart = cart.filter(i => i.id !== id); 
-            renderCart(); 
-        }
-        
-        function clearCart() { 
-            cart = []; 
-            renderCart(); 
-        }
+        function removeItem(id) { cart = cart.filter(i => i.id !== id); renderCart(); }
+        function clearCart() { cart = []; renderCart(); }
 
-        // おつり計算用の出題価格設定
         function getOptimalPayment(total) {
             const base = Math.ceil(total / 1000) * 1000;
             const rand = Math.random();
@@ -768,11 +721,7 @@
                 synth.triggerAttackRelease("G5", "8n", now + 0.2);
                 synth.triggerAttackRelease("C6", "4n", now + 0.3);
                 
-                setTimeout(() => {
-                    if (synth) {
-                        synth.triggerAttackRelease("E6", "8n");
-                    }
-                }, 400);
+                setTimeout(() => { if (synth) synth.triggerAttackRelease("E6", "8n"); }, 400);
             }
         }
 
