@@ -485,10 +485,7 @@
                 const config = {
                     fps: 30, // 処理を高速化
                     formatsToSupport: [
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E
+                        Html5QrcodeSupportedFormats.EAN_13
                     ],
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         // ガイドライン枠のバランス調整
@@ -532,18 +529,11 @@
             }
         }
 
-        // JAN/EANコードのチェックデジット厳格検証 & 日本国コードの検証
+        // 13桁のバーコード（EAN-13）に特化したチェックデジット厳格検証
         function isValidBarcode(code) {
             const clean = code.replace(/[^0-9]/g, '');
-            // Chromebookなどで、ピントボケによる中途半端な部分読み取り（桁抜け）をここで完全にガード
-            // 日本のJANコード、主要なバーコード規格である 8桁, 12桁, 13桁のみを厳格に許可
-            if (clean.length !== 8 && clean.length !== 12 && clean.length !== 13) return false;
-            
-            // 日本の国コード（49 または 45）で始まることを強制（誤読ノイズの99%をここで瞬時に破棄）
-            // 13桁または8桁の場合は、先頭が "49" または "45" であることを要求します
-            if ((clean.length === 13 || clean.length === 8) && !clean.startsWith("49") && !clean.startsWith("45")) {
-                return false;
-            }
+            // 13桁でなければ即座に破棄（部分読み取りによる桁ズレを完全シャットアウト）
+            if (clean.length !== 13) return false;
 
             let sum = 0;
             const len = clean.length;
@@ -565,7 +555,7 @@
             const now = Date.now();
             const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
-            // チェックデジット＆桁数の絶対防御（部分読みによる別商品化を防ぐ1番重要な砦）
+            // 13桁検証の絶対防御
             if (!isValidBarcode(cleanCode)) return; 
             
             // ロック処理による二重登録の完全阻止 (2.5秒)
@@ -634,13 +624,13 @@
                 cart.forEach(item => {
                     total += item.price;
                     const li = document.createElement("li");
-                    // 1つずつの高さを抑えるために余白(p-1 sm:p-1.5)とサイズを非常にコンパクトに設計
-                    li.className = "flex justify-between items-center bg-emerald-50 p-1.5 sm:p-2.5 rounded-lg border border-emerald-100 shadow-sm text-xs sm:text-sm my-0.5";
+                    // 1つずつの高さをちょうどよく（上下に適度な余白 p-2.5）調整して、画面内にちょうど6つ並ぶ設計
+                    li.className = "flex justify-between items-center bg-emerald-50 p-2.5 sm:p-3 rounded-lg border border-emerald-100 shadow-sm text-xs sm:text-sm my-0.5";
                     li.innerHTML = `
                         <span class="font-bold text-gray-800 text-[11px] sm:text-xs leading-none">${item.name}</span>
                         <div class="flex items-center gap-1.5 sm:gap-2">
                             <span class="font-bold text-emerald-700 font-kyokasho text-xs sm:text-sm leading-none">${item.price} 円</span>
-                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs px-1.5 py-0.5 rounded font-bold hover:bg-rose-200 min-h-[28px] flex items-center justify-center">とりけす</button>
+                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs px-2.5 py-1.5 rounded-lg font-bold hover:bg-rose-200 min-h-[36px] flex items-center justify-center">とりけす</button>
                         </div>
                     `;
                     list.appendChild(li);
