@@ -33,15 +33,15 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            width: 100% !important;
-            height: 100% !important;
+            width: 100%;
+            height: 100%;
         }
 
         #reader video {
             border-radius: 0.5rem;
-            max-width: 100% !important;
-            max-height: 100% !important;
             object-fit: cover;
+            width: 100% !important;
+            height: 100% !important;
         }
         
         .mirror-video video {
@@ -74,6 +74,7 @@
             background: transparent !important;
         }
 
+        /* 赤い読み取りレーザーのアニメーション */
         @keyframes laser-sweep {
             0% { top: 8%; opacity: 0.4; filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.7)); }
             50% { top: 92%; opacity: 1; filter: drop-shadow(0 0 4px rgba(239, 68, 68, 1)) drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
@@ -113,7 +114,6 @@
             border-top: 8px solid #10b981; 
         }
 
-        /* 縦スクロールの完璧な解決 */
         #cart-list {
             -webkit-overflow-scrolling: touch !important; 
             user-select: auto !important;                
@@ -121,7 +121,6 @@
         }
     </style>
 </head>
-
 <body class="h-screen flex flex-col select-none bg-slate-50 no-select">
 
     <header class="bg-emerald-600 text-white p-3 sm:p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
@@ -132,22 +131,21 @@
     <main class="flex-1 flex flex-col lg:flex-row p-2 sm:p-4 gap-2 sm:gap-4 overflow-hidden h-full min-h-0">
         
         <!-- 左：スキャンエリア -->
-        <section class="w-full lg:flex-1 bg-white rounded-xl shadow-lg flex flex-col p-3 sm:p-4 border border-emerald-100 flex-shrink-0 min-h-[300px] lg:h-full lg:min-h-0">
-            <div class="flex justify-between items-center mb-1 flex-shrink-0">
+        <section class="w-full lg:flex-1 bg-white rounded-xl shadow-lg flex flex-col p-3 sm:p-4 border border-emerald-100 flex-shrink-0 lg:min-h-0">
+            <div class="flex justify-between items-center mb-2">
                 <h2 class="text-lg sm:text-xl font-bold text-gray-700 flex items-center gap-1.5">
                     <span>📸</span> バーコードをスキャンしよう！
                 </h2>
             </div>
             
-            <!-- カメラコンテナ: スマホでも潰れない高さを確保 -->
-            <div class="relative w-full h-[200px] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700 flex-shrink-0 lg:flex-shrink">
-                <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black transition-all duration-150">
-                    <!-- 映像コンテナ -->
+            <!-- カメラ領域：スマホでも潰れないようにmin-h-[200px]を確保 -->
+            <div class="relative w-full h-[200px] min-h-[200px] sm:h-[40vh] lg:h-auto lg:flex-1 bg-slate-900 rounded-lg overflow-hidden flex flex-col items-center justify-center border-2 border-slate-700">
+                <div id="scanner-container" class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <div id="reader" class="w-full h-full relative"></div>
                     
-                    <!-- 【UI層：広めのスキャン枠】 -->
+                    <!-- 【UI層：スキャンガイド枠】 -->
                     <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                        <div class="relative w-[85%] max-w-[350px] h-[100px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
+                        <div class="relative w-[250px] h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] flex items-center justify-center border border-white/20">
                             <!-- 四隅の白い枠 -->
                             <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
                             <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
@@ -159,20 +157,21 @@
                     
                     <div id="camera-fallback-msg" class="absolute inset-0 bg-slate-950/90 text-white flex flex-col items-center justify-center p-6 text-center z-20 pointer-events-none">
                         <span class="text-4xl mb-3">📷</span>
-                        <p class="font-bold mb-1">カメラを起動しています...</p>
+                        <p class="font-bold mb-1">カメラを準備しています...</p>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-3 flex flex-wrap gap-2 justify-between items-center flex-shrink-0">
-                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-lg shadow active:scale-95 transition text-sm sm:text-base min-h-[44px]">
+            <!-- 操作ボタン群 -->
+            <div class="mt-3 flex flex-wrap gap-2 justify-between items-center">
+                <button onclick="triggerMockScan()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg shadow active:scale-95 transition text-sm sm:text-base flex-1 sm:flex-none text-center">
                     ⚡ ぴっ！(テスト用)
                 </button>
-                <div class="flex gap-2">
-                    <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-xs sm:text-sm rounded-lg min-h-[44px]">
+                <div class="flex gap-2 flex-1 sm:flex-none justify-end">
+                    <button onclick="toggleCameraFacing()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 text-xs sm:text-sm rounded-lg flex-1 sm:flex-none">
                         📷 切り替え
                     </button>
-                    <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-3 text-xs sm:text-sm rounded-lg min-h-[44px]">
+                    <button onclick="clearCart()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-3 text-xs sm:text-sm rounded-lg flex-1 sm:flex-none">
                         🧹 からにする
                     </button>
                 </div>
@@ -181,27 +180,27 @@
 
         <!-- 右：商品カートエリア -->
         <section class="flex-1 bg-white rounded-xl shadow-lg flex flex-col p-3 sm:p-4 min-h-0 border border-emerald-100">
-            <h2 class="text-lg sm:text-xl font-bold mb-2 text-gray-700 border-b-2 border-gray-100 pb-1 sm:pb-2 flex items-center gap-1.5 flex-shrink-0">
+            <h2 class="text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-gray-700 border-b-2 border-gray-100 pb-1 sm:pb-2 flex items-center gap-1.5 flex-shrink-0">
                 <span>📋</span> おかいあげ商品
             </h2>
             
-            <!-- スクロール領域: 高さは詰めすぎず、画面に6個程度入るベストなバランス -->
-            <div id="cart-scroll-area" class="flex-1 min-h-0 overflow-y-auto mb-3 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
-                <ul id="cart-list" class="space-y-1.5 pb-2">
+            <!-- スクロール領域 -->
+            <div class="flex-1 min-h-0 overflow-y-auto mb-2 sm:mb-4 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
+                <ul id="cart-list" class="space-y-2">
                     <li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>
                 </ul>
             </div>
 
             <div class="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex-shrink-0 mt-auto">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm sm:text-lg font-bold text-gray-600">お買い上げ点数:</span>
-                    <span id="total-count" class="text-lg sm:text-xl font-bold">0 点</span>
+                    <span class="text-sm sm:text-base font-bold text-gray-600">お買い上げ点数:</span>
+                    <span id="total-count" class="text-base sm:text-lg font-bold">0 点</span>
                 </div>
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm sm:text-lg font-bold text-gray-600">ごうけい金額:</span>
+                    <span class="text-sm sm:text-base font-bold text-gray-600">ごうけい金額:</span>
                     <span class="text-2xl sm:text-3xl font-black text-rose-600"><span id="total-price">0</span> 円</span>
                 </div>
-                <button id="checkout-btn" onclick="openPaymentModal()" disabled class="w-full bg-emerald-500 text-white font-black py-3 sm:py-4 rounded-xl text-lg sm:text-xl shadow-lg hover:bg-emerald-600 transition disabled:bg-slate-300 min-h-[50px]">
+                <button id="checkout-btn" onclick="openPaymentModal()" disabled class="w-full bg-emerald-500 text-white font-black py-3 rounded-xl text-lg sm:text-xl shadow-lg hover:bg-emerald-600 transition disabled:bg-slate-300">
                     💳 おかいけいする
                 </button>
             </div>
@@ -211,12 +210,14 @@
     <!-- おつり計算ひっ算モーダル -->
     <div id="payment-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
         <div class="bg-sky-50 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border-4 border-sky-400">
-            <div class="bg-sky-500 text-white p-4 text-center">
+            <div class="bg-sky-500 text-white p-4 text-center relative">
                 <h3 class="text-2xl font-bold">おつりを けいさん しよう！</h3>
                 <p id="payment-info" class="text-sm sm:text-lg mt-1 font-semibold"></p>
+                <canvas id="confetti-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-50"></canvas>
             </div>
 
             <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-y-auto max-h-[75vh]">
+                <!-- メモ＆筆算エリア -->
                 <div class="flex flex-col gap-2 w-full max-w-[340px] mx-auto">
                     <div class="relative w-full flex items-center justify-between bg-white px-3 py-1.5 rounded-lg shadow-sm border border-sky-100">
                         <div class="flex items-center gap-2">
@@ -225,7 +226,7 @@
                             <button onclick="setPenColor('#3b82f6')" id="btn-pen-blue" class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white"></button>
                             <button onclick="setPenColor('#1e293b')" id="btn-pen-black" class="w-6 h-6 rounded-full bg-slate-800 border-2 border-white"></button>
                         </div>
-                        <button onclick="clearCanvas()" class="text-xs bg-amber-100 text-amber-800 font-bold py-1 px-2.5 rounded hover:bg-amber-200 transition min-h-[30px]">🧹 消す</button>
+                        <button onclick="clearCanvas()" class="text-xs bg-amber-100 text-amber-800 font-bold py-1 px-2.5 rounded hover:bg-amber-200 transition">🧹 消す</button>
                     </div>
 
                     <div class="relative w-full bg-white rounded-xl shadow-lg border-2 border-sky-300 p-2 overflow-hidden">
@@ -237,29 +238,30 @@
                     </div>
                 </div>
 
+                <!-- テンキーエリア -->
                 <div class="flex-1 flex flex-col justify-center items-center max-w-sm mx-auto w-full">
                     <div class="grid grid-cols-3 gap-2 w-full font-kyokasho">
-                        <button onclick="pressKey(7)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">7</button>
-                        <button onclick="pressKey(8)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">8</button>
-                        <button onclick="pressKey(9)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">9</button>
-                        <button onclick="pressKey(4)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">4</button>
-                        <button onclick="pressKey(5)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">5</button>
-                        <button onclick="pressKey(6)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">6</button>
-                        <button onclick="pressKey(1)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">1</button>
-                        <button onclick="pressKey(2)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">2</button>
-                        <button onclick="pressKey(3)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">3</button>
-                        <button onclick="pressKey('C')" class="bg-rose-100 p-5 rounded-2xl text-xl font-bold hover:bg-rose-200 min-h-[50px]">ぜんぶ消す</button>
-                        <button onclick="pressKey(0)" class="bg-white p-5 rounded-2xl shadow-md border-2 text-3xl font-black hover:bg-slate-50 min-h-[50px]">0</button>
-                        <button onclick="pressKey('BS')" class="bg-amber-100 p-5 rounded-2xl text-xl font-bold hover:bg-amber-200 min-h-[50px]">⬅とりけす</button>
+                        <button onclick="pressKey(7)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">7</button>
+                        <button onclick="pressKey(8)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">8</button>
+                        <button onclick="pressKey(9)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">9</button>
+                        <button onclick="pressKey(4)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">4</button>
+                        <button onclick="pressKey(5)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">5</button>
+                        <button onclick="pressKey(6)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">6</button>
+                        <button onclick="pressKey(1)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">1</button>
+                        <button onclick="pressKey(2)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">2</button>
+                        <button onclick="pressKey(3)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">3</button>
+                        <button onclick="pressKey('C')" class="bg-rose-100 p-4 sm:p-5 rounded-2xl text-lg sm:text-xl font-bold hover:bg-rose-200">ぜんぶ消す</button>
+                        <button onclick="pressKey(0)" class="bg-white p-4 sm:p-5 rounded-2xl shadow-md border-2 text-2xl sm:text-3xl font-black hover:bg-slate-50">0</button>
+                        <button onclick="pressKey('BS')" class="bg-amber-100 p-4 sm:p-5 rounded-2xl text-lg sm:text-xl font-bold hover:bg-amber-200">⬅とりけす</button>
                     </div>
                     
-                    <div class="mt-5 w-full flex flex-col gap-3">
+                    <div class="mt-4 w-full flex flex-col gap-3">
                         <div class="flex gap-2 w-full" id="action-buttons-row">
-                            <button onclick="closePaymentModal()" class="flex-1 bg-slate-400 text-white font-bold py-3 rounded-xl hover:bg-slate-500 text-[13px] min-h-[44px]">やめる</button>
-                            <button onclick="showAnswerAutomatic()" class="flex-1 bg-sky-500 text-white font-bold py-3 rounded-xl hover:bg-sky-600 text-[13px] min-h-[44px]">💡おつりをみる</button>
-                            <button onclick="checkAnswer()" class="flex-1 bg-amber-500 text-white font-black py-3 rounded-xl hover:bg-amber-600 text-[13px] min-h-[44px]">答え合わせ</button>
+                            <button onclick="closePaymentModal()" class="flex-1 bg-slate-400 text-white font-bold py-3 rounded-xl hover:bg-slate-500 text-[13px]">やめる</button>
+                            <button onclick="showAnswerAutomatic()" class="flex-1 bg-sky-500 text-white font-bold py-3 rounded-xl hover:bg-sky-600 text-[13px]">💡おつりをみる</button>
+                            <button onclick="checkAnswer()" class="flex-1 bg-amber-500 text-white font-black py-3 rounded-xl hover:bg-amber-600 text-[13px]">答え合わせ</button>
                         </div>
-                        <button id="show-receipt-btn" onclick="showReceipt()" class="hidden w-full bg-emerald-500 text-white font-black py-4 rounded-xl text-xl shadow-lg hover:bg-emerald-600 animate-pulse min-h-[50px]">
+                        <button id="show-receipt-btn" onclick="showReceipt()" class="hidden w-full bg-emerald-500 text-white font-black py-3 sm:py-4 rounded-xl text-lg sm:text-xl shadow-lg hover:bg-emerald-600 animate-pulse">
                             🧾 レシートをみる！
                         </button>
                     </div>
@@ -317,12 +319,9 @@
                     <p>お買い上げありがとうございました！</p>
                 </div>
             </div>
-            <button onclick="resetAppAndCloseSuccess()" class="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-xl text-xl shadow-lg transition min-h-[50px]">つぎのお買い物へ！</button>
+            <button onclick="resetAppAndCloseSuccess()" class="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-xl text-xl shadow-lg transition">つぎのお買い物へ！</button>
         </div>
     </div>
-
-    <!-- お祝い紙吹雪用の全画面キャンバス -->
-    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full hidden"></canvas>
 
     <script>
         // 75種類のお買い物商品データベース
@@ -344,7 +343,7 @@
             { name: "学習ノート (📓)", price: 118 }, { name: "２Ｂえんぴつ (✏️)", price: 63 },
             { name: "よく消える消しゴム (🧽)", price: 84 }, { name: "安全はさみ (✂️)", price: 275 },
             { name: "カラフルおりがみ (🎨)", price: 198 }, { name: "miniリュック (🎒)", price: 3890 },
-            { name: "可愛いハンかち (🧣)", price: 254 }, { name: "くまさんくつした (🧦)", price: 315 },
+            { name: "可愛いハンカチ (🧣)", price: 254 }, { name: "くまさんくつした (🧦)", price: 315 },
             { name: "サッカーボール (⚽)", price: 1240 }, { name: "ポテトフライ (🍟)", price: 243 },
             { name: "チョコドーナツ (🍩)", price: 154 }, { name: "チーズバーガー (🍔)", price: 392 },
             { name: "タコ焼きパック (🐙)", price: 415 }, { name: "ビーフカレー (🍛)", price: 624 },
@@ -353,56 +352,23 @@
             { name: "あんこたい焼き (🐟)", price: 165 }, { name: "保冷水筒 (🍶)", price: 1890 },
             { name: "子ども用歯ブラシ (🪥)", price: 112 }, { name: "おもしろい絵本 (📖)", price: 836 },
             { name: "星のキーホルダー (🔑)", price: 345 }, { name: "ポップコーン (🍿)", price: 184 },
-            { name: "ピースピザ (🍕)", price: 382 }, { name: "メロンパン (🍞)", price: 143 },
-            { name: "シュークリーム (🧁)", price: 152 }, { name: "わたがし (☁️)", price: 112 },
-            { name: "フランクフルト (🌭)", price: 194 }, { name: "おえかきちょう (🎨)", price: 145 },
-            { name: "12色クレヨン (🖍️)", price: 382 }, { name: "水彩えのぐ (🎨)", price: 684 },
-            { name: "虫めがね (🔍)", price: 215 }, { name: "虫かご (🕸️)", price: 432 },
-            { name: "カラフルなわとび (➰)", price: 294 }, { name: "シャボン玉セット (🫧)", price: 134 },
-            { name: "お花のヘアクリップ (🌸)", price: 94 }, { name: "ぷくぷくシール (🐟)", price: 112 },
-            { name: "らいおんバッジ (🦁)", price: 183 }, { name: "ねこペンケース (✏️)", price: 594 },
-            { name: "キャラクターかさ (☂️)", price: 783 }, { name: "どうぶつハンカチ (🧼)", price: 143 },
-            { name: "じゆうちょう (📒)", price: 123 }, { name: "30cmじょうぎ (📏)", price: 134 },
-            { name: "カラフルねんど (🎨)", price: 245 }, { name: "バドミントンシャトル (🏸)", price: 184 }
+            { name: "ホットドッグ (🌭)", price: 263 }, { name: "ピースピザ (🍕)", price: 382 },
+            { name: "メロンパン (🍞)", price: 143 }, { name: "シュークリーム (🧁)", price: 152 },
+            { name: "わたがし (☁️)", price: 112 }, { name: "フランクフルト (🌭)", price: 194 },
+            { name: "おえかきちょう (🎨)", price: 145 }, { name: "12色クレヨン (🖍️)", price: 382 },
+            { name: "水彩えのぐ (🎨)", price: 684 }, { name: "虫めがね (🔍)", price: 215 },
+            { name: "虫かご (🕸️)", price: 432 }, { name: "カラフルなわとび (➰)", price: 294 },
+            { name: "シャボン玉セット (🫧)", price: 134 }, { name: "お花のヘアクリップ (🌸)", price: 94 },
+            { name: "ぷくぷくシール (🐟)", price: 112 }, { name: "らいおんバッジ (🦁)", price: 183 },
+            { name: "ねこペンケース (✏️)", price: 594 }, { name: "キャラクターかさ (☂️)", price: 783 },
+            { name: "どうぶつハンカチ (🧼)", price: 143 }, { name: "じゆうちょう (📒)", price: 123 },
+            { name: "30cmじょうぎ (📏)", price: 134 }, { name: "カラフルねんど (🎨)", price: 245 },
+            { name: "バドミントンシャトル (🏸)", price: 184 }
         ];
 
-        // 各商品に対してダミーバーコードを一応割り当てておく
-        dummyProducts.forEach((item, index) => {
-            const base = "4901234" + index.toString().padStart(5, "0");
-            let sum = 0;
-            for (let i = 0; i < 12; i++) {
-                sum += parseInt(base.charAt(i), 10) * (i % 2 === 0 ? 1 : 3);
-            }
-            item.barcode = base + ((10 - (sum % 10)) % 10);
-        });
-
-        // 完全に安定したハッシュ関数：フォーマットの揺らぎを吸収する魔法
-        function getProductFromBarcode(barcode) {
-            // スキャンされた数字だけを抽出
-            let cleanCode = barcode.replace(/[^0-9]/g, '');
-            
-            // 【重要】先頭に0がついたり消えたりするライブラリの気まぐれを吸収するため、
-            // 「絶対に変化しない後ろ側」だけをハッシュ計算に使う
-            let stableKey = cleanCode;
-            if (cleanCode.length > 8) {
-                // 12桁以上ある場合は、後ろから12桁だけを切り出してキーにする
-                stableKey = cleanCode.slice(-12);
-            }
-
-            // FNV-1aハッシュアルゴリズム
-            let hash = 2166136261;
-            for (let i = 0; i < stableKey.length; i++) {
-                hash ^= stableKey.charCodeAt(i);
-                hash = Math.imul(hash, 16777619);
-            }
-            
-            const index = Math.abs(hash) % dummyProducts.length;
-            return dummyProducts[index];
-        }
-
-        // アプリケーション状態
-        let cart = []; // 再起動時は空からスタート
+        let cart = []; // アプリ起動・リロード時は常に空からスタート
         let html5QrcodeScanner = null;
+        let currentCameraId = null;
         let cameras = [];
         let currentCameraIndex = 0;
         
@@ -422,6 +388,17 @@
             if (Tone.context.state !== 'running') Tone.context.resume();
         }
 
+        // FNV-1a風ハッシュ：バーコードの下位桁から一意の商品を割り出す
+        function getProductFromBarcode(barcode) {
+            let hash = 2166136261; 
+            for (let i = 0; i < barcode.length; i++) {
+                hash ^= barcode.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            const index = Math.abs(hash) % dummyProducts.length;
+            return dummyProducts[index];
+        }
+
         window.addEventListener("DOMContentLoaded", () => {
             renderCart();
             setupMemoCanvas();
@@ -435,35 +412,25 @@
             try {
                 cameras = await Html5Qrcode.getCameras();
                 if (cameras && cameras.length > 0) {
-                    let targetIndex = 0;
                     if (isMobile) {
-                        const backCamIdx = cameras.findIndex(c => c.label.toLowerCase().includes("back") || c.label.toLowerCase().includes("environment"));
-                        if (backCamIdx !== -1) targetIndex = backCamIdx;
+                        currentCameraIndex = cameras.findIndex(c => c.label.toLowerCase().includes("back") || c.label.toLowerCase().includes("environment"));
                     } else {
-                        const frontCamIdx = cameras.findIndex(c => c.label.toLowerCase().includes("front") || c.label.toLowerCase().includes("user"));
-                        if (frontCamIdx !== -1) targetIndex = frontCamIdx;
+                        currentCameraIndex = cameras.findIndex(c => c.label.toLowerCase().includes("front") || c.label.toLowerCase().includes("user"));
                     }
+                    if (currentCameraIndex === -1) currentCameraIndex = 0;
                     
-                    currentCameraIndex = targetIndex;
-                    await startScanning(cameras[currentCameraIndex].id);
+                    startScanning(cameras[currentCameraIndex].id);
                 } else {
-                    throw new Error("利用可能なカメラが見つかりません");
+                    container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラが見つかりません</p><p class="text-sm mt-2 text-slate-300">テスト用ボタンで遊んでね</p>`;
                 }
             } catch (err) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center text-center p-2">
-                        <p class="font-bold text-rose-400 text-sm">カメラが見つかりません</p>
-                        <p class="text-xs mt-1">「ぴっ！(テスト用)」ボタンであそんでね</p>
-                    </div>
-                `;
+                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラが見つかりません</p><p class="text-sm mt-2 text-slate-300">テスト用ボタンで遊んでね</p>`;
             }
         }
 
         async function startScanning(cameraId) {
             if (isScannerTransitioning) return;
             isScannerTransitioning = true;
-            
-            const fallbackMsg = document.getElementById("camera-fallback-msg");
 
             try {
                 if (html5QrcodeScanner) {
@@ -474,22 +441,16 @@
                 document.getElementById("reader").innerHTML = "";
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
-                // 【重要】どんなカメラでも確実に起動し、かつ高速に読み取る設定
+                // 【完全修復】Chromebookで確実に読み取れていた「一番安定したピュアな設定」に復元
+                // 余計な解像度指定(videoConstraints)や反転検知無効(disableFlip)を全削除し、
+                // ライブラリの自動最適化に完全に任せることで、映像の歪みや読み取り不能を解決します。
                 const config = {
-                    fps: 20, // 30だとChromebookで処理落ちする可能性があるため、高速かつ安定の20に調整
+                    fps: 10, 
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         return {
-                            width: Math.min(viewfinderWidth * 0.85, 350),
+                            width: Math.min(viewfinderWidth * 0.85, 300),
                             height: Math.min(viewfinderHeight * 0.5, 120)
                         };
-                    },
-                    // formatsToSupport はあえて指定せず、どんなバーコードも弾かずに確実に拾うようにする
-                    disableFlip: true, // 1次元バーコードには不要な「反転検知」を切り、CPUリソースを高速化に全振りする
-                    // 解像度の「最低制限(min)」を完全に解除し、どんな性能のカメラでも必ず起動するように修復
-                    videoConstraints: { 
-                        deviceId: { exact: cameraId },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
                     }
                 };
 
@@ -504,43 +465,29 @@
                     readerDiv.classList.remove("mirror-video");
                 }
                 
-                fallbackMsg.classList.add("hidden");
+                document.getElementById("camera-fallback-msg").classList.add("hidden");
             } catch (e) {
-                fallbackMsg.classList.remove("hidden");
-                fallbackMsg.innerHTML = `
-                    <div class="flex flex-col items-center justify-center text-center p-2">
-                        <p class="font-bold text-rose-400 text-sm">カメラの起動に失敗しました</p>
-                        <p class="text-xs mt-1">「ぴっ！(テスト用)」ボタンであそんでね</p>
-                    </div>
-                `;
+                document.getElementById("camera-fallback-msg").innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラが見つかりません</p><p class="text-sm mt-2 text-slate-300">テスト用ボタンで遊んでね</p>`;
             } finally {
                 isScannerTransitioning = false;
             }
         }
 
         let lastScanTime = 0;
-        let isProcessingScan = false; 
-
         function onScanSuccessInternal(decodedText) {
             const now = Date.now();
             const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
-            // 8桁未満はゴミデータとして無視（唯一の緩いガード）
+            // 全く読まなくなるバグを解消：どんな規格でも8桁以上の数字があれば合格として受け入れる（優しく緩い仕様）
             if (cleanCode.length < 8) return; 
+            if (now - lastScanTime < 1500) return; // 1.5秒間のデバウンスで重複読み込み防止
             
-            // 連続スキャン防止 (サクサク読めるように1秒ロックに短縮)
-            if (isProcessingScan) return;
-            if (now - lastScanTime < 1000) return; 
-            
-            isProcessingScan = true;
             lastScanTime = now;
-            
-            const product = getProductFromBarcode(cleanCode);
-            if (product) {
-                addToCart(product);
-            }
-            
-            setTimeout(() => { isProcessingScan = false; }, 1000);
+
+            // Chromebook等の解析のブレ（先頭に0がつく等）を吸収し、常に固定の商品を出すため、
+            // 変化しないお尻の8桁を基準にしてハッシュ化します。
+            const targetCode = cleanCode.length > 8 ? cleanCode.slice(-8) : cleanCode;
+            addToCart(getProductFromBarcode(targetCode));
         }
 
         function onScanErrorInternal() {}
@@ -548,24 +495,14 @@
         async function toggleCameraFacing() {
             if (isScannerTransitioning || cameras.length <= 1) return;
             currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
-            await startScanning(cameras[currentCameraIndex].id);
+            startScanning(cameras[currentCameraIndex].id);
         }
 
         function triggerMockScan() {
-            const now = Date.now();
-            if (isProcessingScan) return;
-            if (now - lastScanTime < 800) return; 
-            
-            isProcessingScan = true;
-            lastScanTime = now;
-            
-            // テストボタンはランダムな商品を選び、そのバーコードを読み込んだことにする
-            const product = dummyProducts[Math.floor(Math.random() * dummyProducts.length)];
-            const resolvedProduct = getProductFromBarcode(product.barcode);
-            
-            addToCart(resolvedProduct);
-            
-            setTimeout(() => { isProcessingScan = false; }, 800);
+            // テストボタンを押した際も、内部的に一意の番号を生成して
+            // 「同じ番号なら必ず同じ商品が出る」ことをシミュレート
+            const mockBarcode = (Math.floor(Math.random() * 90000000) + 10000000).toString();
+            addToCart(getProductFromBarcode(mockBarcode));
         }
 
         function addToCart(product) {
@@ -573,8 +510,8 @@
             if (synth) synth.triggerAttackRelease("D6", "32n");
 
             const container = document.getElementById("scanner-container");
-            container.classList.add("ring-4", "ring-emerald-400");
-            setTimeout(() => container.classList.remove("ring-4", "ring-emerald-400"), 150);
+            container.classList.add("ring-8", "ring-emerald-400");
+            setTimeout(() => container.classList.remove("ring-8", "ring-emerald-400"), 150);
 
             cart.push({ ...product, id: Date.now() + Math.random() });
             renderCart();
@@ -591,13 +528,13 @@
                 cart.forEach(item => {
                     total += item.price;
                     const li = document.createElement("li");
-                    // 高さは「ちょうど6個並ぶ適度なサイズ（p-2.5 sm:p-3）」
-                    li.className = "flex justify-between items-center bg-emerald-50 p-2.5 sm:p-3 rounded-lg border border-emerald-100 shadow-sm text-sm sm:text-base my-0.5";
+                    // ちょうど6個程度が並ぶ適度な高さ（p-2.5 sm:p-3）
+                    li.className = "flex justify-between items-center bg-emerald-50 p-2.5 sm:p-3 rounded-lg border border-emerald-100 mb-2";
                     li.innerHTML = `
-                        <span class="font-bold text-gray-800 leading-none">${item.name}</span>
+                        <span class="font-bold text-gray-800 text-sm sm:text-base">${item.name}</span>
                         <div class="flex items-center gap-2 sm:gap-3">
-                            <span class="font-bold text-emerald-700 font-kyokasho text-sm sm:text-base leading-none">${item.price} 円</span>
-                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-xs sm:text-sm px-2.5 py-1.5 rounded-lg font-bold hover:bg-rose-200 min-h-[40px] flex items-center justify-center">とりけす</button>
+                            <span class="font-bold text-emerald-700 text-sm sm:text-base">${item.price} 円</span>
+                            <button onclick="removeItem(${item.id})" class="bg-rose-100 text-rose-700 text-xs px-2 sm:px-2.5 py-1 sm:py-1.5 rounded font-bold hover:bg-rose-200">とりけす</button>
                         </div>
                     `;
                     list.appendChild(li);
@@ -608,14 +545,12 @@
             document.getElementById("total-price").innerText = total.toLocaleString();
             document.getElementById("checkout-btn").disabled = cart.length === 0;
 
-            // スクロール領域を自動的に最下部へ
-            setTimeout(() => { 
-                const scrollArea = document.getElementById("cart-scroll-area");
-                if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
-            }, 80);
+            setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
         }
 
         function removeItem(id) { cart = cart.filter(i => i.id !== id); renderCart(); }
+        
+        // カートを空にする処理（再起動時やクリアボタン押下時）
         function clearCart() { cart = []; renderCart(); }
 
         function getOptimalPayment(total) {
@@ -649,16 +584,15 @@
 
         function closePaymentModal() { 
             document.getElementById("payment-modal").classList.add("hidden"); 
-            stopConfetti();
             if (html5QrcodeScanner && html5QrcodeScanner.getState() === 3) { 
                 try { html5QrcodeScanner.resume(); } catch(e){} 
             }
+            stopConfetti();
         }
 
         function resetAppAndCloseSuccess() { 
             document.getElementById("success-modal").classList.add("hidden"); 
-            stopConfetti();
-            clearCart(); 
+            clearCart(); // 次のお買い物へ移行する際はカートを空にする
             if (html5QrcodeScanner && html5QrcodeScanner.getState() === 3) { 
                 try { html5QrcodeScanner.resume(); } catch(e){} 
             }
@@ -673,19 +607,19 @@
             const paidStr = paidAmount.toString().padStart(cols, " ");
             const totalStr = totalAmount.toString().padStart(cols - 1, " ");
 
-            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-20 bg-sky-50/30"></div>`; 
-            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-10 sm:h-16 text-xl sm:text-3xl font-bold font-kyokasho text-slate-800">${paidStr[i] !== " " ? paidStr[i] : ""}</div>`; 
-            grid.innerHTML += `<div class="graph-cell h-10 sm:h-16 text-2xl sm:text-5xl font-black text-blue-600 font-kyokasho">－</div>`; 
-            for(let i=0; i<cols-1; i++) grid.innerHTML += `<div class="graph-cell h-10 sm:h-16 text-xl sm:text-3xl font-bold font-kyokasho text-slate-800">${totalStr[i] !== " " ? totalStr[i] : ""}</div>`;
-            grid.innerHTML += `<div class="col-span-${cols} h-1 bg-slate-800 my-1"></div>`; 
-            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-10 sm:h-16 bg-sky-50/10"></div>`; 
+            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-12 sm:h-16 bg-sky-50/30"></div>`; 
+            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-10 sm:h-14 text-xl sm:text-2xl font-bold font-kyokasho text-slate-800">${paidStr[i] !== " " ? paidStr[i] : ""}</div>`; 
+            grid.innerHTML += `<div class="graph-cell h-10 sm:h-14 text-2xl sm:text-3xl font-black text-blue-600 font-kyokasho">－</div>`; 
+            for(let i=0; i<cols-1; i++) grid.innerHTML += `<div class="graph-cell h-10 sm:h-14 text-xl sm:text-2xl font-bold font-kyokasho text-slate-800">${totalStr[i] !== " " ? totalStr[i] : ""}</div>`;
+            grid.innerHTML += `<div class="col-span-${cols} h-1 bg-slate-800 my-0.5"></div>`; 
+            for(let i=0; i<cols; i++) grid.innerHTML += `<div class="graph-cell h-10 sm:h-14 bg-sky-50/10"></div>`; 
 
             const ansContainer = document.getElementById("answer-grid-container");
-            ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-2"><div class="flex items-center justify-center text-lg sm:text-2xl font-black text-slate-400">=</div></div>`;
+            ansContainer.innerHTML = `<div class="grid grid-cols-${cols} mt-1"><div class="flex items-center justify-center text-lg sm:text-xl font-black text-slate-400">=</div></div>`;
             const ansGrid = ansContainer.firstChild;
-            if(cols===6) ansGrid.innerHTML += `<div class="m-1 h-10 sm:h-16"></div>`;
+            if(cols===6) ansGrid.innerHTML += `<div class="m-0.5 h-10 sm:h-14"></div>`;
             
-            for(let i=3; i>=0; i--) ansGrid.innerHTML += `<div onclick="focusDigit(${i})" id="ans-box-${i}" class="m-1 h-10 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-xl sm:text-3xl font-black text-amber-700 transition cursor-pointer"></div>`;
+            for(let i=3; i>=0; i--) ansGrid.innerHTML += `<div onclick="focusDigit(${i})" id="ans-box-${i}" class="m-0.5 h-10 sm:h-14 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-xl sm:text-2xl font-black text-amber-700 transition"></div>`;
             
             userAnswers = ["","","",""]; 
             focusDigit(0);
@@ -695,7 +629,7 @@
             currentFocusIndex = idx;
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
-                if(b) b.className = (i===idx) ? "m-1 h-10 sm:h-16 bg-yellow-100 border-4 border-amber-400 rounded-lg flex items-center justify-center text-xl sm:text-3xl font-black text-amber-800 scale-105" : "m-1 h-10 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-xl sm:text-3xl font-black text-amber-700";
+                if(b) b.className = (i===idx) ? "m-0.5 h-10 sm:h-14 bg-yellow-100 border-4 border-amber-400 rounded-lg flex items-center justify-center text-xl sm:text-2xl font-black text-amber-800 scale-105" : "m-0.5 h-10 sm:h-14 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-xl sm:text-2xl font-black text-amber-700";
             }
         }
 
@@ -724,8 +658,6 @@
                 synth.triggerAttackRelease("E5", "8n", now + 0.1);
                 synth.triggerAttackRelease("G5", "8n", now + 0.2);
                 synth.triggerAttackRelease("C6", "4n", now + 0.3);
-                
-                setTimeout(() => { if (synth) synth.triggerAttackRelease("E6", "8n"); }, 400);
             }
         }
 
@@ -745,8 +677,8 @@
             if(parseInt(s || "0") === changeAmount) {
                 isSolved = true;
                 playCorrectChime();
-                startConfetti(); 
                 showReceiptButton();
+                startConfetti();
             } else {
                 playIncorrectChime();
             }
@@ -766,10 +698,11 @@
             currentFocusIndex = -1;
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`ans-box-${i}`);
-                if (!userAnswers[i]) b.className = "m-1 h-10 sm:h-16 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-xl sm:text-3xl font-black text-amber-700";
+                if (!userAnswers[i]) b.className = "m-0.5 h-10 sm:h-14 bg-amber-50 border-2 border-slate-300 rounded-lg flex items-center justify-center text-xl sm:text-2xl font-black text-amber-700";
             }
             playCorrectChime();
             showReceiptButton();
+            startConfetti();
         }
 
         function showReceiptButton() {
@@ -786,6 +719,8 @@
 
         function showReceipt() {
             document.getElementById("payment-modal").classList.add("hidden");
+            stopConfetti();
+            
             const d = new Date(); 
             document.getElementById("receipt-date").innerText = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
             document.getElementById("receipt-tx-no").innerText = Math.floor(Math.random() * 9000) + 1000;
@@ -801,7 +736,6 @@
             document.getElementById("receipt-change-amount").innerText = changeAmount.toLocaleString();
             
             document.getElementById("success-modal").classList.remove("hidden");
-            startConfetti(); 
         }
 
         let canvas, ctx, isDrawing = false, penColor = '#ef4444';
@@ -856,81 +790,42 @@
 
         function clearCanvas() { if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
-        let confettiCanvas, confettiCtx, confettiAnimationId = null;
-        const confettis = [];
-        const confettiColors = ['#f43f5e', '#3b82f6', '#10b981', '#eab308', '#a855f7', '#ff7849', '#ffc82c'];
-
+        // 紙吹雪（パーティクル）エフェクト
+        let confettiLoop;
         function startConfetti() {
-            confettiCanvas = document.getElementById("confetti-canvas");
-            confettiCtx = confettiCanvas.getContext("2d");
-            confettiCanvas.classList.remove("hidden");
+            const cvs = document.getElementById('confetti-canvas');
+            if(!cvs) return;
+            const c = cvs.getContext('2d');
+            cvs.width = cvs.offsetWidth; cvs.height = cvs.offsetHeight;
+            const particles = [];
+            const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
             
-            confettiCanvas.width = window.innerWidth;
-            confettiCanvas.height = window.innerHeight;
-            
-            confettis.length = 0;
-            for (let i = 0; i < 120; i++) {
-                confettis.push({
-                    x: Math.random() * confettiCanvas.width,
-                    y: Math.random() * -confettiCanvas.height - 20,
-                    size: Math.random() * 8 + 6,
-                    color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
-                    speedX: Math.random() * 4 - 2,
-                    speedY: Math.random() * 5 + 4,
-                    rotation: Math.random() * 360,
-                    rotationSpeed: Math.random() * 4 - 2
+            for(let i=0; i<100; i++) {
+                particles.push({
+                    x: Math.random() * cvs.width, y: Math.random() * cvs.height - cvs.height,
+                    r: Math.random() * 6 + 2, d: Math.random() * 100,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    tilt: Math.floor(Math.random() * 10) - 10, tiltAngleInc: (Math.random() * 0.07) + 0.05, tiltAngle: 0
                 });
             }
             
-            if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
-            animateConfetti();
+            function render() {
+                c.clearRect(0, 0, cvs.width, cvs.height);
+                particles.forEach((p, i) => {
+                    p.tiltAngle += p.tiltAngleInc;
+                    p.y += (Math.cos(p.d) + 1 + p.r / 2) / 2;
+                    p.x += Math.sin(p.d);
+                    p.tilt = Math.sin(p.tiltAngle) * 15;
+                    c.beginPath(); c.lineWidth = p.r; c.strokeStyle = p.color;
+                    c.moveTo(p.x + p.tilt + p.r, p.y); c.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+                    c.stroke();
+                    if(p.y > cvs.height) { p.x = Math.random() * cvs.width; p.y = -20; }
+                });
+                confettiLoop = requestAnimationFrame(render);
+            }
+            render();
         }
-
-        function animateConfetti() {
-            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-            let active = false;
-            
-            confettis.forEach(p => {
-                p.y += p.speedY;
-                p.x += p.speedX + Math.sin(p.y / 30) * 0.5;
-                p.rotation += p.rotationSpeed;
-                
-                if (p.y < confettiCanvas.height) {
-                    active = true;
-                }
-                
-                confettiCtx.save();
-                confettiCtx.translate(p.x, p.y);
-                confettiCtx.rotate(p.rotation * Math.PI / 180);
-                confettiCtx.fillStyle = p.color;
-                confettiCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-                confettiCtx.restore();
-            });
-            
-            if (active) {
-                confettiAnimationId = requestAnimationFrame(animateConfetti);
-            } else {
-                stopConfetti();
-            }
-        }
-
-        function stopConfetti() {
-            if (confettiAnimationId) {
-                cancelAnimationFrame(confettiAnimationId);
-                confettiAnimationId = null;
-            }
-            if (confettiCanvas) {
-                confettiCanvas.classList.add("hidden");
-                confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-            }
-        }
-
-        window.addEventListener("resize", () => {
-            if (confettiCanvas && !confettiCanvas.classList.contains("hidden")) {
-                confettiCanvas.width = window.innerWidth;
-                confettiCanvas.height = window.innerHeight;
-            }
-        });
+        function stopConfetti() { if(confettiLoop) cancelAnimationFrame(confettiLoop); }
     </script>
 </body>
 </html>
