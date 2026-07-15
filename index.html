@@ -391,9 +391,19 @@
                     currentCameraId = targetCamera.id;
                     
                     const readerDiv = document.getElementById("reader");
-                    // 「背面(back/environment)」という名前が入っていなければ、インカメラ（鏡）とみなす
-                    const isBackCamera = targetCamera.label.toLowerCase().includes("back") || targetCamera.label.toLowerCase().includes("environment");
-                    if (!isBackCamera) {
+                    const label = targetCamera.label.toLowerCase();
+                    let isMirror = false;
+                    
+                    if (label.includes("front") || label.includes("user") || label.includes("イン") || label.includes("前面")) {
+                        isMirror = true;
+                    } else if (label.includes("back") || label.includes("environment") || label.includes("アウト") || label.includes("背面")) {
+                        isMirror = false;
+                    } else {
+                        // ラベルで判別できない場合、スマホはアウト(反転なし)、PCはイン(反転あり)と推定
+                        isMirror = !isMobile;
+                    }
+
+                    if (isMirror) {
                         readerDiv.classList.add("mirror-video");
                     } else {
                         readerDiv.classList.remove("mirror-video");
@@ -481,9 +491,19 @@
                     currentCameraId = nextCamera.id;
                     
                     const readerDiv = document.getElementById("reader");
-                    // 「背面(back/environment)」という名前が入っていなければ、インカメラ（鏡）とみなす
-                    const isBackCamera = nextCamera.label.toLowerCase().includes("back") || nextCamera.label.toLowerCase().includes("environment");
-                    if (!isBackCamera) {
+                    const label = nextCamera.label.toLowerCase();
+                    let isMirror = false;
+                    
+                    if (label.includes("front") || label.includes("user") || label.includes("イン") || label.includes("前面")) {
+                        isMirror = true;
+                    } else if (label.includes("back") || label.includes("environment") || label.includes("アウト") || label.includes("背面")) {
+                        isMirror = false;
+                    } else {
+                        // ラベルで判別できない場合は、今の反転状態を逆にする
+                        isMirror = !readerDiv.classList.contains("mirror-video");
+                    }
+
+                    if (isMirror) {
                         readerDiv.classList.add("mirror-video");
                     } else {
                         readerDiv.classList.remove("mirror-video");
