@@ -191,7 +191,7 @@
             </h2>
             
             <!-- 【完璧な縦スクロール領域】 -->
-            <div class="flex-1 min-h-0 overflow-y-auto mb-2 sm:mb-4 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
+            <div id="cart-scroll-area" class="flex-1 min-h-0 overflow-y-auto mb-2 sm:mb-4 pr-1 scroll-smooth touch-pan-y" style="-webkit-overflow-scrolling: touch;">
                 <ul id="cart-list" class="space-y-2">
                     <li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>
                 </ul>
@@ -373,6 +373,7 @@
         // アプリケーション状態
         let cart = [];
         let html5QrcodeScanner = null;
+        let cameras = [];
         let currentCameraId = null;
         
         // デバイス判定: スマホ(背面優先)、PC(前面優先)
@@ -414,33 +415,51 @@
         async function initScanner() {
             const container = document.getElementById("camera-fallback-msg");
             container.classList.remove("hidden");
+            container.innerHTML = `<span class="text-4xl mb-3">📷</span><p class="font-bold mb-1">カメラを起動しています...</p>`;
 
             try {
-                const devices = await Html5Qrcode.getCameras();
-                if (devices && devices.length > 0) {
+                // 先に端末に存在するカメラのリストを取得する
+                cameras = await Html5Qrcode.getCameras();
+                if (cameras && cameras.length > 0) {
                     let targetCamera = null;
                     if (isMobile) {
-                        targetCamera = devices.find(d => d.label.toLowerCase().includes("back") || d.label.toLowerCase().includes("environment"));
+                        // スマホなら背面カメラを優先
+                        targetCamera = cameras.find(c => c.label.toLowerCase().includes("back") || c.label.toLowerCase().includes("environment"));
                     } else {
-                        targetCamera = devices.find(d => d.label.toLowerCase().includes("front") || d.label.toLowerCase().includes("user"));
+                        // PCなら前面カメラを優先
+                        targetCamera = cameras.find(c => c.label.toLowerCase().includes("front") || c.label.toLowerCase().includes("user"));
                     }
-                    if (!targetCamera) targetCamera = devices[0];
-                    currentCameraId = targetCamera.id;
+                    if (!targetCamera) targetCamera = cameras[0]; // 見つからなければリストの最初のカメラ
                     
-                    // 【追加】PC前カメラ等の直感的な鏡像対応
-                    const readerDiv = document.getElementById("reader");
-                    if (targetCamera.label.toLowerCase().includes("front") || targetCamera.label.toLowerCase().includes("user")) {
-                        readerDiv.classList.add("mirror-video");
-                    } else {
-                        readerDiv.classList.remove("mirror-video");
-                    }
-
-                    startScanning(currentCameraId);
+                    currentCameraId = targetCamera.id;
+                    // 確実に存在するIDを指定して起動
+                    await startScanning(currentCameraId);
                 } else {
-                    container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラが見つかりません</p>`;
+                    throw new Error("利用可能なカメラが見つかりません");
                 }
             } catch (err) {
-                container.innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラを起動できませんでした</p>`;
+                // カメラが無い環境での想定内エラーのため、コンソール出力をオフにしてエラー警告を防ぐ
+                // console.error("Camera Init Error:", err);
+                
+                let errorTitle = "カメラを起動できませんでした";
+                let errorDesc = "ブラウザのカメラ権限を許可してください";
+                
+                const errStr = err.toString();
+                if (err.name === 'NotFoundError' || errStr.includes('Requested device not found') || errStr.includes('カメラが見つかりません')) {
+                    errorTitle = "カメラが見つかりません";
+                    errorDesc = "端末にカメラがないか、接続されていません。<br>下の「⚡ ぴっ！(テスト用)」ボタンを使って遊んでね！";
+                } else if (err.name === 'NotAllowedError' || errStr.includes('Permission denied')) {
+                    errorTitle = "カメラの使用が許可されていません";
+                    errorDesc = "ブラウザの設定でカメラを許可してください。";
+                }
+                
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center text-center p-4">
+                        <span class="text-4xl mb-3">⚠️</span>
+                        <p class="font-bold text-rose-400 mb-2">${errorTitle}</p>
+                        <p class="text-xs text-white/80 leading-relaxed">${errorDesc}</p>
+                    </div>
+                `;
             }
         }
 
@@ -448,6 +467,8 @@
         async function startScanning(cameraId) {
             if (isScannerTransitioning) return;
             isScannerTransitioning = true;
+            
+            const fallbackMsg = document.getElementById("camera-fallback-msg");
 
             try {
                 if (html5QrcodeScanner) {
@@ -466,9 +487,7 @@
                         Html5QrcodeSupportedFormats.EAN_13, // 一般的なJANコード(13桁)
                         Html5QrcodeSupportedFormats.EAN_8,  // 短縮JANコード(8桁)
                         Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E,
-                        Html5QrcodeSupportedFormats.CODE_128,
-                        Html5QrcodeSupportedFormats.CODE_39
+                        Html5QrcodeSupportedFormats.UPC_E
                     ],
                     // スマホ画面でもはみ出さず、バーコードに合わせた横長のレスポンシブqrbox設定
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
@@ -477,23 +496,48 @@
                             height: 150
                         };
                     },
-                    // スマホのオートフォーカスを促す
-                    videoConstraints: {
-                        focusMode: "continuous",
-                        advanced: [{ focusMode: "continuous" }]
-                    }
+                    // スマホで無駄な反転処理を省き高速化
+                    disableFlip: true
                 };
 
-                await html5QrcodeScanner.start(
-                    cameraId,
-                    config,
-                    onScanSuccessInternal,
-                    onScanErrorInternal
-                );
+                // 取得済みの確実なIDでカメラを起動
+                await html5QrcodeScanner.start(cameraId, config, onScanSuccessInternal, onScanErrorInternal);
+
+                // PCの前カメラ等の直感的な鏡像対応（取得したカメラ名から推測）
+                const camera = cameras.find(c => c.id === cameraId);
+                const isFront = camera && (camera.label.toLowerCase().includes("front") || camera.label.toLowerCase().includes("user"));
+                const readerDiv = document.getElementById("reader");
+                if (isFront) {
+                    readerDiv.classList.add("mirror-video");
+                } else {
+                    readerDiv.classList.remove("mirror-video");
+                }
                 
-                document.getElementById("camera-fallback-msg").classList.add("hidden");
+                fallbackMsg.classList.add("hidden");
             } catch (e) {
-                document.getElementById("camera-fallback-msg").innerHTML = `<span class="text-4xl mb-3">⚠️</span><p class="font-bold text-rose-400">カメラの起動に失敗しました</p>`;
+                // カメラが無い環境での想定内エラーのため、コンソール出力をオフにしてエラー警告を防ぐ
+                // console.error("Scanner Start Error:", e);
+                fallbackMsg.classList.remove("hidden");
+                
+                let errorTitle = "カメラが見つかりません";
+                let errorDesc = "他のアプリがカメラを使用していないか確認してください";
+                
+                const errStr = e.toString();
+                if (e.name === 'NotFoundError' || errStr.includes('Requested device not found')) {
+                    errorTitle = "カメラが見つかりません";
+                    errorDesc = "カメラが接続されていないか、認識されていません。<br>下の「⚡ ぴっ！(テスト用)」ボタンを使って遊んでね！";
+                } else if (e.name === 'NotAllowedError' || errStr.includes('Permission denied')) {
+                    errorTitle = "カメラの使用が許可されていません";
+                    errorDesc = "ブラウザの設定でカメラを許可してください。";
+                }
+                
+                fallbackMsg.innerHTML = `
+                    <div class="flex flex-col items-center justify-center text-center p-4">
+                        <span class="text-4xl mb-3">⚠️</span>
+                        <p class="font-bold text-rose-400 mb-2">${errorTitle}</p>
+                        <p class="text-xs text-white/80 leading-relaxed">${errorDesc}</p>
+                    </div>
+                `;
             } finally {
                 isScannerTransitioning = false;
             }
@@ -518,9 +562,13 @@
             const now = Date.now();
             const cleanCode = decodedText.replace(/[^0-9]/g, ''); 
             
-            // 短すぎる誤検知を弾く（ライブラリの厳密な判定を100%信頼する）
-            if (cleanCode.length < 8) return; 
-            if (now - lastScanTime < 1800) return; 
+            // 【重要】一般的なバーコード（JAN/UPC）の桁数（8, 12, 13桁）に厳密に一致するものだけを許可。
+            // これにより、読み取り途中や誤認識による「違う商品になる」バグを防止。
+            if (cleanCode.length !== 8 && cleanCode.length !== 12 && cleanCode.length !== 13) {
+                return; 
+            }
+            // 同じ商品を連続で読み取らないように1.5秒のインターバルを設ける
+            if (now - lastScanTime < 1500) return; 
             
             lastScanTime = now;
             addToCart(getProductFromBarcode(cleanCode));
@@ -529,28 +577,26 @@
         function onScanErrorInternal() {}
 
         async function toggleCameraFacing() {
-            if (isScannerTransitioning) return;
-            try {
-                const devices = await Html5Qrcode.getCameras();
-                if (devices.length > 1) {
-                    const currentIndex = devices.findIndex(d => d.id === currentCameraId);
-                    const nextCamera = devices[(currentIndex + 1) % devices.length];
-                    currentCameraId = nextCamera.id;
-                    
-                    const readerDiv = document.getElementById("reader");
-                    if (nextCamera.label.toLowerCase().includes("front") || nextCamera.label.toLowerCase().includes("user")) {
-                        readerDiv.classList.add("mirror-video");
-                    } else {
-                        readerDiv.classList.remove("mirror-video");
-                    }
-
-                    startScanning(currentCameraId);
-                }
-            } catch (e) {}
+            // 切り替え処理中、またはカメラが1つしかない場合は何もしない
+            if (isScannerTransitioning || cameras.length <= 1) return;
+            
+            // 複数のカメラがある場合、リスト上で次のカメラIDを見つけて切り替える
+            const currentIndex = cameras.findIndex(c => c.id === currentCameraId);
+            const nextIndex = (currentIndex + 1) % cameras.length;
+            currentCameraId = cameras[nextIndex].id;
+            await startScanning(currentCameraId);
         }
 
+        // テスト用のダミーバーコード配列（これらをスキャンしたことにする）
+        const mockBarcodes = ["4901234567890", "4909876543210", "4901111111111", "4902222222222"];
+        let mockIndex = 0;
+
         function triggerMockScan() {
-            addToCart(dummyProducts[Math.floor(Math.random() * dummyProducts.length)]);
+            // テストボタンを押すたびに固定のバーコードを順番にスキャンしたことにする
+            // （同じバーコードなら必ず同じ商品になることを確認可能）
+            const code = mockBarcodes[mockIndex];
+            mockIndex = (mockIndex + 1) % mockBarcodes.length;
+            addToCart(getProductFromBarcode(code));
         }
 
         function addToCart(product) {
@@ -592,7 +638,13 @@
             document.getElementById("total-price").innerText = total.toLocaleString();
             document.getElementById("checkout-btn").disabled = cart.length === 0;
 
-            setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
+            // スクロール領域（div）を一番下までスクロールさせる
+            setTimeout(() => { 
+                const scrollArea = document.getElementById("cart-scroll-area");
+                if (scrollArea) {
+                    scrollArea.scrollTop = scrollArea.scrollHeight;
+                }
+            }, 50);
         }
 
         function removeItem(id) { cart = cart.filter(i => i.id !== id); renderCart(); }
