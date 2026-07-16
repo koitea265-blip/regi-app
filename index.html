@@ -434,12 +434,21 @@
                 document.getElementById("reader").innerHTML = "";
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
+                // ★既存のカメラ情報から、今回のカメラが「スマホのアウトカメラ」か判定★
+                const devices = await Html5Qrcode.getCameras();
+                const targetCam = devices.find(d => d.id === cameraId);
+                const isOutCamera = targetCam && isMobile && 
+                    (targetCam.label.toLowerCase().includes("back") || 
+                     targetCam.label.toLowerCase().includes("environment") || 
+                     targetCam.label.toLowerCase().includes("アウト") || 
+                     targetCam.label.toLowerCase().includes("背面") || 
+                     !targetCam.label);
+
+                // 基本設定（今まで成功しているPC・インカメラ用）
                 const config = {
                     fps: 15
                 };
                 
-                // 【重要】QRコード等の重い解析を完全に除外し、日本の商品バーコードのみに全パワーを集中させる。
-                // これにより、スマホのアウトカメラの超高画質(4K)を「全画面スキャン」しても処理落ちせず爆速で読み取ります。
                 if (typeof Html5QrcodeSupportedFormats !== 'undefined') {
                     config.formatsToSupport = [ 
                         Html5QrcodeSupportedFormats.EAN_13,
@@ -449,8 +458,24 @@
                     ];
                 }
 
+                // 起動用パラメータ（デフォルトは今まで通りID直接指定で全画面スキャン）
+                let startParam = cameraId;
+
+                if (isOutCamera) {
+                    // ★別のアプローチ（スマホのアウトカメラ専用の特別設定）★
+                    // 1. デバイスID指定ではなく、OSに「最適な背面カメラ（メインレンズ）」を選ばせる
+                    startParam = { facingMode: "environment" };
+                    
+                    // 2. 超高画質による線の飛び越し（エイリアシング）を防ぐため、あえて画質を低く太くする
+                    startParam.width = { ideal: 640 };
+                    startParam.height = { ideal: 480 };
+
+                    // 3. 縦画面での座標狂いを防ぐため、広めの「正方形」の読み取り枠を設定する
+                    config.qrbox = { width: 250, height: 250 };
+                }
+
                 await html5QrcodeScanner.start(
-                    cameraId,
+                    startParam,
                     config,
                     onScanSuccessInternal,
                     onScanErrorInternal
