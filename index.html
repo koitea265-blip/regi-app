@@ -134,8 +134,11 @@
                     <div id="reader" class="w-full h-full"></div>
                     
                     <!-- 【重要】内部のqrbox(300x150)とサイズを完璧に合わせたUIガイド枠 -->
-                    <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
-                        <div class="relative w-[300px] h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.5)] flex items-center justify-center border border-white/40">
+                    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center overflow-hidden">
+                        <div class="mb-2 text-white text-[11px] sm:text-sm font-bold bg-slate-900/60 px-3 py-1 rounded-full backdrop-blur-sm border border-white/20 shadow-lg">
+                            💡 すこし はなして うつしてね！
+                        </div>
+                        <div class="relative w-[220px] h-[110px] sm:w-[300px] sm:h-[150px] rounded-lg shadow-[0_0_0_9999px_rgba(15,23,42,0.5)] flex items-center justify-center border border-white/40">
                             <!-- 四隅の白い枠 -->
                             <div class="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl-sm"></div>
                             <div class="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr-sm"></div>
@@ -394,13 +397,13 @@
                     const label = targetCamera.label.toLowerCase();
                     let isMirror = false;
                     
-                    if (label.includes("front") || label.includes("user") || label.includes("イン") || label.includes("前面")) {
+                    if (label.includes("front") || label.includes("user") || label.includes("イン") || label.includes("前面") || label.includes("integrated") || label.includes("facetime") || label.includes("内蔵")) {
                         isMirror = true;
                     } else if (label.includes("back") || label.includes("environment") || label.includes("アウト") || label.includes("背面")) {
                         isMirror = false;
                     } else {
-                        // ラベルで判別できない場合、スマホはアウト(反転なし)、PCはイン(反転あり)と推定
-                        isMirror = !isMobile;
+                        // 判別できない場合、カメラが1つならPC内蔵(鏡)と推測、複数ならスマホ背面(非鏡)と推測
+                        isMirror = devices.length === 1;
                     }
 
                     if (isMirror) {
@@ -494,7 +497,7 @@
                     const label = nextCamera.label.toLowerCase();
                     let isMirror = false;
                     
-                    if (label.includes("front") || label.includes("user") || label.includes("イン") || label.includes("前面")) {
+                    if (label.includes("front") || label.includes("user") || label.includes("イン") || label.includes("前面") || label.includes("integrated") || label.includes("facetime") || label.includes("内蔵")) {
                         isMirror = true;
                     } else if (label.includes("back") || label.includes("environment") || label.includes("アウト") || label.includes("背面")) {
                         isMirror = false;
