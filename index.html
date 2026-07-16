@@ -435,14 +435,9 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 10, // スマホの処理パンクを防ぐための最適な速度
-                    formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ],
-                    // スマホのアウトカメラで細い線をクッキリ認識させるためのHD画質＆オートフォーカス要求
-                    videoConstraints: {
-                        width: { ideal: 1280 },
-                        advanced: [{ focusMode: "continuous" }]
-                    },
-                    // 書籍の2段バーコードの片方だけを狙い撃ちできる、ちょうどいい大きさの固定枠
+                    fps: 10,
+                    // 余計な制約（高画質・オートフォーカス強制）を外し、切り替えエラーを防ぐ
+                    // その代わり、スキャン枠を小さく絞って処理落ちを防ぎ、アウトカメラの認識率を上げる
                     qrbox: { width: 280, height: 120 } 
                 };
 
