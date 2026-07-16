@@ -509,6 +509,11 @@
                             width: Math.max(150, viewfinderWidth * 0.9),
                             height: Math.max(100, Math.min(viewfinderHeight * 0.6, 200))
                         };
+                    },
+                    // ★追加: アウトカメラの「線潰れ」を防ぐため、解像度を高く要求（ideal指定なのでエラーで止まらない）
+                    videoConstraints: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
                     }
                 };
                 
