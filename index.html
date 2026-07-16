@@ -499,22 +499,24 @@
                 // ★起動用パラメータは絶対に「cameraId」文字列のままにして、真っ黒になる暴走を100%防ぐ★
                 let startParam = cameraId;
 
-                // 基本設定
+                // 確実な設定にリセット: 以前インカメラで読めていた時の仕組み（qrbox）を復活させ、
+                // スマホの処理パンクを防ぐためにfpsを下げ、形式をEAN（商品バーコード）に完全に絞る
                 const config = {
-                    fps: 15,
-                    // ★全く新しいアプローチ：スマホ内蔵の「ネイティブ・バーコード認識機能」を解禁！★
-                    // これにより、画質やピント問題を超越して、OSレベルの超高速スキャンが行われます。
-                    experimentalFeatures: {
-                        useBarCodeDetectorIfSupported: true
+                    fps: 10, 
+                    qrbox: (viewfinderWidth, viewfinderHeight) => {
+                        // ズレをなくすため横幅は広めに（90%）、高さはスリット状（最大200px）にして確実性を上げる
+                        return {
+                            width: Math.max(150, viewfinderWidth * 0.9),
+                            height: Math.max(100, Math.min(viewfinderHeight * 0.6, 200))
+                        };
                     }
                 };
                 
+                // 余計な処理（QRコード等）を探させないことで、アウトカメラの負荷を劇的に下げる
                 if (typeof Html5QrcodeSupportedFormats !== 'undefined') {
                     config.formatsToSupport = [ 
                         Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E
+                        Html5QrcodeSupportedFormats.EAN_8
                     ];
                 }
 
