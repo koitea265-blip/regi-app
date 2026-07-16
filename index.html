@@ -435,11 +435,19 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 10,
-                    // 余計な制約（高画質・オートフォーカス強制）を外し、切り替えエラーを防ぐ
-                    // その代わり、スキャン枠を小さく絞って処理落ちを防ぎ、アウトカメラの認識率を上げる
-                    qrbox: { width: 280, height: 120 } 
+                    fps: 15
                 };
+                
+                // 【重要】QRコード等の重い解析を完全に除外し、日本の商品バーコードのみに全パワーを集中させる。
+                // これにより、スマホのアウトカメラの超高画質(4K)を「全画面スキャン」しても処理落ちせず爆速で読み取ります。
+                if (typeof Html5QrcodeSupportedFormats !== 'undefined') {
+                    config.formatsToSupport = [ 
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E
+                    ];
+                }
 
                 await html5QrcodeScanner.start(
                     cameraId,
