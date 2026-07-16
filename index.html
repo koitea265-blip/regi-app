@@ -435,18 +435,15 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 15, 
+                    fps: 10, // スマホの処理パンクを防ぐための最適な速度
                     formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ],
-                    // 【スマホ・PC完全対応のハイブリッド枠】
-                    // 固定サイズだと高画質カメラで極小になってしまうため、
-                    // カメラの実際の解像度に対して「幅90%、高さ60%」の広い割合を動的に設定。
-                    // これにより「ズレない広さ」と「処理落ちしない軽さ」を完璧に両立します。
-                    qrbox: function(viewfinderWidth, viewfinderHeight) {
-                        return {
-                            width: Math.max(50, Math.floor(viewfinderWidth * 0.9)),
-                            height: Math.max(50, Math.floor(viewfinderHeight * 0.6))
-                        };
-                    }
+                    // スマホのアウトカメラで細い線をクッキリ認識させるためのHD画質＆オートフォーカス要求
+                    videoConstraints: {
+                        width: { ideal: 1280 },
+                        advanced: [{ focusMode: "continuous" }]
+                    },
+                    // 書籍の2段バーコードの片方だけを狙い撃ちできる、ちょうどいい大きさの固定枠
+                    qrbox: { width: 280, height: 120 } 
                 };
 
                 await html5QrcodeScanner.start(
