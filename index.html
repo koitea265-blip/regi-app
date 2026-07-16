@@ -435,11 +435,18 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 15, // 速度と安定性のバランスを最適化したFPS
-                    formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ]
-                    // 【重要】qrbox（スキャン領域の切り取り制限）を完全削除！
-                    // これにより「画面のどこに映っていても全域から探す」ようになり、
-                    // Chromebook特有の「座標がズレて真ん中で読まない」問題が100%消滅します。
+                    fps: 15, 
+                    formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ],
+                    // 【スマホ・PC完全対応のハイブリッド枠】
+                    // 固定サイズだと高画質カメラで極小になってしまうため、
+                    // カメラの実際の解像度に対して「幅90%、高さ60%」の広い割合を動的に設定。
+                    // これにより「ズレない広さ」と「処理落ちしない軽さ」を完璧に両立します。
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        return {
+                            width: Math.max(50, Math.floor(viewfinderWidth * 0.9)),
+                            height: Math.max(50, Math.floor(viewfinderHeight * 0.6))
+                        };
+                    }
                 };
 
                 await html5QrcodeScanner.start(
