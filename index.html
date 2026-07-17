@@ -128,7 +128,7 @@
         }
     </style>
 </head>
-<body class="h-screen flex flex-col bg-slate-50 overflow-hidden no-select">
+<body class="h-[100dvh] flex flex-col bg-slate-50 overflow-hidden no-select">
 
     <!-- ヘッダー -->
     <header class="bg-emerald-600 text-white p-3 sm:p-4 shadow-md flex justify-between items-center z-10 flex-shrink-0">
@@ -196,7 +196,7 @@
             </h2>
             
             <!-- スクロール可能なカート領域（ul自体をスクロールコンテナに指定して常に自動で最下部へスクロールさせる） -->
-            <div class="flex-1 min-h-[150px] mb-2 sm:mb-4 pr-1 flex flex-col min-h-0 overflow-hidden">
+            <div class="flex-1 mb-2 sm:mb-4 pr-1 flex flex-col min-h-0 overflow-hidden">
                 <ul id="cart-list" class="flex-1 overflow-y-auto space-y-2 pb-2 scroll-smooth">
                     <li id="cart-placeholder" class="text-gray-400 text-center mt-6 sm:mt-12 font-kyokasho text-sm sm:text-base">おかいもの を はじめよう！</li>
                 </ul>
@@ -474,20 +474,9 @@
             try {
                 html5QrcodeScanner = new Html5Qrcode("reader");
 
+                // 読み取り範囲の制限を解除し、スマホの高画質カメラの映像全体から爆速で検知させる
                 const config = {
-                    fps: 15,
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E
-                    ],
-                    // 自作フレームに完全に合致する横長の高精度qrboxを設定
-                    qrbox: function(viewfinderWidth, viewfinderHeight) {
-                        const width = Math.min(viewfinderWidth * 0.8, 320);
-                        const height = width * (3/5); // アスペクト比 5:3
-                        return { width: width, height: height };
-                    }
+                    fps: 15
                 };
 
                 await html5QrcodeScanner.start(
